@@ -231,7 +231,7 @@
         const arType = ar ? ar.type : "none";
         const arName = ar ? ar.name : "无箭头";
         const arIcon = arType === "one" ? "➜" : arType === "both" ? "⇄" : "—";
-        parts.push("💑连线·笔刷 ◯" + App.esc(bName) + " ●" + App.esc(tName) + " " + arIcon + App.esc(arName));
+        parts.push("💑笔刷 ◯" + App.esc(bName) + " ●" + App.esc(tName) + " " + arIcon + App.esc(arName));
         if (App.linkSource) parts.push("已选起点·拖向终点");
       }
     }

@@ -13,16 +13,27 @@ button{ font-family:inherit; border:none; background:transparent; cursor:pointer
 button:active{ opacity:.7; }
 .hidden{ display:none !important; }
 
-/* ---------- 顶部栏 ---------- */
-#topbar{ display:flex; align-items:center; gap:6px; padding:6px 10px;
+/* ---------- 顶部栏（容器占用上方点击区 → 只读标题，无可点按钮） ---------- */
+#topbar{ display:flex; align-items:center; justify-content:center;
   background:rgba(249,249,249,.96); border-bottom:1px solid var(--line); flex:0 0 auto;
-  padding-top:calc(6px + env(safe-area-inset-top)); }
-.tb-btn{ font-size:20px; width:38px; height:34px; border-radius:9px; background:#fff;
-  border:1px solid var(--line); color:var(--ink); }
-.tb-btn:disabled{ opacity:.35; }
-.tb-title{ flex:1; text-align:center; font-size:15px; font-weight:600; padding:4px 8px;
-  border-radius:8px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
-.tb-title:active{ background:#eee; }
+  padding-top:calc(2px + env(safe-area-inset-top)); }
+.tb-title{ flex:1; text-align:center; font-size:15px; font-weight:600; padding:5px 8px;
+  border-radius:8px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;
+  cursor:default; -webkit-user-select:none; user-select:none; }
+.tb-title:active{ background:transparent; }
+
+/* ---------- 画布右侧悬浮工具组（撤销/重做/菜单；可拖动吸附） ---------- */
+#floatTools{ position:absolute; z-index:6; right:10px; top:calc(50% - 70px);
+  display:flex; flex-direction:column; align-items:center; gap:8px;
+  padding:6px 4px; border-radius:16px;
+  background:rgba(255,255,255,.88); border:1px solid var(--line); box-shadow:var(--shadow);
+  touch-action:none; -webkit-user-select:none; user-select:none; }
+#floatTools.dragging{ opacity:.9; }
+#floatTools .tb-btn{ font-size:19px; width:40px; height:38px; border-radius:12px; background:#fff;
+  border:1px solid var(--line); color:var(--ink); display:flex; align-items:center; justify-content:center; }
+#floatTools .tb-btn:active{ opacity:.7; background:var(--accent-soft); }
+#floatTools .tb-btn:disabled{ opacity:.32; }
+#floatTools .menu-fab{ background:var(--accent); border-color:var(--accent); color:#fff; font-size:20px; }
 
 /* ---------- 视图指示条 ---------- */
 #viewstrip{ flex:0 0 auto; display:flex; align-items:center; gap:8px;
@@ -67,6 +78,19 @@ button:active{ opacity:.7; }
 .mini-btn.danger{ color:var(--danger); }
 .mini-btn.active{ background:var(--accent-soft); border-color:var(--accent); color:var(--accent); }
 #opsRingSel{ font-size:13px; border:1px solid var(--line); border-radius:8px; padding:4px; background:#fff; }
+
+/* ---------- 面板折叠把手（面板顶部/画板底部；折叠后仅留此条） ---------- */
+#panelHead{ flex:0 0 auto; display:flex; align-items:flex-end; justify-content:center;
+  height:20px; background:transparent; position:relative; z-index:3; }
+/* 上窄下宽梯形把手，居中；两侧留白省出视觉空间 */
+.pf-btn{ font-size:11px; color:var(--sub); letter-spacing:2px; text-align:center; line-height:22px;
+  width:120px; height:22px; padding:0; border:none; border-radius:0;
+  background:var(--line); cursor:pointer;
+  -webkit-clip-path:polygon(32% 0, 68% 0, 100% 100%, 0% 100%);
+  clip-path:polygon(32% 0, 68% 0, 100% 100%, 0% 100%); }
+.pf-btn:active{ opacity:.75; }
+body.panel-collapsed #panel{ display:none !important; }
+body.panel-collapsed #panelHead{ height:20px; }
 
 /* ---------- 面板 ---------- */
 .panel{ flex:0 1 auto; max-height:38dvh; overflow-y:auto; background:var(--panel);
@@ -132,11 +156,13 @@ input[type=range]{ accent-color:var(--accent); }
   border-bottom:2px solid transparent; }
 .tab.on{ color:var(--accent); border-bottom-color:var(--accent); font-weight:600; }
 
-/* ---------- 菜单 ---------- */
+/* ---------- 菜单（顶部禁点区 → 改为底部弹出面板） ---------- */
 #menuRoot,#modalRoot{ position:fixed; inset:0; z-index:40; }
 #menuMask,#modalMask{ position:absolute; inset:0; background:rgba(0,0,0,.35); }
-#menuBox{ position:absolute; right:8px; top:calc(48px + env(safe-area-inset-top));
-  background:#fff; border-radius:14px; box-shadow:var(--shadow); overflow:hidden; min-width:210px; }
+#menuBox{ position:absolute; left:50%; bottom:0; transform:translateX(-50%);
+  width:min(94vw,430px); max-height:66dvh; overflow-y:auto;
+  background:#fff; border-radius:16px 16px 0 0; box-shadow:0 -6px 24px rgba(0,0,0,.16);
+  padding-bottom:calc(8px + env(safe-area-inset-bottom)); }
 .menu-group{ padding:10px 16px 2px; font-size:11px; color:var(--sub); }
 .menu-sep{ height:1px; margin:4px 8px; background:#f0f0f2; }
 .menu-item{ padding:11px 16px; font-size:15px; border-bottom:1px solid #f0f0f2; }
@@ -166,10 +192,11 @@ textarea.export-txt{ width:100%; min-height:180px; font-family:ui-monospace,Menl
 /* 隐藏 UI 全屏态（截图/导出用） */
 body.hideui #topbar, body.hideui #viewstrip, body.hideui #panel,
 body.hideui #tabs, body.hideui #legendChip, body.hideui #brushPreview,
-body.hideui #nodeOps, body.hideui #toast{ display:none !important; }
+body.hideui #nodeOps, body.hideui #floatTools, body.hideui #panelHead, body.hideui #toast{ display:none !important; }
 body.hideui #app{ height:100dvh; }
-#fullExit{ position:fixed; z-index:70; top:calc(10px + env(safe-area-inset-top)); right:12px;
-  width:30px; height:30px; border-radius:50%; background:rgba(255,255,255,.85);
+/* 全屏退出钮：避开容器顶部占用区 → 移到屏幕右下 */
+#fullExit{ position:fixed; z-index:70; right:16px; bottom:calc(18px + env(safe-area-inset-bottom));
+  width:34px; height:34px; border-radius:50%; background:rgba(255,255,255,.88);
   border:1px solid rgba(0,0,0,.15); font-size:15px; color:#333; box-shadow:0 1px 6px rgba(0,0,0,.2); }
 
 /* ---------- 全屏信息卡（关于） ---------- */
@@ -182,6 +209,10 @@ body.hideui #app{ height:100dvh; }
 .about-date{ font-size:11px; color:var(--sub); margin:2px 0 6px; }
 .about-sec{ align-self:stretch; text-align:left; font-size:12px; font-weight:700;
   color:var(--ink); margin:14px 0 4px; padding-bottom:4px; border-bottom:1px solid var(--line); }
+/* 关于页 · 更新日志版本小标题 */
+.log-ver{ align-self:stretch; text-align:left; font-size:12px; font-weight:700;
+  color:var(--accent); margin:10px 0 2px; }
+.log-ver + .about-list{ margin-bottom:2px; }
 .about-list{ margin:0; padding:0 0 0 2px; list-style:none; align-self:stretch; text-align:left; }
 .about-list li{ font-size:13px; line-height:1.75; color:#3a3a3c; }
 .about-list.credit li{ color:var(--ink); }
@@ -194,8 +225,8 @@ body.hideui #app{ height:100dvh; }
 .help-h{ font-size:14px; font-weight:700; color:var(--ink); margin:12px 0 5px;
   padding-left:8px; border-left:3px solid var(--accent); }
 .help-step, .help-tab, .help-tip{ font-size:13px; color:#3a3a3c; margin:5px 0; }
-.help-step code, .help-intro code{ display:inline-block; background:#f1f1f4; border-radius:5px;
-  padding:0 5px; font-family:ui-monospace,Menlo,Consolas,monospace; font-size:12px; }
-.help-step code{ display:block; margin:3px 0 3px 2px; width:fit-content; }
+.help-step code, .help-intro code{ display:inline; background:#f1f1f4; border-radius:5px;
+  padding:1px 5px; font-family:ui-monospace,Menlo,Consolas,monospace; font-size:12px; }
+.help-step .code-line{ display:block; margin:3px 0 3px 2px; }
 .help-tab{ padding:2px 0; }
 .help-end{ margin-top:12px; font-size:12px; color:var(--sub); }

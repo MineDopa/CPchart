@@ -176,7 +176,7 @@
       cardH += blk.rows.length * rowH;
     });
     const cardW = Math.min(contentCap, maxRowW) + padX * 2;
-    return { blocks, w: cardW, h: cardH, rowH, itemGap, padX, padY };
+    return { blocks, w: cardW, h: cardH, rowH, itemGap, padX, padY, segGap };
   }
 
   function drawLegendItem(ctx, it, x, cy, textColor) {
@@ -342,14 +342,24 @@
         // 图例角标层导出时去除（画布内不显示）
         const chip = clone.querySelector("#legendChip");
         if (chip) chip.parentNode.removeChild(chip);
-        // 背景
-        const bg = document.createElementNS("http://www.w3.org/2000/svg", "rect");
-        bg.setAttribute("x", x0 - 2000); bg.setAttribute("y", y0 - 2000);
-        bg.setAttribute("width", w + 4000); bg.setAttribute("height", h + 4000);
-        bg.setAttribute("fill", st.bg);
-        const root = clone.querySelector("#bg") || clone.firstElementChild;
-        if (root) clone.insertBefore(bg, root);
-        else clone.insertBefore(bg, clone.firstChild);
+        // 背景（DOM 层级修复）：#bg 实为 <g id="vp"> 内的孙节点，拿它当 <svg> 的 insertBefore
+        // 参照节点会抛 NotFoundError（容器与网页版均会崩，此前未走到导出真实验证）。
+        // 改为直接复用该已有 #bg，setAttribute 扩展覆盖导出视窗并重设 fill；
+        // 仅当节点异常缺失时才兜底插入 clone 首个子节点。
+        const bgEl = clone.querySelector("#bg");
+        if (bgEl) {
+          bgEl.setAttribute("x", x0 - 2000);
+          bgEl.setAttribute("y", y0 - 2000);
+          bgEl.setAttribute("width", w + 4000);
+          bgEl.setAttribute("height", h + 4000);
+          bgEl.setAttribute("fill", st.bg);
+        } else {
+          const bg = document.createElementNS("http://www.w3.org/2000/svg", "rect");
+          bg.setAttribute("x", x0 - 2000); bg.setAttribute("y", y0 - 2000);
+          bg.setAttribute("width", w + 4000); bg.setAttribute("height", h + 4000);
+          bg.setAttribute("fill", st.bg);
+          clone.insertBefore(bg, clone.firstChild);
+        }
 
         const xml = new XMLSerializer().serializeToString(clone);
         const url = "data:image/svg+xml;charset=utf-8," + encodeURIComponent(xml);

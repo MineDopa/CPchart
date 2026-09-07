@@ -4,6 +4,7 @@
 
   App.activeTab = "link";
   App.fullUI = false;
+  App.panelCollapsed = false; // 底部二级面板折叠态
   let modalCloseCb = null;
   let pendingAvatarFor = null;
   let lastColorFocus = null;
@@ -11,9 +12,16 @@
   const $ = App.byId;
 
   // =============== Tab 切换 ===============
+  App.setPanelCollapsed = function (v) {
+    App.panelCollapsed = !!v;
+    document.body.classList.toggle("panel-collapsed", App.panelCollapsed);
+    const b = $("btnPanelFold");
+    if (b) b.textContent = App.panelCollapsed ? "︿ 展开" : "﹀ 收起";
+  };
   App.switchTab = function (tab) {
     App.activeTab = tab;
     App.pendingLinkDel = null; // 切 Tab 清除删线待确认态
+    if (App.panelCollapsed) App.setPanelCollapsed(false); // 切 Tab 视为要操作面板 → 自动展开
     document.querySelectorAll("#tabs .tab").forEach((b) => {
       b.classList.toggle("on", b.getAttribute("data-tab") === tab);
     });
@@ -117,7 +125,7 @@
         <button class="chip ${st.ui.showNames ? "on" : ""}" data-cmd="pm-names">${st.ui.showNames ? "开" : "关"}</button>
       </div>
       <div class="pg-t">角色列表（${st.chars.length}）· 点📷行上传头像</div>
-      ${rows || '<div class="hint">暂无角色，先“导入名单”或去 ≡ 菜单导入</div>'}
+      ${rows || '<div class="hint">暂无角色，先“导入名单”或去 ☰ 菜单导入</div>'}
     </div>`;
   }
 
@@ -245,6 +253,18 @@
   }
 
   // =============== 菜单 / 弹窗 ===============
+  // 改名弹窗（原顶栏标题点击 → 现经菜单「改图名 / 填表人」进入）
+  App.openTitleModal = function () {
+    App.openModal(`${modalHead("修改图名 / 填表人")}
+      <div class="hint">图名用于导出图与发布笔记；填表人会写入导出图署名。设置后顶栏显示为：填表人 的 图名。</div>
+      <div style="font-size:12px;color:var(--sub);margin:2px 0 4px">图名</div>
+      <input type="text" id="promptTitle" class="inp" style="width:100%" value="${App.esc(App.state.title)}">
+      <div style="font-size:12px;color:var(--sub);margin:12px 0 4px">填表人（可选）</div>
+      <input type="text" id="promptFiller" class="inp" style="width:100%" value="${App.esc(App.getFiller())}" placeholder="未填写则不显示“填表：”">
+      <div class="modal-btns"><button class="btn" data-cmd="m-close">取消</button>
+      <button class="btn primary" data-cmd="title-ok">确定</button></div>`);
+    modalCloseCb = null;
+  };
   App.openModal = function (bodyHtml, full) {
     $("modalBox").classList.toggle("full", !!full);
     $("modalBox").innerHTML = bodyHtml;
@@ -306,9 +326,9 @@
         <div class="help-step"><b>第二步 · 画连线</b>：点击底部「💑 连线」，先选三样：<br>
           ◯ 粗线 = 喜好度（本命 / 很喜欢 / 路好 / 不吃）<br>
           ● 细线 = 关系类型（爱情 / 友情 / 亲情 / QPR）<br>
-          ➜ 箭头 = 方向（无 / 单向 / 双向）<br>
-          然后从角色圆上按住，拖到另一个角色上松手即成线。同一对后画的会覆盖先画的。</div>
-        <div class="help-step"><b>第三步 · 导出</b>：右上「≡」菜单 → 导出图片（存相册）/ 导出名单（复制文本）/ 导出完整快照（备份）/ 发布笔记（唤起发布页）。</div>
+          ➜ 箭头 = 方向（无 / 单箭头 / 双箭头）<br>
+          然后从角色圆上按住，拖到另一个角色上松手即成线。同一对后画的会覆盖先画的。A→B 与 B→A 的单箭头可同时存在，配不同关系色。</div>
+        <div class="help-step"><b>第三步 · 导出</b>：点画布右侧悬浮 ☰ 菜单 → 导出图片（存相册）/ 导出名单（复制文本）/ 导出完整快照（备份）/ 发布笔记（唤起发布页）。</div>
 
         <div class="help-h">各 Tab 是干嘛的</div>
         <div class="help-tab"><b>🎨 样式</b>：改颜色、改图例名、显示/隐藏类型、调背景色</div>
@@ -322,7 +342,8 @@
           • <b>拖角色换圈</b>：布局模式按住角色，拖到目标圈附近松手<br>
           • <b>调圈半径</b>：拖圈顶 12 点方向的蓝色小圆点，或在布局面板输入数值<br>
           • <b>删线</b>：连线 →「🪌 删线模式」，点哪条删哪条<br>
-          • <b>撤销/重做</b>：顶栏 ↩︎ / ↪︎ 可回退几乎所有操作<br>
+          • <b>撤销/重做</b>：画布右侧悬浮 ↩︎ / ↪︎ 可回退几乎所有操作<br>
+          • <b>改图名 / 填表人</b>：☰ 菜单 → 工具 → 改图名 / 填表人<br>
           • <b>缩放/平移</b>：双指缩放，单指拖空白区域平移<br>
           • <b>图例直切</b>：点画布左上角图例色块可直接切换对应笔刷</div>
 
@@ -332,12 +353,12 @@
           • 编辑会自动保存草稿；需长期保存请用「导出完整快照」，把文本发给需要的设备后「导入快照」恢复<br>
           • 快照不含头像，导入后头像需重新设置</div>
 
-        <div class="help-end">还有问题？「≡ 菜单 → 关于」可查看版本与作者信息。祝您吃好喝好！✨</div>
+        <div class="help-end">还有问题？「☰ 菜单 → 关于」可查看版本与作者信息。祝您吃好喝好！✨</div>
       </div>
       <div class="modal-btns"><button class="btn primary" data-cmd="m-close">知道了</button></div>`);
   };
 
-  // 关于页（P12 · 全屏信息卡）：版本号跟随当前上线包 = v0.9.3；不含任何站外链接/仓库地址
+  // 关于页（P12 · 全屏信息卡）：版本号跟随当前上线包 = v0.10.2；不含任何站外链接/仓库地址
   App.aboutModal = function () {
     App.openModal(`<div class="about-page">
         <div class="about-logo"><svg width="64" height="64" viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -350,24 +371,36 @@
           <line x1="52" y1="52" x2="40" y2="40" stroke="currentColor" stroke-width="2"></line>
           <text x="32" y="37" font-size="11" text-anchor="middle" fill="currentColor" font-weight="bold">CP</text>
         </svg></div>
-        <div class="about-name">CP Chart <em>v0.9.3</em></div>
+        <div class="about-name">CP Chart <em>v0.10.2</em></div>
         <div class="about-sub">人物关系连线图 · 小红书小工具版</div>
-        <div class="about-date">更新于 2026-09-07</div>
+        <div class="about-date">更新于 2026-09-08</div>
 
-        <div class="about-sec">📌 最近新增</div>
+        <div class="about-sec">📌 更新日志</div>
+        <div class="log-ver">v0.10.0 · 2026-09-07</div>
         <ul class="about-list">
-          <li>+ 导出图片：标题 / 署名 / 图例一图成画</li>
-          <li>+ 一键发布笔记</li>
-          <li>+ 点图例色块直切笔刷</li>
-          <li>+ 名单 / 快照导入导出、本地草稿保存</li>
-          <li>+ 布局优化：平均排布不整圈旋转</li>
-          <li>+ 菜单分组与「关于」</li>
+          <li>+ 适配小红书容器：顶栏按钮全部移入画布悬浮工具条（撤销 / 重做 / 菜单），避开顶部官方按钮区</li>
+          <li>+ 菜单改为底部弹出；面板可折叠，画布一键全览</li>
+          <li>+ 图例排版：喜好粗线 / 关系细线 / 箭头含义 分行展示</li>
+          <li>+ A→B 与 B→A 单箭头可共存，可分别配不同关系色</li>
+          <li>+ 箭头含义可自定义（默认"情感指向"）</li>
+          <li>+ 导入名单 / 快照后自动缩放居中，圆心居于画面中央</li>
+          <li>+ 顶栏显示「填表人 的 图名」；圆心星标实心 / 空心两态</li>
+        </ul>
+        <div class="log-ver">v0.9.0 · 上线新版</div>
+        <ul class="about-list">
+          <li>+ 一键发布笔记：当前画作直接唤起小红书发布页</li>
+          <li>+ 导出图片：标题 / 署名 / 图例 一图成画，一键存入相册</li>
+          <li>+ 名单 / 快照导入导出，编辑自动存本地草稿</li>
+          <li>+ 点图例色块直切对应笔刷</li>
+          <li>+ 连线规则对齐：同一对后画覆盖、箭头方向可设</li>
+          <li>+ 布局支持平均排布、增删轨道、拖拽换圈</li>
+          <li>+ 全新帮助页与「关于」，菜单按功能分组</li>
         </ul>
 
         <div class="about-sec">🔮 未来前瞻</div>
         <ul class="about-list">
-          <li>+ 面板半开 / 全开浏览</li>
           <li>+ 夜间模式</li>
+          <li>+ 槽位布局</li>
           <li class="ellipsis">+ 更多功能期待反馈</li>
         </ul>
 
@@ -417,17 +450,12 @@
     // 撤销 / 重做 / 标题 / 菜单
     $("btnUndo").addEventListener("click", () => App.undo());
     $("btnRedo").addEventListener("click", () => App.redo());
-    $("titleBox").addEventListener("click", () => {
-      App.openModal(`${modalHead("修改图名 / 填表人")}
-        <div class="hint">图名用于导出图与发布笔记；填表人会写入导出图署名。</div>
-        <div style="font-size:12px;color:var(--sub);margin:2px 0 4px">图名</div>
-        <input type="text" id="promptTitle" class="inp" style="width:100%" value="${App.esc(App.state.title)}">
-        <div style="font-size:12px;color:var(--sub);margin:12px 0 4px">填表人（可选）</div>
-        <input type="text" id="promptFiller" class="inp" style="width:100%" value="${App.esc(App.getFiller())}" placeholder="未填写则不显示“填表：”">
-        <div class="modal-btns"><button class="btn" data-cmd="m-close">取消</button>
-        <button class="btn primary" data-cmd="title-ok">确定</button></div>`);
-      modalCloseCb = null;
-    });
+    // 面板折叠开关
+    const foldBtn = $("btnPanelFold");
+    if (foldBtn) {
+      foldBtn.addEventListener("click", () => App.setPanelCollapsed(!App.panelCollapsed));
+    }
+    // 顶部只读标题不再可点；改名入口在菜单「改图名 / 填表人」
     $("btnMenu").addEventListener("click", () => $("menuRoot").classList.remove("hidden"));
     $("menuMask").addEventListener("click", () => $("menuRoot").classList.add("hidden"));
     $("fullExit").addEventListener("click", () => {
@@ -562,6 +590,7 @@
       } catch (err) { App.toast(err.message || "头像处理失败", true); }
     });
     App._avatarInput = fileInp;
+    bindFloatDrag();
   }
 
   function onCmd(cmd, el) {
@@ -806,10 +835,11 @@
   function onMenu(menu) {
     switch (menu) {
       case "help": App.helpModal(); break;
+      case "rename": App.openTitleModal(); break;
       case "new": {
         App.confirm("新建将清空当前人物/连线/布局（三张表与背景保留）。", "新建", () => {
           App.newDoc();
-          $("titleBox").textContent = App.state.title;
+          $("titleBox").textContent = App.getTitleText();
           App.toast("已新建");
           openImportNames(true);
         });
@@ -851,7 +881,7 @@
           if (obj && obj.type === "NRD") { App._importLegacy(obj); return; }
           App.deserialize(txt);
           App.notifyChanged();
-          $("titleBox").textContent = App.state.title;
+          $("titleBox").textContent = App.getTitleText();
           if (App.fitContent) App.fitContent();
           App.toast("快照已导入（头像未包含，需重新设置头像）");
         } catch (err) { App.toast("导入失败：" + err.message, true); }
@@ -891,7 +921,8 @@
 
   // 导出图片流程（E-1 + 容器保存）：
   // 容器环境 = 官方 API（writeTempFile{data} → saveImageToPhotosAlbum），失败 → 全屏预览 + 重试保存按钮；
-  // 网页版环境 = 无相册 API，预览大图，由浏览器原生「长按/右键另存」承接（容器禁用的文件下载能力不写入交付代码）。
+  // 网页环境 = 无容器 API：若页面末尾挂了网页 IO 覆盖层（web 分流版的 js/iopc.js）则直接触发浏览器保存并提示，
+  //            否则预览大图，由浏览器原生「长按/右键另存」承接（容器禁用能力不写入容器交付代码）。
   async function exportImageFlow() {
     if (!App.state.chars.length) { App.toast("画布为空，先导入人物", true); return; }
     App.toast("正在生成图片…");
@@ -912,21 +943,75 @@
           <button class="btn" data-cmd="m-close">完成</button>
         </div>`);
     } else {
-      // 网页版（无容器 API）：长按/右键另存为（浏览器原生能力）
+      // 网页版：先试一次保存（web 覆盖层成功即返回；无覆盖层时容器版实现返回失败 → 走预览）
+      const res2 = await App.saveImage(dataUrl);
+      if (res2 && res2.ok) { App.toast("图片已保存"); return; }
       App.openModal(`${modalHead("🖼 成品图")}
-        <div class="hint">图片已生成。当前是网页预览环境，未接入相册保存——请长按图片或鼠标右键 →「保存图片 / 图片另存为」保存到设备。</div>
+        <div class="hint">图片已生成。请长按图片或鼠标右键 →「保存图片 / 图片另存为」保存到设备。</div>
         <img src="${dataUrl}" alt="关系图" style="width:100%;border-radius:10px;border:1px solid #eee">
         <div class="modal-btns"><button class="btn primary" data-cmd="m-close">完成</button></div>`);
     }
     modalCloseCb = null;
   }
 
-  // =============== 通知回调 ===============
+  // =============== 右侧悬浮工具组拖拽 ===============
+  // 拖动超过 8px 视为移动（吸附到最近竖边）；未移动的松手保持按钮点击，移动后的同源 click 在捕获阶段吞掉
+  function bindFloatDrag() {
+    const box = $("floatTools");
+    if (!box) return;
+    let sx = 0, sy = 0, ox = 0, oy = 0, active = false, moved = false, suppress = false;
+    box.addEventListener("pointerdown", (e) => {
+      if (e.button != null && e.button !== 0) return;
+      active = true; moved = false;
+      sx = e.clientX; sy = e.clientY;
+      const r = box.getBoundingClientRect();
+      ox = r.left; oy = r.top;
+    });
+    window.addEventListener("pointermove", (e) => {
+      if (!active) return;
+      const dx = e.clientX - sx, dy = e.clientY - sy;
+      if (!moved && Math.abs(dx) + Math.abs(dy) > 8) moved = true;
+      if (moved) {
+        box.classList.add("dragging");
+        box.style.left = Math.max(0, ox + dx) + "px";
+        box.style.top = Math.max(0, oy + dy) + "px";
+        box.style.right = "auto";
+      }
+    });
+    function stopDrag() {
+      if (!active) return;
+      active = false;
+      if (moved) { snapFloat(box); suppress = true; }
+      box.classList.remove("dragging");
+    }
+    window.addEventListener("pointerup", stopDrag);
+    window.addEventListener("pointercancel", stopDrag);
+    box.addEventListener("click", (e) => {
+      if (suppress) { suppress = false; e.stopImmediatePropagation(); e.preventDefault(); }
+    }, true);
+  }
+  function snapFloat(box) {
+    const stage = box.parentElement;
+    if (!stage) return;
+    const sRect = stage.getBoundingClientRect();
+    if (sRect.width < 10) return; // 布局未就绪
+    const bRect = box.getBoundingClientRect();
+    const GAP = 6;
+    const stickRight = (bRect.left + bRect.width / 2) > (sRect.left + sRect.width / 2);
+    const left = stickRight ? sRect.width - bRect.width - GAP : GAP;
+    let top = bRect.top - sRect.top;
+    top = Math.max(48, Math.min(top, Math.max(48, sRect.height - bRect.height - 16)));
+    box.style.left = left + "px";
+    box.style.top = top + "px";
+    box.style.right = "auto";
+  }
+
+  // 通知回调
   function refreshAll() {
     App.render();
     renderPanel();
     const tb = $("titleBox");
-    tb.textContent = App.state.title;
+    tb.textContent = App.getTitleText();
     const zl = $("zoomLabel");
     if (zl) zl.textContent = Math.round(App.view.s * 100) + "%";
     $("btnUndo").disabled = !App.canUndo();
@@ -976,6 +1061,7 @@
   App.uiInit = function () {
     bindEvents();
     bindRingSel();
+    App.setPanelCollapsed(App.panelCollapsed); // 同步折叠按钮初始文案
     App.onChanged = refreshAll;
     // 初始 tab
     document.querySelectorAll("#tabs .tab").forEach((b) => {

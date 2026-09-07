@@ -3,17 +3,14 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-<title>角色关系星图</title>
+<title>CPchart - 人物关系连线图</title>
 <link rel="stylesheet" href="css/app.css">
 </head>
 <body>
 <div id="app">
-  <!-- 顶部全局操作栏 -->
+  <!-- 顶部全局操作栏（容器占用上方 10rem 点击区：此处只保留只读标题，按钮全部移入画布内悬浮组） -->
   <header id="topbar">
-    <button id="btnUndo" class="tb-btn" title="上一步">↩︎</button>
-    <button id="btnRedo" class="tb-btn" title="下一步">↪︎</button>
-    <div id="titleBox" class="tb-title" title="点击修改图名">未命名关系图</div>
-    <button id="btnMenu" class="tb-btn" title="菜单">☰</button>
+    <div id="titleBox" class="tb-title">未命名关系图</div>
   </header>
 
   <!-- 视图指示条（代理视图）：当前缩放百分比 + 操作提示 -->
@@ -45,6 +42,17 @@
       <button id="opsDel" class="mini-btn danger">🗑删除</button>
       <button id="opsClose" class="mini-btn">✕</button>
     </div>
+    <!-- 画布右侧悬浮工具组（避开顶部容器占用区；整组可拖动、松手吸附到边） -->
+    <div id="floatTools">
+      <button id="btnUndo" class="tb-btn" title="上一步">↩︎</button>
+      <button id="btnRedo" class="tb-btn" title="下一步">↪︎</button>
+      <button id="btnMenu" class="tb-btn menu-fab" title="菜单">☰</button>
+    </div>
+  </div>
+
+  <!-- 底部二级面板折叠把手（面板顶部/画板底部；收起后仅留此细条可再展开） -->
+  <div id="panelHead">
+    <button id="btnPanelFold" class="pf-btn">﹀ 收起</button>
   </div>
 
   <!-- 二级菜单面板 -->
@@ -74,12 +82,11 @@
     <div class="menu-item" data-menu="help">❓ 帮助</div>
     <div class="menu-sep"></div>
     <div class="menu-group">工具</div>
+    <div class="menu-item" data-menu="rename">✏️ 改图名 / 填表人</div>
     <div class="menu-item" data-menu="new">🆕 建立新连线图</div>
     <div class="menu-sep"></div>
-    <div class="menu-group">发布</div>
-    <div class="menu-item" data-menu="publish">📝 发布笔记</div>
-    <div class="menu-sep"></div>
     <div class="menu-group">导出</div>
+    <div class="menu-item" data-menu="publish">📝 发布笔记</div>
     <div class="menu-item" data-menu="img">🖼 导出为图片</div>
     <div class="menu-item" data-menu="expnames">📤 导出人物名单</div>
     <div class="menu-item" data-menu="expsnap">📦 导出布局·人物·图例</div>
@@ -105,5 +112,7 @@
 <script src="js/ui.js"></script>
 <script src="js/input.js"></script>
 <script src="js/main.js"></script>
+<!-- 网页版 IO 覆盖层（下载保存/禁用发布；仅 web 分流版加载，容器包不含） -->
+<script src="js/iopc.js"></script>
 </body>
 </html>

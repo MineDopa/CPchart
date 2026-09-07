@@ -89,8 +89,8 @@
     App.scheduleSave = App.debounce(() => saveDraft(), 500);
     App.scheduleSave(); // 初次写入以便后续 undo 有基线？不必要但无害
 
-    // 标题栏
-    App.byId("titleBox").textContent = App.state.title;
+    // 标题栏（含填表人前缀）
+    App.byId("titleBox").textContent = App.getTitleText();
 
     // 画布初始视图：已有内容 → 适配全部轨道+圆心居中；空画布 → 1:1 居中
     const hasChars0 = App.state.chars.length > 0;

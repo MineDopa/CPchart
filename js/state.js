@@ -29,7 +29,8 @@
     return ["none", "one", "both"].map((key) => ({ key: key, name: App.ARROW_STD[key], type: key }));
   };
 
-  // 参考预设名单（用于开局引导/示例）——中性占位名，不含任何具体角色/世界观名单
+  // 参考预设名单（用于开局引导/示例）——中性占位名，不含任何具体角色/世界观名单；
+  // 引导说明文字放在欢迎弹窗文案里，不得混入名单数据（否则整句会被解析成一个角色名）
   const PRESET_TEXT = [
     "圆心: 甲",
     "1: 乙，丙",
@@ -476,6 +477,13 @@
   // 填表人（导出图/发布署名用）
   App.getFiller = function () {
     return (App.state.meta && App.state.meta.filler) || "";
+  };
+
+  // 顶栏合成标题：「填表人 的 图名」；无填表人时仅显示图名
+  App.getTitleText = function () {
+    const t = String((App.state && App.state.title) || "未命名关系图");
+    const f = App.getFiller();
+    return f ? f + " 的 " + t : t;
   };
 
   // ------- 历史（撤销/重做）-------

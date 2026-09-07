@@ -1,0 +1,1091 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>多圆心关系星图 · NRD 可视化</title>
+<style>
+  * { box-sizing: border-box; }
+  html, body { margin: 0; height: 100%; font-family: "PingFang SC","Microsoft YaHei",sans-serif; color: #222; background: #fff; }
+  #app { display: flex; flex-direction: column; height: 100vh; }
+  #toolbar {
+    padding: 8px 10px; border-bottom: 1px solid #e3e3e3; background: #fafafa;
+    display: flex; flex-wrap: wrap; gap: 6px 10px; align-items: center; font-size: 13px;
+  }
+  .group { display: flex; gap: 4px; align-items: center; padding: 2px 8px; border-right: 1px solid #e3e3e3; }
+  .group:last-child { border-right: none; }
+  .group .label { color: #888; margin-right: 2px; font-size: 12px; }
+  button {
+    border: 1px solid #cfcfcf; background: #fff; color: #222; border-radius: 6px;
+    padding: 4px 9px; cursor: pointer; font-size: 13px; line-height: 1.4;
+  }
+  button:hover { background: #f0f0f0; }
+  button.active { outline: 2px solid #1a73e8; background: #e8f0fe; }
+  button:disabled { opacity: .45; cursor: not-allowed; }
+  .rel { position: relative; padding-left: 18px; }
+  .rel::before { content:""; position:absolute; left:6px; top:50%; transform:translateY(-50%); width:10px; height:10px; border-radius:50%; background: var(--c); }
+  input[type=text], select { border: 1px solid #cfcfcf; border-radius: 6px; padding: 4px 6px; font-size: 13px; }
+  input[type=range] { width: 120px; }
+  #stage { flex: 1; position: relative; overflow: hidden; background: #fff; }
+  svg { width: 100%; height: 100%; display: block; cursor: grab; }
+  svg.panning { cursor: grabbing; }
+  .node text { font-size: 13px; fill: #222; pointer-events: none; user-select: none; }
+  .node .outer { cursor: pointer; }
+  #status {
+    border-top: 1px solid #e3e3e3; background: #fafafa; padding: 6px 12px; font-size: 13px; color: #444;
+    min-height: 20px;
+  }
+  .legend { display:flex; gap:10px; flex-wrap:wrap; font-size:12px; color:#666; padding:4px 10px; border-top:1px solid #f0f0f0; }
+  .legend span { display:inline-flex; align-items:center; gap:4px; }
+  .legend i { width:10px; height:10px; border-radius:50%; display:inline-block; }
+  .legend b { width:18px; height:3px; display:inline-block; }
+  details { font-size:12px; color:#777; padding:2px 10px; }
+  summary { cursor: pointer; }
+  .node .nameplate { pointer-events: none; }
+  .overlay { position:fixed; inset:0; background:rgba(20,32,26,.26); display:flex; align-items:center; justify-content:center; z-index:50; }
+  .overlay[hidden] { display:none; }
+  .panel { background:#fff; border:1px solid #e3e3e3; border-radius:10px; padding:16px 18px;
+           width:calc(100% - 48px); max-width:660px; max-height:86vh; overflow:auto; box-shadow:0 8px 28px rgba(20,40,30,.12); }
+  .panel h3 { margin:0 0 4px; font-size:15px; font-weight:600; }
+  .panel .hint { color:#888; font-size:12px; line-height:1.7; margin-bottom:10px; }
+  .panel textarea { width:100%; height:300px; border:1px solid #cfcfcf; border-radius:6px;
+                    padding:8px; font-size:13px; line-height:1.8; resize:vertical; font-family:inherit; }
+  .legend-row { display:flex; align-items:center; gap:8px; padding:5px 0; border-bottom:1px solid #f2f2f2; }
+  .legend-row .ltag { width:32px; color:#999; font-size:12px; }
+  .legend-row .lname { width:96px; }
+  .legend-row .lhex { width:84px; }
+  .legend-row input[type=color] { width:34px; height:26px; padding:0; border:1px solid #cfcfcf; border-radius:4px; background:#fff; }
+  .panel .actions { display:flex; gap:8px; justify-content:flex-end; margin-top:12px; }
+  .panel .actions.between { justify-content:space-between; }
+  button.primary { background:#edf6f1; border-color:#bfe0cd; }
+</style>
+</head>
+<body>
+<div id="app">
+  <div id="toolbar">
+    <div class="group">
+      <span class="label">底层→连线</span>
+      <button class="rel" data-bottom="red"    style="--c:#FF4444">本命</button>
+      <button class="rel" data-bottom="orange" style="--c:#FF8844">很喜欢</button>
+      <button class="rel" data-bottom="yellow" style="--c:#FFFF33">路好</button>
+      <button class="rel" data-bottom="black"  style="--c:#222">不吃</button>
+    </div>
+    <div class="group">
+      <span class="label">顶层</span>
+      <button class="rel" data-top="pink"   style="--c:#ff2e88">爱情</button>
+      <button class="rel" data-top="green"  style="--c:#15c26b">友情</button>
+      <button class="rel" data-top="purple" style="--c:#9b30ff">QPR</button>
+      <button class="rel" data-top="blue"   style="--c:#2f7bff">亲情</button>
+      <button id="oneway">单向 ↗</button>
+    </div>
+    <div class="group">
+      <span class="label">图例</span>
+      <button id="legendBtn">编辑图例</button>
+    </div>
+    <div class="group">
+      <button id="reposBtn">换位置</button>
+      <button id="evenBtn">平均排布</button>
+      <button id="subBtn" disabled>设为子圆心</button>
+      <button id="addOrbitBtn">添加轨道</button>
+      <button id="resetBtn">重置布局</button>
+      <button id="clearLinksBtn">清空连线</button>
+    </div>
+    <div class="group">
+      <span class="label">加角色</span>
+      <input type="text" id="newName" placeholder="角色名" size="9">
+      <select id="addCenter"></select>
+      <input type="number" id="newRing" value="1" min="1" style="width:46px" title="圈层(从1起)">
+      <button id="addNodeBtn">添加</button>
+      <button id="rosterBtn">批量编辑角色</button>
+    </div>
+    <div class="group">
+      <span class="label">视图</span>
+      <input type="range" id="zoom" min="0.3" max="2.5" step="0.1" value="1">
+      <button id="fitBtn">复位视图</button>
+    </div>
+    <div class="group">
+      <button id="exportBtn">导出NRD</button>
+      <button id="importBtn">导入NRD</button>
+      <button id="exportPngBtn">导出图片</button>
+      <input type="file" id="importFile" accept=".json,.nrd" style="display:none">
+    </div>
+  </div>
+
+  <div id="stage">
+    <svg id="svg">
+      <g id="viewport">
+        <rect id="bg" x="-6000" y="-6000" width="12000" height="12000" fill="#fff"></rect>
+        <g id="orbitsG"></g>
+        <g id="linksG"></g>
+        <g id="ghostG"></g>
+        <g id="nodesG"></g>
+      </g>
+    </svg>
+  </div>
+
+  <div class="legend" id="legendBar"></div>
+
+  <div id="status">就绪：点击角色进行选择；点底层色进入连线模式。</div>
+
+  <details>
+    <summary>使用说明</summary>
+    <div style="padding:6px 4px; line-height:1.7">
+    · 角色即圆心：中心「光之战士」也是圆圈节点，名字在圆圈下方。<br>
+    · 连线：选底层色、或顶层色、或两者都选 → 点起点 → 点终点；再点同一色退出；右键删线。<br>
+    · 换位置：点「换位置」进入模式 → 拖动任意角色到目标处释放即固定；拖到其它圆心/轨道会自动归属过去（原轨道剔除并收拢）；点「平均排布」按当前落点顺序把该轨道角色均匀等分（空隙保留）。<br>
+    · 选中一个角色点「设为子圆心」→ 以它为心生成第一圈轨道，可拖拽微调位置。<br>
+    · 「添加轨道」给某圆心加一层更大的同心圆；「重置布局」还原默认排布。<br>
+    · 缩放：滚轮缩放，或拖动顶部滑块；拖空白处平移画布。<br>
+    · 内圈锁定：先点一个底层色，再双击角色 → 内圈固定成该色；再双击一次解除，恢复跟随连线。<br>
+    · 「批量编辑角色」：用文本一次性替换全部角色，@开头为圆心，其后每行一圈（由内到外），逗号分隔，第一个在正上方。<br>
+    · 「编辑图例」：改名字 / 颜色 / 实线虚线，立即对所有已画好的连线生效。
+    </div>
+  </details>
+
+  <div class="overlay" id="rosterOverlay" hidden>
+    <div class="panel">
+      <h3>批量编辑角色</h3>
+      <div class="hint">
+        · <b>@</b> 开头的一行 = 圆心名（圆心自己就是中心那个圆，不占圈行）。<br>
+        · 其后<b>每一行 = 一圈</b>，按从第 1 圈（最内）往外排列；角色名用逗号分隔（中英文逗号均可），<b>有序</b>：第 1 个落在正上方，之后顺时针排开，应用后自动等分。<br>
+        · <b>空行 = 这一圈没有角色</b>。多个圆心就写多段 @xxx。<br>
+        · 应用 = <b>全量替换</b>当前所有角色（同名的连线会按名字接回）。
+      </div>
+      <textarea id="rosterText" spellcheck="false"></textarea>
+      <div class="actions between">
+        <button id="rosterReset">恢复默认角色</button>
+        <span>
+          <button id="rosterCancel">取消</button>
+          <button id="rosterApply" class="primary">应用</button>
+        </span>
+      </div>
+    </div>
+  </div>
+
+  <div class="overlay" id="legendOverlay" hidden>
+    <div class="panel">
+      <h3>编辑图例</h3>
+      <div class="hint">改名、换色、切换实线 / 虚线后立即生效，该类已画好的连线会同步变化。</div>
+      <div id="legendEditList"></div>
+      <div class="actions between">
+        <button id="legendReset">恢复默认图例</button>
+        <button id="legendClose" class="primary">完成</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+"use strict";
+//============ 常量 ============
+const BOTTOM = { red:"#FF4444", orange:"#FF8844", yellow:"#FFFF33", black:"#222222" };
+const BOTTOM_NAME = { red:"本命", orange:"很喜欢", yellow:"路好", black:"不吃" };
+const TOP = { pink:"#ff2e88", green:"#15c26b", purple:"#9b30ff", blue:"#2f7bff" };
+const TOP_NAME = { pink:"爱情", green:"友情", purple:"QPR", blue:"亲情" };
+const BOTTOM_DASH = { red:"solid", orange:"solid", yellow:"solid", black:"solid" };
+const TOP_DASH = { pink:"solid", green:"solid", purple:"solid", blue:"solid" };
+// 图例默认值快照（用于「恢复默认图例」）
+const DEF_BOTTOM = Object.assign({}, BOTTOM), DEF_BOTTOM_NAME = Object.assign({}, BOTTOM_NAME);
+const DEF_TOP = Object.assign({}, TOP), DEF_TOP_NAME = Object.assign({}, TOP_NAME);
+const NODE_R = 18, INNER_R = 11;
+const INC_MAIN = 120, INC_SUB = 70;
+const SVG_NS = "http://www.w3.org/2000/svg";
+// 本地存储 key（角色名单 / 图例样式 / 内圈锁定色）
+const LS_ROSTER = "nrd5.roster", LS_STYLE = "nrd5.style", LS_NODECC = "nrd5.nodecc";
+
+//============ 默认角色名单（文本即数据，与批量编辑器同一格式）============
+const DEFAULT_ROSTER_TEXT = [
+  "@光之战士",
+  "阿尔菲诺, 阿莉塞, 雅·修特拉, 于里昂热, 桑克瑞德, 敏菲利亚, 琳, 水晶公, 爱梅特赛尔克, 阿尔博特",
+  "拉蜜图, 任妲·芮, 奈贝尔特, 缇纳, 绍尔迪雅, 布兰登, 席尔瓦, 艾里迪布斯, 希斯拉德, 米特隆, 盖娅, 兰吉特, 菲奥·乌儿, 莱楠, 采·努兹, 杜丽雅·采, 莫雯, 盖雷诺尔特, 鲁纳尔, 玛格努斯, 艾格娜"
+].join("\n");
+
+//============ 状态 ============
+let centers = {};      // id -> {id,name,x,y,isMain,nodeId,ringRadii:[]}
+let nodes = [];         // {id,name,centerId,ring,index,x,y,lastBottom}
+let links = [];         // {id,source,target,bottom,top,oneway}
+let nextId = 0;
+let selection = [];     // node ids
+let activeBottom = null, activeTop = null, oneway = false, linkSource = null;
+let repositionMode = false, activeOrbit = null;
+let dragGhost = null;   // 拖动时的轨道吸附预览位置
+const view = { s:1, tx:0, ty:0 };
+
+//============ 工具 ============
+const clamp = (v,a,b)=>Math.max(a,Math.min(b,v));
+function lsGet(k){ try{ return localStorage.getItem(k); }catch(e){ return null; } }
+function lsSet(k,v){ try{ localStorage.setItem(k,v); }catch(e){} }
+function safeColor(v){ return (typeof v==="string" && /^#[0-9a-fA-F]{6}$/.test(v)) ? v : null; }
+const centerById = id => centers[id];
+function nodeById(id){ return nodes.find(n=>n.id===id); }
+function centerOfNode(id){ for(const c in centers) if(centers[c].nodeId===id) return centers[c]; return null; }
+function countOnRing(centerId, ring){
+  return nodes.filter(n=>n.centerId===centerId && n.ring===ring).length;
+}
+function slotPos(node){
+  const c = centerById(node.centerId);
+  if(node.ring===0) return {x:c.x, y:c.y};
+  const r = c.ringRadii[node.ring-1];
+  const count = Math.max(1, countOnRing(node.centerId, node.ring));
+  const ang = -Math.PI/2 + node.index * 2*Math.PI/count;
+  return { x: c.x + r*Math.cos(ang), y: c.y + r*Math.sin(ang) };
+}
+function recompute(){
+  for(const id in centers){ if(centers[id].isMain){ centers[id].x=0; centers[id].y=0; } }
+  for(const n of nodes){
+    const c = centerOfNode(n.id);
+    if(c){ n.x=c.x; n.y=c.y; }
+    else if(n.pin){ n.x=n.pin.x; n.y=n.pin.y; }
+    else { const p=slotPos(n); n.x=p.x; n.y=p.y; }
+  }
+}
+function syncAllCenters(){ // 重置时让子圆心回到父轨道原位
+  for(const id in centers){
+    const c=centers[id];
+    if(c.isMain){ c.x=0; c.y=0; }
+    else { const n=nodeById(c.nodeId); const p=slotPos(n); c.x=p.x; c.y=p.y; }
+  }
+}
+// 落点吸附：返回距离最近的「圆心 + 轨道(ring≥1)」
+function nearestOrbit(x,y){
+  let best=null, bestErr=Infinity;
+  for(const id in centers){
+    const c=centers[id];
+    const d=Math.hypot(x-c.x, y-c.y);
+    for(let r=1;r<=c.ringRadii.length;r++){
+      const err=Math.abs(d - c.ringRadii[r-1]);
+      if(err<bestErr){ bestErr=err; best={centerId:id, ring:r}; }
+    }
+  }
+  return best || {centerId:"main", ring:1};
+}
+// 吸附落点：复用 nearestOrbit 找到最近的「圆心+轨道」，再取该轨道半径 + 鼠标方向的角度
+function snapToOrbit(x,y){
+  const near=nearestOrbit(x,y);
+  const c=centerById(near.centerId);
+  if(!c) return {x,y,centerId:near.centerId,ring:near.ring};
+  const r=c.ringRadii[near.ring-1];
+  if(!r) return {x,y,centerId:near.centerId,ring:near.ring};
+  const dx=x-c.x, dy=y-c.y;
+  const ang = (dx===0 && dy===0) ? -Math.PI/2 : Math.atan2(dy,dx);
+  return { x:c.x+r*Math.cos(ang), y:c.y+r*Math.sin(ang), centerId:near.centerId, ring:near.ring };
+}
+// 重排某轨道的索引（按当前角度），清掉空洞、自动收拢
+function repackIndices(centerId, ring){
+  if(ring===0) return;
+  const c=centers[centerId]; if(!c) return;
+  const list=nodes.filter(n=>n.centerId===centerId && n.ring===ring);
+  list.sort((a,b)=>Math.atan2(a.y-c.y,a.x-c.x)-Math.atan2(b.y-c.y,b.x-c.x));
+  list.forEach((n,i)=>{ n.index=i; });
+}
+// 把节点迁移到新轨道，并收拢新旧两条轨道
+function reassignOrbit(node, centerId, ring){
+  const oldC=node.centerId, oldR=node.ring;
+  // 先把受影响轨道的其它节点「锁死」在当前坐标：repack 只重排 index（供平均排布/重置用），
+  // 但不移动任何人的角度 —— 否则拖一个角色整条轨道都会被对齐。
+  for(const n of nodes){
+    if((n.centerId===oldC && n.ring===oldR) || (n.centerId===centerId && n.ring===ring)){
+      if(n!==node && !n.pin) n.pin={x:n.x, y:n.y};
+    }
+  }
+  node.centerId=centerId; node.ring=ring;
+  repackIndices(oldC, oldR);    // 原轨道剔除（index 收拢，视觉因 pin 不动）
+  repackIndices(centerId, ring); // 新轨道纳入（index 收拢，视觉因 pin 不动）
+  node.pin={x:node.x, y:node.y}; // 被拖节点固定到释放落点
+}
+
+//============ 角色名单：文本 ⇄ 数据 ============
+// 文本 → 分段：[{name, rings:["A, B", ...]}, ...]（rings 第 0 项 = 第 1 圈）
+function parseRoster(text){
+  const lines=String(text==null?"":text).replace(/\r\n?/g,"\n").split("\n");
+  const secs=[]; let cur=null;
+  for(const ln of lines){
+    const t=ln.trim();
+    if(t.charAt(0)==="@" || t.charAt(0)==="＠"){
+      const nm=t.slice(1).trim(); if(!nm) continue;
+      cur={name:nm, rings:[]}; secs.push(cur);
+    } else if(cur){ cur.rings.push(t); }
+  }
+  // 圆心段落末尾的空行只是段落分隔，不算空圈；段内空行才算「这一圈没人」
+  for(const s of secs){ while(s.rings.length && s.rings[s.rings.length-1]==="") s.rings.pop(); }
+  return secs;
+}
+function radiiFor(isMain, n){
+  const base = isMain?150:INC_SUB, step = isMain?130:INC_SUB, arr=[];
+  for(let i=0;i<Math.max(1,n);i++) arr.push(base+step*i);
+  return arr;
+}
+// 数据 → 文本（与批量编辑器打开时的预填格式一致）
+function serializeRoster(){
+  const ids=Object.keys(centers).sort((a,b)=>(centers[b].isMain?1:0)-(centers[a].isMain?1:0));
+  const out=[];
+  for(const id of ids){
+    const c=centers[id]; if(!c) continue;
+    out.push("@"+c.name);
+    for(let r=1;r<=c.ringRadii.length;r++){
+      const list=nodes.filter(n=>n.centerId===id && n.ring===r).sort((a,b)=>a.index-b.index);
+      out.push(list.map(n=>n.name).join(", "));
+    }
+    out.push("");
+  }
+  while(out.length && out[out.length-1]==="") out.pop();
+  return out.join("\n");
+}
+function persistRoster(){ lsSet(LS_ROSTER, serializeRoster()); }
+// 全量替换：按文本重建圆心 / 圈层 / 角色
+function applyRoster(text){
+  // 先按名字记下已有连线，重建后再按名字接回（避免整体重做时全部丢失）
+  const kept=[];
+  for(const k of links){
+    const a=nodeById(k.source), b=nodeById(k.target);
+    if(a&&b) kept.push({s:a.name, t:b.name, bottom:k.bottom, top:k.top, oneway:!!k.oneway});
+  }
+  const secs=parseRoster(text);
+  if(!secs.length) secs.push({name:"光之战士", rings:[]});
+  centers={}; nodes=[]; links=[]; selection=[]; nextId=0; linkSource=null; activeOrbit=null;
+  const mk=(name,centerId,ring,index)=>({id:"n"+(nextId++),name,centerId,ring,index,x:0,y:0,lastBottom:null,cc:null});
+  for(let i=0;i<secs.length;i++){
+    const s=secs[i];
+    let centerId;
+    if(i===0){
+      centerId="main";
+      const mainNodeId="n"+(nextId++);
+      nodes.push({id:mainNodeId,name:s.name,centerId,ring:0,index:0,x:0,y:0,lastBottom:null,cc:null});
+      centers[centerId]={id:centerId,name:s.name,x:0,y:0,isMain:true,nodeId:mainNodeId,ringRadii:radiiFor(true,s.rings.length)};
+    } else {
+      // 已有同名角色就升为子圆心，否则先在最内圈建出这个角色
+      let n=nodes.find(x=>x.name===s.name);
+      if(!n){ n=mk(s.name,"main",1,countOnRing("main",1)); nodes.push(n); }
+      centerId="sub_"+n.id;
+      const p=slotPos(n);
+      centers[centerId]={id:centerId,name:s.name,x:p.x,y:p.y,isMain:false,nodeId:n.id,ringRadii:radiiFor(false,s.rings.length)};
+    }
+    for(let ri=0;ri<s.rings.length;ri++){
+      const names=s.rings[ri].split(/[,，]/).map(x=>x.trim()).filter(Boolean);
+      for(let ni=0;ni<names.length;ni++) nodes.push(mk(names[ni],centerId,ri+1,ni));
+    }
+  }
+  recompute();
+  const byName=Object.create(null);   // 避免角色名撞上 __proto__ 之类的原型键
+  for(const n of nodes){ if(!(n.name in byName)) byName[n.name]=n.id; }
+  for(const k of kept){
+    if(byName[k.s] && byName[k.t]){
+      links.push({id:"l"+(nextId++)+Math.random().toString(36).slice(2,6),
+                  source:byName[k.s], target:byName[k.t], bottom:k.bottom, top:k.top, oneway:k.oneway});
+    }
+  }
+  recomputeLastBottom();
+  updateCenterSelects();
+  render(); refreshStatus();
+}
+function buildDefault(){
+  applyRoster(lsGet(LS_ROSTER) || DEFAULT_ROSTER_TEXT);
+}
+
+//============ 渲染 ============
+const svg = document.getElementById("svg");
+const viewport = document.getElementById("viewport");
+const orbitsG = document.getElementById("orbitsG");
+const linksG = document.getElementById("linksG");
+const nodesG = document.getElementById("nodesG");
+const ghostG = document.getElementById("ghostG");
+
+function applyView(){ viewport.setAttribute("transform", `translate(${view.tx},${view.ty}) scale(${view.s})`); }
+
+function render(){
+  // 轨道虚线
+  let o="";
+  for(const id in centers){
+    const c=centers[id];
+    for(const r of c.ringRadii){
+      o += `<circle cx="${c.x}" cy="${c.y}" r="${r}" fill="none" stroke="#cfcfcf" stroke-width="1" stroke-dasharray="4 5"></circle>`;
+    }
+  }
+  orbitsG.innerHTML = o;
+
+  // 连线
+  let l="";
+  for(const k of links){
+    const a=nodeById(k.source), b=nodeById(k.target);
+    if(!a||!b) continue;
+    // 底层粗线（无底层、仅顶层时画浅灰底衬，保证可见与可点）
+    if(k.bottom){
+      const bx=BOTTOM[k.bottom]||"#222";
+      const bd=dashOf("bottom",k.bottom);
+      l += `<line x1="${a.x}" y1="${a.y}" x2="${b.x}" y2="${b.y}" ${bd?`stroke-dasharray="${bd}" `:""}stroke="${bx}" stroke-width="12" stroke-linecap="round" opacity="0.9"></line>`;
+    } else if(k.top){
+      l += `<line x1="${a.x}" y1="${a.y}" x2="${b.x}" y2="${b.y}" stroke="#d9d9d9" stroke-width="6" stroke-linecap="round"></line>`;
+    }
+    // 顶层细线
+    if(k.top){
+      const tx2=TOP[k.top]||"#555";
+      const td=dashOf("top",k.top);
+      l += `<line x1="${a.x}" y1="${a.y}" x2="${b.x}" y2="${b.y}" ${td?`stroke-dasharray="${td}" `:""}stroke="${tx2}" stroke-width="2" stroke-linecap="round"></line>`;
+    }
+    // 箭头
+    if(k.oneway){
+      const ang=Math.atan2(b.y-a.y, b.x-a.x);
+      const tipx=b.x-NODE_R*Math.cos(ang), tipy=b.y-NODE_R*Math.sin(ang);
+      const back=12, wid=7;
+      const bx2=tipx-back*Math.cos(ang), by2=tipy-back*Math.sin(ang);
+      const px=-Math.sin(ang)*wid, py=Math.cos(ang)*wid;
+      const col = k.top ? (TOP[k.top]||"#555") : "#555";
+      l += `<polygon points="${tipx},${tipy} ${bx2+px},${by2+py} ${bx2-px},${by2-py}" fill="${col}"></polygon>`;
+    }
+    // 透明命中区（用于右键删除）
+    l += `<line class="hit" data-link="${k.id}" x1="${a.x}" y1="${a.y}" x2="${b.x}" y2="${b.y}" stroke="transparent" stroke-width="16"></line>`;
+  }
+  linksG.innerHTML = l;
+
+  // 节点
+  let nd="";
+  for(const n of nodes){
+    const sel = selection.includes(n.id);
+    const isSrc = linkSource===n.id;
+    // 内圈色优先级：cc（双击锁定）> lastBottom（最近连线）> 默认灰
+    const inner = n.cc ? (BOTTOM[n.cc]||"#eee") : (n.lastBottom ? (BOTTOM[n.lastBottom]||"#eee") : "#f0f0f0");
+    const stroke = isSrc ? "#f57c00" : (sel ? "#1a73e8" : "#333");
+    const sw = (isSrc||sel) ? 3 : 2;
+    nd += `<g class="node" data-node="${n.id}" transform="translate(${n.x},${n.y})">
+      <circle class="outer" r="${NODE_R}" fill="#fff" stroke="${stroke}" stroke-width="${sw}"></circle>
+      <circle r="${INNER_R}" fill="${inner}"></circle>
+      <text y="${NODE_R+16}" text-anchor="middle">${escapeXml(n.name)}</text>
+    </g>`;
+  }
+  nodesG.innerHTML = nd;
+  addNamePlates();
+
+  // 拖动时的吸附预览圆（半透明影子，始终落在最近轨道上）
+  let gh="";
+  if(dragGhost){
+    gh = `<g class="ghost" opacity="0.4" pointer-events="none">
+      <circle cx="${dragGhost.x}" cy="${dragGhost.y}" r="${NODE_R}" fill="#fff" stroke="#333" stroke-width="2"></circle>
+      <circle cx="${dragGhost.x}" cy="${dragGhost.y}" r="${INNER_R}" fill="#f0f0f0"></circle>
+    </g>`;
+  }
+  ghostG.innerHTML = gh;
+
+  // 更新按钮可用
+  document.getElementById("subBtn").disabled = selection.length!==1 || !!centerOfNode(selection[0]);
+  refreshButtons(); // 高亮全部从状态变量推导，单一真相源
+}
+function escapeXml(s){ return s.replace(/[<>&'"]/g, c=>({"<":"&lt;",">":"&gt;","&":"&amp;","'":"&apos;",'"':"&quot;"}[c])); }
+// 名字底纹：用 getBBox 量真实宽高（中英文混排也准），在 text 前垫一块白底
+function addNamePlates(){
+  const gs=nodesG.querySelectorAll(".node");
+  for(const g of gs){
+    const t=g.querySelector("text"); if(!t) continue;
+    let bb=null;
+    try{ bb=t.getBBox(); }catch(err){ bb=null; }
+    if(!bb || !bb.width || !bb.height) continue;
+    const r=document.createElementNS(SVG_NS,"rect");
+    r.setAttribute("class","nameplate");
+    r.setAttribute("x", bb.x-4);        r.setAttribute("y", bb.y-2);
+    r.setAttribute("width", bb.width+8); r.setAttribute("height", bb.height+4);
+    r.setAttribute("rx", 3);
+    r.setAttribute("fill", "#ffffff"); r.setAttribute("opacity", "0.88");
+    g.insertBefore(r, t);
+  }
+}
+
+//============ 按钮高亮（单一真相源：全部由状态变量推导）============
+function refreshButtons(){
+  document.querySelectorAll("[data-bottom]").forEach(b=>b.classList.toggle("active", activeBottom===b.getAttribute("data-bottom")));
+  document.querySelectorAll("[data-top]").forEach(b=>b.classList.toggle("active", activeTop===b.getAttribute("data-top")));
+  document.getElementById("oneway").classList.toggle("active", oneway);
+  document.getElementById("reposBtn").classList.toggle("active", repositionMode);
+}
+
+//============ 图例样式：名字 / 颜色 / 线型（全局生效）============
+function dashOf(kind,key){
+  const d=(kind==="bottom"?BOTTOM_DASH:TOP_DASH)[key];
+  if(d!=="dashed") return null;
+  return kind==="bottom" ? "16 10" : "8 6";
+}
+function styleMap(kind){
+  return kind==="bottom"
+    ? { c:BOTTOM, n:BOTTOM_NAME, d:BOTTOM_DASH, dc:DEF_BOTTOM, dn:DEF_BOTTOM_NAME }
+    : { c:TOP,    n:TOP_NAME,    d:TOP_DASH,    dc:DEF_TOP,    dn:DEF_TOP_NAME };
+}
+function styleSnapshot(){
+  const s={ bottom:{}, top:{} };
+  for(const kind of ["bottom","top"]){
+    const m=styleMap(kind);
+    for(const k in m.c) s[kind][k]={color:m.c[k], name:m.n[k], dash:m.d[k]};
+  }
+  return s;
+}
+function applyStyleSnapshot(s){
+  if(!s || typeof s!=="object") return;
+  for(const kind of ["bottom","top"]){
+    const src=s[kind]; if(!src || typeof src!=="object") continue;
+    const m=styleMap(kind);
+    for(const k in m.c){
+      const it=src[k]; if(!it) continue;
+      const col=safeColor(it.color);
+      if(col) m.c[k]=col;
+      if(typeof it.name==="string" && it.name.trim()) m.n[k]=it.name.trim();
+      if(it.dash==="dashed" || it.dash==="solid") m.d[k]=it.dash;
+    }
+  }
+}
+function saveStyle(){ lsSet(LS_STYLE, JSON.stringify(styleSnapshot())); }
+function loadStyle(){
+  let s=null;
+  try{ s=JSON.parse(lsGet(LS_STYLE)||"null"); }catch(e){ s=null; }
+  if(s) applyStyleSnapshot(s);
+}
+// 顶部按钮 + 底部图例栏：全部从样式常量实时推导
+function refreshLegend(){
+  document.querySelectorAll("[data-bottom]").forEach(b=>{
+    const k=b.getAttribute("data-bottom");
+    b.style.setProperty("--c", safeColor(BOTTOM[k])||"#222222");
+    b.textContent = BOTTOM_NAME[k]||k;
+  });
+  document.querySelectorAll("[data-top]").forEach(b=>{
+    const k=b.getAttribute("data-top");
+    b.style.setProperty("--c", safeColor(TOP[k])||"#555555");
+    b.textContent = TOP_NAME[k]||k;
+  });
+  let h="";
+  for(const k in BOTTOM) h+=`<span><i style="background:${safeColor(BOTTOM[k])||"#222222"}"></i>${escapeXml(BOTTOM_NAME[k]||k)}</span>`;
+  for(const k in TOP){
+    const bg = dashOf("top",k)
+      ? `background:repeating-linear-gradient(90deg, ${safeColor(TOP[k])||"#555555"} 0 5px, transparent 5px 9px)`
+      : `background:${safeColor(TOP[k])||"#555555"}`;
+    h+=`<span><b style="${bg}"></b>${escapeXml(TOP_NAME[k]||k)}</span>`;
+  }
+  h+=`<span>· 内圈=最近底层色（选底层色后双击角色可锁定）· 右键连线可删除 · 滚轮缩放/拖空白平移</span>`;
+  document.getElementById("legendBar").innerHTML=h;
+}
+// 图例编辑面板
+const LEGEND_KINDS = ["bottom","top"];
+function legendRowAt(box, kind, key){
+  let i=0;
+  for(const kd of LEGEND_KINDS){
+    const m=styleMap(kd);
+    for(const k in m.c){ if(kd===kind && k===key) return box.querySelectorAll(".legend-row")[i]; i++; }
+  }
+  return null;
+}
+function syncLegendEditor(skipRow){
+  const box=document.getElementById("legendEditList"); if(!box) return;
+  for(const kind of LEGEND_KINDS){
+    const m=styleMap(kind);
+    for(const k in m.c){
+      const row=legendRowAt(box,kind,k); if(!row || row===skipRow) continue;
+      const c=safeColor(m.c[k])||"#000000";
+      row.querySelector(".lname").value=m.n[k]||k;
+      row.querySelector(".lcolor").value=c;
+      row.querySelector(".lhex").value=c.toUpperCase();
+      row.querySelector(".ldash").value=m.d[k]==="dashed"?"dashed":"solid";
+    }
+  }
+}
+function buildLegendEditor(){
+  const box=document.getElementById("legendEditList"); box.innerHTML="";
+  for(const kind of LEGEND_KINDS){
+    const m=styleMap(kind);
+    for(const k in m.c){
+      const row=document.createElement("div"); row.className="legend-row";
+      row.innerHTML =
+        `<span class="ltag">${kind==="bottom"?"底层":"顶层"}</span>` +
+        `<input type="text" class="lname" spellcheck="false">` +
+        `<input type="color" class="lcolor">` +
+        `<input type="text" class="lhex" spellcheck="false" maxlength="7">` +
+        `<select class="ldash"><option value="solid">实线</option><option value="dashed">虚线</option></select>`;
+      const nm=row.querySelector(".lname"), co=row.querySelector(".lcolor"), hx=row.querySelector(".lhex"), da=row.querySelector(".ldash");
+      const commit=()=>{ saveStyle(); refreshLegend(); syncLegendEditor(row); render(); refreshStatus(); };
+      nm.addEventListener("input", ()=>{ m.n[k]=nm.value.trim()||m.dn[k]||k; commit(); });
+      co.addEventListener("input", ()=>{ m.c[k]=co.value; hx.value=co.value.toUpperCase(); commit(); });
+      hx.addEventListener("input", ()=>{ const v=safeColor(hx.value.trim()); if(v){ m.c[k]=v; co.value=v; commit(); } });
+      da.addEventListener("change", ()=>{ m.d[k]=da.value; commit(); });
+      box.appendChild(row);
+    }
+  }
+  syncLegendEditor(null);
+}
+function openLegendEditor(){
+  buildLegendEditor();
+  document.getElementById("legendOverlay").hidden=false;
+}
+function restoreDefaultStyle(){
+  for(const kind of LEGEND_KINDS){
+    const m=styleMap(kind);
+    for(const k in m.dc){ m.c[k]=m.dc[k]; m.n[k]=m.dn[k]; m.d[k]="solid"; }
+  }
+  saveStyle(); refreshLegend(); syncLegendEditor(null); render(); refreshStatus();
+}
+
+//============ 状态栏 ============
+function setStatus(m){ document.getElementById("status").textContent = m; }
+function refreshStatus(){
+  if(repositionMode){
+    setStatus("换位置模式：拖动任意角色到目标处释放即固定；点「平均排布」按当前落点顺序把该轨道角色均匀等分（空隙保留）。再点「换位置」退出。");
+  } else if(activeBottom||activeTop){
+    const b=activeBottom?BOTTOM_NAME[activeBottom]:"（无底层）";
+    const t=activeTop?("+"+TOP_NAME[activeTop]):"";
+    setStatus(`连线模式：${b}${t}${oneway?"（单向）":""} — ${linkSource?"已选起点，请点终点":"请点起点角色（再点同色退出）"}`);
+  } else if(selection.length===0){
+    setStatus("选择模式：点角色选中，再点一次取消；点空白处清空全部。");
+  } else if(selection.length===1){
+    setStatus("已选 1 个角色：可「设为子圆心」。再点它可取消。");
+  } else {
+    setStatus(`已选 ${selection.length} 个角色：可「设为子圆心」(取首个)。再点可取消。`);
+  }
+}
+
+//============ 交互：选择 / 连线 ============
+nodesG.addEventListener("click", e=>{
+  const g = e.target.closest(".node"); if(!g) return;
+  if(suppressClick) return;
+  const id = g.getAttribute("data-node");
+  if(activeBottom||activeTop){ handleLinkClick(id); }
+  else { toggleSelect(id); }
+});
+function toggleSelect(id){
+  const i = selection.indexOf(id);
+  if(i>=0) selection.splice(i,1); else selection.push(id);
+  render(); refreshStatus();
+}
+function handleLinkClick(id){
+  if(linkSource===null){ linkSource=id; render(); refreshStatus(); }
+  else {
+    if(linkSource!==id) createLink(linkSource, id);
+    linkSource=null; render(); refreshStatus();
+  }
+}
+function createLink(s,t){
+  const link={ id:"l"+(Date.now())+Math.floor(Math.random()*1000), source:s, target:t,
+               bottom:activeBottom, top:activeTop, oneway:oneway };
+  links.push(link);
+  const a=nodeById(s), b=nodeById(t);
+  if(a && !a.cc) a.lastBottom=activeBottom;   // 已锁定内圈的节点不跟随连线
+  if(b && !b.cc) b.lastBottom=activeBottom;
+  render();
+}
+// 右键删除连线
+linksG.addEventListener("contextmenu", e=>{
+  const ln = e.target.closest(".hit"); if(!ln) return;
+  e.preventDefault();
+  const id = ln.getAttribute("data-link");
+  links = links.filter(k=>k.id!==id);
+  recomputeLastBottom(); render(); refreshStatus();
+});
+function recomputeLastBottom(){
+  // 有 cc（双击锁定）的节点不参与自动重算，否则锁定色会被连线冲掉
+  for(const n of nodes) if(!n.cc) n.lastBottom=null;
+  for(const k of links){
+    const a=nodeById(k.source), b=nodeById(k.target);
+    if(a && !a.cc) a.lastBottom=k.bottom;
+    if(b && !b.cc) b.lastBottom=k.bottom;
+  }
+}
+// 内圈锁定色的持久化（按节点 id）
+function saveNodeCC(){
+  const m={}; for(const n of nodes) if(n.cc) m[n.id]=n.cc;
+  lsSet(LS_NODECC, JSON.stringify(m));
+}
+function loadNodeCC(){
+  let m=null;
+  try{ m=JSON.parse(lsGet(LS_NODECC)||"null"); }catch(e){ m=null; }
+  if(!m || typeof m!=="object") return;
+  for(const n of nodes){ const v=m[n.id]; if(v && BOTTOM[v]) n.cc=v; }
+}
+// 双击角色：锁定 / 解除内圈颜色（需先选中一个底层色）
+document.addEventListener("dblclick", e=>{
+  const at = document.elementFromPoint(e.clientX, e.clientY);
+  const g = (at && at.closest && at.closest(".node")) || (e.target && e.target.closest && e.target.closest(".node"));
+  if(!g) return;
+  const n = nodeById(g.getAttribute("data-node")); if(!n) return;
+  linkSource = null;   // 撤销本次双击里第一次 click 设置的连线起点，避免状态栏残留「已选起点」
+  let msg="";
+  if(!activeBottom){
+    msg = "请先在上方点选一个底层色，再双击角色锁定内圈颜色。";
+  } else if(n.cc===activeBottom){
+    n.cc=null;
+    msg = `已解除「${n.name}」的内圈锁定，恢复跟随最近连线。`;
+  } else {
+    n.cc=activeBottom;
+    msg = `已把「${n.name}」的内圈锁定为「${BOTTOM_NAME[activeBottom]}」；再双击一次可解除。`;
+  }
+  recomputeLastBottom(); saveNodeCC(); render(); refreshStatus();
+  setStatus(msg);
+});
+
+//============ 工具栏 ============
+document.querySelectorAll("[data-bottom]").forEach(btn=>{
+  btn.addEventListener("click", ()=>{
+    const c=btn.getAttribute("data-bottom");
+    if(activeBottom===c){ activeBottom=null; } else { activeBottom=c; }
+    refreshButtons();
+    linkSource=null; render(); refreshStatus();
+  });
+});
+document.querySelectorAll("[data-top]").forEach(btn=>{
+  btn.addEventListener("click", ()=>{
+    const c=btn.getAttribute("data-top");
+    if(activeTop===c){ activeTop=null; } else { activeTop=c; }
+    refreshButtons();
+    render(); refreshStatus();
+  });
+});
+document.getElementById("oneway").addEventListener("click", e=>{
+  oneway=!oneway; refreshButtons(); refreshStatus();
+});
+
+document.getElementById("reposBtn").addEventListener("click", ()=>{
+  repositionMode=!repositionMode;
+  refreshButtons();
+  refreshStatus();
+});
+document.getElementById("evenBtn").addEventListener("click", ()=>{
+  if(!activeOrbit){ setStatus("请先在「换位置」模式中拖动一个角色，确定要等分的轨道。"); return; }
+  const {centerId,ring}=activeOrbit;
+  const c=centerById(centerId); if(!c) return;
+  const list=nodes.filter(n=>n.centerId===centerId && n.ring===ring && n.ring!==0);
+  if(list.length<2){ setStatus("该轨道角色不足 2 个，无需等分。"); return; }
+  const cx=c.x, cy=c.y, r=c.ringRadii[ring-1];
+  // 关键：按当前落点的角度排序，保留你拖进空隙的相对顺序
+  list.sort((a,b)=>Math.atan2(a.y-cy,a.x-cx)-Math.atan2(b.y-cy,b.x-cx));
+  const count=list.length;
+  // 锚点用「当前第一个角色的落点角度」，而非死钉正上方 —— 否则每点一次整圈都平移一格
+  const startAng=Math.atan2(list[0].y-cy, list[0].x-cx);
+  list.forEach((n,i)=>{
+    const ang=startAng + i*2*Math.PI/count;
+    n.x=cx+r*Math.cos(ang); n.y=cy+r*Math.sin(ang);
+    n.index=i; n.pin={x:n.x,y:n.y}; // 等分后固定，防止被覆盖
+  });
+  render(); setStatus("已按当前落点顺序把该轨道角色均匀等分（空隙保留）。");
+});
+
+document.getElementById("subBtn").addEventListener("click", ()=>{
+  if(selection.length!==1) return;
+  const n=nodeById(selection[0]);
+  if(centerOfNode(n.id)){ setStatus("该角色已是圆心。"); return; }
+  const id="sub_"+n.id;
+  const c=centerById(n.centerId);
+  const p=slotPos(n);
+  centers[id]={ id, name:n.name, x:p.x, y:p.y, isMain:false, nodeId:n.id, ringRadii:[INC_SUB] };
+  selection=[]; recompute(); updateCenterSelects(); persistRoster(); render(); refreshStatus();
+  setStatus(`已将「${n.name}」设为子圆心，并生成第一圈轨道（可拖拽微调）。`);
+});
+
+document.getElementById("addOrbitBtn").addEventListener("click", ()=>{
+  const sel=document.getElementById("addCenter"); const id=sel.value; const c=centerById(id);
+  if(!c) return;
+  const last=c.ringRadii[c.ringRadii.length-1]||(c.isMain?80:60);
+  c.ringRadii.push(last+(c.isMain?INC_MAIN:INC_SUB));
+  persistRoster();
+  render(); setStatus(`已为「${c.name}」添加新轨道（半径 ${c.ringRadii[c.ringRadii.length-1]}）。`);
+});
+
+document.getElementById("resetBtn").addEventListener("click", ()=>{
+  for(const n of nodes) n.pin=null;
+  activeOrbit=null;
+  syncAllCenters(); recompute(); selection=[]; render(); refreshStatus();
+  setStatus("已重置布局到默认排布（含清除所有固定点）。");
+});
+
+document.getElementById("clearLinksBtn").addEventListener("click", ()=>{
+  links=[]; recomputeLastBottom(); render(); refreshStatus(); setStatus("已清空所有连线。");
+});
+
+// 添加角色
+function updateCenterSelects(){
+  const sel=document.getElementById("addCenter");
+  sel.innerHTML="";
+  for(const id in centers){
+    const o=document.createElement("option"); o.value=id; o.textContent=centers[id].name; sel.appendChild(o);
+  }
+}
+document.getElementById("addNodeBtn").addEventListener("click", ()=>{
+  const name=document.getElementById("newName").value.trim();
+  const centerId=document.getElementById("addCenter").value;
+  let ring=parseInt(document.getElementById("newRing").value,10);
+  if(!name){ setStatus("请输入角色名。"); return; }
+  if(!ring||ring<1) ring=1;
+  const c=centerById(centerId);
+  while(c.ringRadii.length < ring){
+    const last=c.ringRadii[c.ringRadii.length-1]||(c.isMain?80:60);
+    c.ringRadii.push(last+(c.isMain?INC_MAIN:INC_SUB));
+  }
+  const index=countOnRing(centerId, ring);
+  const n={ id:"n"+(nextId++), name, centerId, ring, index, x:0, y:0, lastBottom:null };
+  nodes.push(n); recompute(); render(); refreshStatus();
+  persistRoster();
+  setStatus(`已添加「${name}」到「${c.name}」第 ${ring} 圈（自动等距排布）。`);
+  document.getElementById("newName").value="";
+});
+
+//============ 面板：批量编辑角色 / 编辑图例 ============
+function openRosterEditor(){
+  document.getElementById("rosterText").value = serializeRoster();
+  document.getElementById("rosterOverlay").hidden = false;
+}
+document.getElementById("rosterBtn").addEventListener("click", openRosterEditor);
+document.getElementById("rosterCancel").addEventListener("click", ()=>{
+  document.getElementById("rosterOverlay").hidden = true;
+});
+document.getElementById("rosterReset").addEventListener("click", ()=>{
+  document.getElementById("rosterText").value = DEFAULT_ROSTER_TEXT;
+  setStatus("已填入默认角色名单，点「应用」后生效。");
+});
+document.getElementById("rosterApply").addEventListener("click", ()=>{
+  const text=document.getElementById("rosterText").value;
+  applyRoster(text);
+  persistRoster(); saveNodeCC();
+  document.getElementById("rosterOverlay").hidden = true;
+  setStatus(`已应用角色名单：${Object.keys(centers).length} 个圆心、${nodes.length} 个角色（同名的连线已按名字接回）。`);
+});
+document.getElementById("legendBtn").addEventListener("click", openLegendEditor);
+document.getElementById("legendClose").addEventListener("click", ()=>{
+  document.getElementById("legendOverlay").hidden = true;
+});
+document.getElementById("legendReset").addEventListener("click", ()=>{
+  restoreDefaultStyle();
+  setStatus("已恢复默认图例（名字 / 颜色 / 线型）。");
+});
+// 点遮罩空白处关闭面板
+document.getElementById("rosterOverlay").addEventListener("mousedown", e=>{
+  if(e.target===e.currentTarget) e.currentTarget.hidden=true;
+});
+document.getElementById("legendOverlay").addEventListener("mousedown", e=>{
+  if(e.target===e.currentTarget) e.currentTarget.hidden=true;
+});
+
+//============ 缩放 / 平移 / 拖拽子圆心 ============
+let panning=false, panStart=null, dragging=null, dragStart=null, moved=false;
+let suppressClick=false;
+let dragNode=null, dragNodeStart=null;
+
+let didPan=false;
+svg.addEventListener("mousedown", e=>{
+  const nodeG = e.target.closest && e.target.closest(".node");
+  if(nodeG){
+    const id=nodeG.getAttribute("data-node");
+    const c=centerOfNode(id);
+    if(repositionMode){ // 换位置模式：任意角色拖到目标处固定（主圆心除外）
+      if(c && c.isMain) return;
+      const node=nodeById(id);
+      dragNode=node; dragNodeStart={x:e.clientX,y:e.clientY,nx:node.x,ny:node.y}; moved=false; suppressClick=false;
+      return;
+    }
+    if(c){ // 子圆心可拖拽
+      dragging=c; dragStart={x:e.clientX,y:e.clientY,cx:c.x,cy:c.y}; moved=false; suppressClick=false;
+    }
+    return; // 非子圆心节点：交给 click 事件处理选择，不进入平移
+  }
+  // 背景平移
+  panning=true; moved=false; didPan=false; panStart={x:e.clientX,y:e.clientY,tx:view.tx,ty:view.ty};
+  svg.classList.add("panning");
+});
+window.addEventListener("mousemove", e=>{
+  if(dragNode){
+    const dx=(e.clientX-dragNodeStart.x)/view.s, dy=(e.clientY-dragNodeStart.y)/view.s;
+    dragNode.x=dragNodeStart.nx+dx; dragNode.y=dragNodeStart.ny+dy;
+    dragNode.pin={x:dragNode.x, y:dragNode.y}; // 实时固定，防止 recompute 覆盖
+    if(centerOfNode(dragNode.id)){ const cc=centerOfNode(dragNode.id); cc.x=dragNode.x; cc.y=dragNode.y; }
+    else { dragGhost = snapToOrbit(dragNode.x, dragNode.y); } // 影子吸附到最近轨道
+    moved=true; suppressClick=true;
+    recompute(); render();
+  } else if(dragging){
+    const dx=(e.clientX-dragStart.x)/view.s, dy=(e.clientY-dragStart.y)/view.s;
+    dragging.x=dragStart.cx+dx; dragging.y=dragStart.cy+dy; moved=true; suppressClick=true;
+    const n=nodeById(dragging.nodeId); n.x=dragging.x; n.y=dragging.y;
+    recompute(); render();
+  } else if(panning){
+    view.tx=panStart.tx+(e.clientX-panStart.x); view.ty=panStart.ty+(e.clientY-panStart.y);
+    if(Math.abs(e.clientX-panStart.x)+Math.abs(e.clientY-panStart.y)>3){ moved=true; didPan=true; }
+    applyView();
+  }
+});
+window.addEventListener("mouseup", ()=>{
+  if(dragNode){
+    if(moved){
+      const isC = centerOfNode(dragNode.id); // 子圆心本身不参与轨道迁移
+      if(!isC){
+        // 落到影子所在位置（吸附点），而非鼠标原始位置
+        if(dragGhost){ dragNode.x=dragGhost.x; dragNode.y=dragGhost.y; dragNode.pin={x:dragNode.x, y:dragNode.y}; }
+        const near = nearestOrbit(dragNode.x, dragNode.y);
+        if(near.centerId!==dragNode.centerId || near.ring!==dragNode.ring){
+          reassignOrbit(dragNode, near.centerId, near.ring); // 迁移 + 新旧轨道收拢
+        }
+        activeOrbit={centerId:near.centerId, ring:near.ring};
+      } else {
+        activeOrbit={centerId:dragNode.centerId, ring:dragNode.ring};
+      }
+      setStatus(`已固定「${dragNode.name}」到释放位置${!isC?`，并归入该轨道（原轨道已剔除）`:""}。点「平均排布」均匀等分。`);
+      recompute();
+    }
+    dragGhost=null; dragNode=null; render();
+  }
+  panning=false; dragging=null; svg.classList.remove("panning");
+  setTimeout(()=>{ suppressClick=false; }, 0);
+});
+const inLinkMode = ()=> activeBottom || activeTop;
+svg.addEventListener("click", e=>{
+  if((e.target===svg || e.target.id==="bg") && !inLinkMode() && !didPan){
+    if(selection.length){ selection=[]; render(); refreshStatus(); }
+  }
+});
+svg.addEventListener("wheel", e=>{
+  e.preventDefault();
+  const rect=svg.getBoundingClientRect();
+  const sx=e.clientX-rect.left, sy=e.clientY-rect.top;
+  const wx=(sx-view.tx)/view.s, wy=(sy-view.ty)/view.s;
+  const f=e.deltaY<0?1.1:0.9;
+  view.s=clamp(view.s*f,0.3,2.5);
+  view.tx=sx-wx*view.s; view.ty=sy-wy*view.s;
+  document.getElementById("zoom").value=view.s;
+  applyView();
+},{passive:false});
+document.getElementById("zoom").addEventListener("input", e=>{
+  view.s=parseFloat(e.target.value); applyView();
+});
+document.getElementById("fitBtn").addEventListener("click", fitView);
+function fitView(){
+  const rect=svg.getBoundingClientRect();
+  view.s=1; view.tx=rect.width/2; view.ty=rect.height/2;
+  document.getElementById("zoom").value=view.s; applyView();
+}
+
+//============ 导出 / 导入 NRD ============
+document.getElementById("exportBtn").addEventListener("click", ()=>{
+  const data={ type:"NRD", version:2,
+    centers:Object.values(centers).map(c=>({id:c.id,name:c.name,x:c.x,y:c.y,isMain:c.isMain,nodeId:c.nodeId,ringRadii:c.ringRadii})),
+    nodes:nodes.map(n=>({id:n.id,name:n.name,centerId:n.centerId,ring:n.ring,index:n.index,cc:n.cc||null})),
+    links:links.map(k=>({source:k.source,target:k.target,bottom:k.bottom,top:k.top,oneway:k.oneway,relation:BOTTOM_NAME[k.bottom]||""})),
+    styles:styleSnapshot()
+  };
+  const blob=new Blob([JSON.stringify(data,null,2)],{type:"application/json"});
+  const a=document.createElement("a"); a.href=URL.createObjectURL(blob);
+  a.download="relationship_map.nrd.json"; a.click();
+  setStatus("已导出 NRD 文件。");
+});
+//============ 导出图片（SVG → PNG）============
+document.getElementById("exportPngBtn").addEventListener("click", ()=>{
+  const svgEl=document.getElementById("svg");
+  const pad=60, legendH=92;
+  let minX=Infinity,minY=Infinity,maxX=-Infinity,maxY=-Infinity;
+  const acc=(x,y)=>{ if(x<minX)minX=x; if(y<minY)minY=y; if(x>maxX)maxX=x; if(y>maxY)maxY=y; };
+  for(const n of nodes){ acc(n.x-(NODE_R+8), n.y-(NODE_R+8)); acc(n.x+(NODE_R+8), n.y+(NODE_R+30)); }
+  for(const id in centers){ const c=centers[id]; for(const r of c.ringRadii){ acc(c.x-r,c.y-r); acc(c.x+r,c.y+r); } }
+  if(!isFinite(minX)){ setStatus("没有可导出的内容。"); return; }
+  const x0=minX-pad, y0=minY-pad, w=(maxX-minX)+2*pad, h=(maxY-minY)+2*pad+legendH;
+  const bodyH=(maxY-minY)+2*pad;
+
+  const clone=svgEl.cloneNode(true);
+  clone.setAttribute("xmlns","http://www.w3.org/2000/svg");
+  clone.setAttribute("viewBox",`${x0} ${y0} ${w} ${h}`);
+  clone.setAttribute("width", w); clone.setAttribute("height", h);
+  clone.setAttribute("font-family","sans-serif");
+  clone.setAttribute("fill","#222"); // 根级 fill 仅影响无显式填充的文本，保证深色文字
+  const vp=clone.querySelector("#viewport"); if(vp) vp.setAttribute("transform",""); // 去掉平移/缩放，回到数据坐标
+  const SVGNS="http://www.w3.org/2000/svg";
+  const bg=document.createElementNS(SVGNS,"rect"); // 白底，避免透明黑块
+  bg.setAttribute("x",x0); bg.setAttribute("y",y0); bg.setAttribute("width",w); bg.setAttribute("height",h);
+  bg.setAttribute("fill","#ffffff");
+  clone.insertBefore(bg, clone.firstChild);
+
+  // ---- 导出图例（包围盒下方，动态生成，加蓝亲情自动出现）----
+  const legendTop=y0+bodyH+16, lx=x0+14;
+  const lg=document.createElementNS(SVGNS,"g");
+  const title=document.createElementNS(SVGNS,"text");
+  title.setAttribute("x",lx); title.setAttribute("y",legendTop+4);
+  title.setAttribute("font-size","15"); title.setAttribute("font-weight","bold");
+  title.setAttribute("fill","#222"); title.textContent="关系图例";
+  lg.appendChild(title);
+  const stepB=Math.max(115,(w-60)/4);
+  let bi=0;
+  for(const key in BOTTOM){
+    const cx=lx+bi*stepB;
+    const ln=document.createElementNS(SVGNS,"line");
+    ln.setAttribute("x1",cx); ln.setAttribute("y1",legendTop+26);
+    ln.setAttribute("x2",cx+36); ln.setAttribute("y2",legendTop+26);
+    ln.setAttribute("stroke",BOTTOM[key]); ln.setAttribute("stroke-width","12");
+    ln.setAttribute("stroke-linecap","round");
+    if(dashOf("bottom",key)) ln.setAttribute("stroke-dasharray", dashOf("bottom",key));
+    lg.appendChild(ln);
+    const t=document.createElementNS(SVGNS,"text");
+    t.setAttribute("x",cx+44); t.setAttribute("y",legendTop+30);
+    t.setAttribute("font-size","14"); t.setAttribute("fill","#222"); t.textContent=BOTTOM_NAME[key];
+    lg.appendChild(t); bi++;
+  }
+  const stepT=Math.max(115,(w-60)/4);
+  let ti=0;
+  for(const key in TOP){
+    const cx=lx+ti*stepT;
+    const ln=document.createElementNS(SVGNS,"line");
+    ln.setAttribute("x1",cx); ln.setAttribute("y1",legendTop+54);
+    ln.setAttribute("x2",cx+36); ln.setAttribute("y2",legendTop+54);
+    ln.setAttribute("stroke",TOP[key]); ln.setAttribute("stroke-width","4");
+    ln.setAttribute("stroke-linecap","round");
+    if(dashOf("top",key)) ln.setAttribute("stroke-dasharray", dashOf("top",key));
+    lg.appendChild(ln);
+    const t=document.createElementNS(SVGNS,"text");
+    t.setAttribute("x",cx+44); t.setAttribute("y",legendTop+58);
+    t.setAttribute("font-size","14"); t.setAttribute("fill","#222"); t.textContent=TOP_NAME[key];
+    lg.appendChild(t); ti++;
+  }
+  clone.appendChild(lg);
+
+  const xml=new XMLSerializer().serializeToString(clone);
+  const url="data:image/svg+xml;charset=utf-8,"+encodeURIComponent(xml); // 用 utf-8 而非 btoa，兼容中文名
+  const img=new Image();
+  img.onload=()=>{
+    const scale=2;
+    const canvas=document.createElement("canvas");
+    canvas.width=Math.round(w*scale); canvas.height=Math.round(h*scale);
+    const ctx=canvas.getContext("2d");
+    ctx.fillStyle="#ffffff"; ctx.fillRect(0,0,canvas.width,canvas.height);
+    ctx.drawImage(img,0,0,canvas.width,canvas.height);
+    canvas.toBlob(blob=>{
+      if(!blob){ setStatus("导出图片失败。"); return; }
+      const a=document.createElement("a");
+      a.href=URL.createObjectURL(blob); a.download="relationship_map.png"; a.click();
+      setTimeout(()=>URL.revokeObjectURL(a.href),1000);
+      setStatus("已导出 PNG 图片（完整星图，白底）。");
+    }, "image/png");
+  };
+  img.onerror=()=>setStatus("导出图片失败：SVG 渲染错误。");
+  img.src=url;
+});
+document.getElementById("importBtn").addEventListener("click", ()=>document.getElementById("importFile").click());
+document.getElementById("importFile").addEventListener("change", e=>{
+  const file=e.target.files[0]; if(!file) return;
+  const reader=new FileReader();
+  reader.onload=()=>{
+    try{
+      const d=JSON.parse(reader.result);
+      centers={}; nodes=[]; links=[]; selection=[]; nextId=0;
+      for(const c of d.centers) centers[c.id]={id:c.id,name:c.name,x:c.x,y:c.y,isMain:c.isMain,nodeId:c.nodeId,ringRadii:c.ringRadii||[]};
+      for(const n of d.nodes){
+        nodes.push({id:n.id,name:n.name,centerId:n.centerId,ring:n.ring,index:n.index,x:0,y:0,lastBottom:null,
+                    cc:(n.cc && BOTTOM[n.cc]) ? n.cc : null});
+        const m=parseInt(n.id.slice(1)); if(!isNaN(m)&&m>=nextId) nextId=m+1;
+      }
+      for(const k of d.links) links.push({id:"l"+(nextId++)+Math.random().toString(36).slice(2,6),source:k.source,target:k.target,bottom:k.bottom,top:k.top,oneway:!!k.oneway});
+      if(d.styles) applyStyleSnapshot(d.styles);   // 老文件无 styles 字段 → 沿用当前图例，向下兼容
+      recompute(); recomputeLastBottom(); updateCenterSelects(); refreshLegend(); render(); refreshStatus();
+      persistRoster(); saveStyle(); saveNodeCC();
+      setStatus("已导入 NRD，角色与连线已还原。");
+    }catch(err){ setStatus("导入失败：文件格式不正确。"); }
+  };
+  reader.readAsText(file);
+  e.target.value="";
+});
+
+//============ 初始化 ============
+buildDefault();      // 优先读 localStorage 的角色名单，没有则用 DEFAULT_ROSTER_TEXT
+loadStyle();
+loadNodeCC();
+recomputeLastBottom();
+refreshLegend();
+updateCenterSelects();
+fitView();
+render();
+refreshStatus();
+</script>
+</body>
+</html>

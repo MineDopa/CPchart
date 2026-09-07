@@ -27,11 +27,14 @@
     const ux = dx / len, uy = dy / len;
     let out = "";
     const tipR = nodeR + 4;
-    const back = 12, wid = 7;
+    // ③ 箭头放大：底层粗线 18×11，顶层细线按 extra.scale 缩放（默认 0.75）
+    const scale = (extra && extra.scale) || 1;
+    const back = 18 * scale, wid = 11 * scale;
+    // ② 顶点在 (tx,ty) 贴目标圆边，底点后退 back —— 箭头尖朝目标角色
     const mkArrow = (tx, ty, dir) => {
       const ex = tx - back * ux * dir, ey = ty - back * uy * dir;
       const px = -uy * wid * dir, py = ux * wid * dir;
-      return `<polygon points="${S(tx + px, ty + py)} ${S(ex, ey)} ${S(tx - px, ty - py)}" fill="${color}"></polygon>`;
+      return `<polygon points="${S(tx, ty)} ${S(ex + px, ey + py)} ${S(ex - px, ey - py)}" fill="${color}"></polygon>`;
     };
     if (arrow === "one") {
       const tx = b.x - ux * tipR, ty = b.y - uy * tipR;
@@ -44,18 +47,7 @@
     return out;
   }
 
-  // 同对多条顶层线弧线展开
-  function pairPath(a, b, idx, total) {
-    if (total <= 1) return { d: `M ${a.x} ${a.y} L ${b.x} ${b.y}`, n: null };
-    const dx = b.x - a.x, dy = b.y - a.y;
-    const len = Math.hypot(dx, dy) || 1;
-    const midx = (a.x + b.x) / 2, midy = (a.y + b.y) / 2;
-    const off = (idx - (total - 1) / 2) * Math.min(46, 18 + (total - 1) * 6);
-    const cx = midx - (dy / len) * off;
-    const cy = midy + (dx / len) * off;
-    return { d: `M ${a.x} ${a.y} Q ${cx} ${cy} ${b.x} ${b.y}`, n: { x: cx, y: cy } };
-  }
-
+  // 连线集（bottom/top 同对均单条直线）
   function buildLinks() {
     const st = App.state;
     const colors = {
@@ -65,55 +57,39 @@
     const byId = {};
     st.chars.forEach((c) => (byId[c.id] = c));
 
-    // 底层粗线（同对唯一）
+    // 底层粗线（同对单条）
     let html = "";
     const bottoms = st.links.filter((k) => k.layer === "bottom");
     bottoms.forEach((k) => {
       const a = byId[k.src], b = byId[k.dst];
       if (!a || !b) return;
       const col = colors.bottom(k.ckey) || "#222";
-      html += `<line class="ln ln-bottom" data-link="${k.id}" x1="${a.x}" y1="${a.y}" x2="${b.x}" y2="${b.y}"
+      const pend = App.pendingLinkDel === k.id ? " pending-del" : "";
+      html += `<line class="ln ln-bottom${pend}" data-link="${k.id}" x1="${a.x}" y1="${a.y}" x2="${b.x}" y2="${b.y}"
         stroke="${col}" stroke-width="12" stroke-linecap="round" opacity="0.88"></line>`;
       html += buildArrowsLine(a, b, col, k.arrow, App.NODE_R, null);
     });
 
-    // 顶层细线（白描边，同对多条弧线扇开）
+    // 顶层细线（白描边，同对单条直线，与 bottom 相同命中/箭头规则）
     const tops = st.links.filter((k) => k.layer === "top");
-    const groups = new Map();
-    tops.forEach((k) => {
-      const key = k.src < k.dst ? k.src + "|" + k.dst : k.dst + "|" + k.src;
-      if (!groups.has(key)) groups.set(key, []);
-      groups.get(key).push(k);
-    });
     tops.forEach((k) => {
       const a = byId[k.src], b = byId[k.dst];
       if (!a || !b) return;
-      const key = k.src < k.dst ? k.src + "|" + k.dst : k.dst + "|" + k.src;
-      const arr = groups.get(key) || [k];
-      const idx = arr.indexOf(k);
-      const total = arr.length;
-      const { d } = pairPath(a, b, idx, total);
       const col = colors.top(k.ckey) || "#555";
-      html += `<path class="ln ln-top" data-link="${k.id}" d="${d}" fill="none"
-        stroke="#ffffff" stroke-width="6.5" stroke-linecap="round" opacity="0.95"></path>`;
-      html += `<path class="ln ln-top-c" data-link="${k.id}" d="${d}" fill="none"
-        stroke="${col}" stroke-width="2.2" stroke-linecap="round"></path>`;
-      html += buildArrowsLine(a, b, col, k.arrow, App.NODE_R, null);
+      const pend = App.pendingLinkDel === k.id ? " pending-del" : "";
+      html += `<line class="ln ln-top${pend}" data-link="${k.id}" x1="${a.x}" y1="${a.y}" x2="${b.x}" y2="${b.y}"
+        stroke="#ffffff" stroke-width="6.5" stroke-linecap="round" opacity="0.95"></line>`;
+      html += `<line class="ln ln-top-c${pend}" data-link="${k.id}" x1="${a.x}" y1="${a.y}" x2="${b.x}" y2="${b.y}"
+        stroke="${col}" stroke-width="2.2" stroke-linecap="round"></line>`;
+      html += buildArrowsLine(a, b, col, k.arrow, App.NODE_R, { scale: 0.75 });
     });
 
     // 命中区（触屏容易点）
     st.links.forEach((k) => {
       const a = byId[k.src], b = byId[k.dst];
       if (!a || !b) return;
-      if (k.layer === "top") {
-        const key = k.src < k.dst ? k.src + "|" + k.dst : k.dst + "|" + k.src;
-        const arr = (groups.get(key) || [k]);
-        const { d } = pairPath(a, b, arr.indexOf(k), arr.length);
-        html += `<path class="hit ln-hit" data-link="${k.id}" d="${d}" fill="none" stroke="transparent" stroke-width="24"></path>`;
-      } else {
-        html += `<line class="hit ln-hit" data-link="${k.id}" x1="${a.x}" y1="${a.y}" x2="${b.x}" y2="${b.y}"
-          stroke="transparent" stroke-width="24"></line>`;
-      }
+      html += `<line class="hit ln-hit" data-link="${k.id}" x1="${a.x}" y1="${a.y}" x2="${b.x}" y2="${b.y}"
+        stroke="transparent" stroke-width="24"></line>`;
     });
     return html;
   }
@@ -162,7 +138,7 @@
       html += `<g class="node" data-node="${c.id}" transform="translate(${c.x},${c.y})">
         <circle class="outer" r="${App.NODE_R}" fill="#fff" stroke="${stroke}" stroke-width="${sw}"></circle>
         ${innerHtml}
-        ${showName ? `<text class="nm" x="${nameX}" y="${nameY}" text-anchor="middle" stroke="${bg}" stroke-width="5"
+        ${showName ? `<text class="nm" x="${nameX}" y="${nameY}" text-anchor="middle" font-size="14" stroke="${bg}" stroke-width="5"
           paint-order="stroke" fill="${nameCol}">${App.esc(c.name)}</text>` : ""}
       </g>`;
     });
@@ -178,13 +154,15 @@
     return html;
   }
 
-  // 布局模式：圈半径拖拽小圆点
+  // 布局模式：圈半径拖拽小圆点（位于轨道外侧 3rem=30pt，避免与角色圆重合）
+  const RING_HANDLE_OFFSET = 30;
+  App.RING_HANDLE_OFFSET = RING_HANDLE_OFFSET;
   function buildRingHandles() {
     if (App.activeTab !== "layout") return "";
     let html = "";
     App.state.rings.forEach((r, i) => {
       const ringNo = i + 1;
-      const px = 0, py = -r.rad;
+      const px = 0, py = -(r.rad + RING_HANDLE_OFFSET);
       html += `<circle class="rh" data-ring="${ringNo}" cx="${px}" cy="${py}" r="11" fill="rgba(10,132,255,0.22)"
         stroke="#0a84ff" stroke-width="1.6" stroke-dasharray="none"></circle>`;
     });
@@ -204,28 +182,63 @@
     return html;
   }
 
+  // ② 图例排版（定稿）：第一行 底层粗线(喜好) / 第二行 顶层细线(关系) / 第三行 箭头含义 ➡+可改名标签
   function buildLegend() {
     const st = App.state;
-    let arr = [];
-    st.tables.bottom.forEach((r) => {
-      arr.push(`<span class="lg"><i style="background:${r.color}"></i><b>${App.esc(r.name)}</b></span>`);
-    });
-    if (arr.length) arr.push('<span class="sep">|</span>');
-    st.tables.top.forEach((r) => {
-      arr.push(`<span class="lg"><i style="background:${r.color};box-shadow:0 0 0 1.5px #fff"></i><b>${App.esc(r.name)}</b></span>`);
-    });
-    if (arr.length && st.tables.arrow.length) arr.push('<span class="sep">|</span>');
-    st.tables.arrow.forEach((r) => {
-      const icon = r.type === "one" ? "➜" : r.type === "both" ? "⇄" : "—";
-      arr.push(`<span class="lg"><b>${icon}</b><b>${App.esc(r.name)}</b></span>`);
-    });
-    return arr.join("");
+    const seg = (items) => `<div class="lg-seg">${items.join("")}</div>`;
+    const bottomHtml = st.tables.bottom.map((r) =>
+      `<span class="lg" data-layer="bottom" data-key="${App.esc(r.key)}"><i style="background:${r.color}"></i><b>${App.esc(r.name)}</b></span>`).join("");
+    const topHtml = st.tables.top.map((r) =>
+      `<span class="lg" data-layer="top" data-key="${App.esc(r.key)}"><i style="background:${r.color};box-shadow:0 0 0 1.5px #fff"></i><b>${App.esc(r.name)}</b></span>`).join("");
+    const arrowName = (st.meta && st.meta.arrowName) ? String(st.meta.arrowName) : "情感指向";
+    const arrowHtml = arrowName
+      ? `<span class="lg" data-layer="arrow" data-key="one"><b class="lg-ic">➡</b><b>${App.esc(arrowName)}</b></span>`
+      : "";
+    let out = "";
+    if (bottomHtml) out += seg([bottomHtml]);
+    if (topHtml) out += seg([topHtml]);
+    if (arrowHtml) out += seg([arrowHtml]);
+    return out;
   }
 
   App.refreshView = function () {
     const o = ensureEls();
     o.vp.setAttribute("transform", `translate(${App.view.tx},${App.view.ty}) scale(${App.view.s})`);
   };
+
+  // 全模式常驻「当前模式」指示（写入左下角 #brushPreview）
+  function renderModeBadge(o) {
+    const t = App.activeTab || "link";
+    let parts = [];
+    let eraser = false;
+    if (t === "hand") {
+      parts.push("👋抓手");
+    } else if (t === "layout") {
+      parts.push("🌐布局");
+    } else if (t === "person") {
+      parts.push("👤人物");
+    } else if (t === "style") {
+      parts.push("🎨样式");
+    } else {
+      // link
+      if (App.eraser) {
+        parts.push("🪌 连线·删线");
+        eraser = true;
+      } else {
+        const bName = App.brush.bottom ? App.nameOf("bottom", App.brush.bottom) : "—";
+        const tName = App.brush.top ? App.nameOf("top", App.brush.top) : "—";
+        const ar = App.state.tables.arrow.find((a) => a.key === App.brush.arrow);
+        const arType = ar ? ar.type : "none";
+        const arName = ar ? ar.name : "无箭头";
+        const arIcon = arType === "one" ? "➜" : arType === "both" ? "⇄" : "—";
+        parts.push("💑连线·笔刷 ◯" + App.esc(bName) + " ●" + App.esc(tName) + " " + arIcon + App.esc(arName));
+        if (App.linkSource) parts.push("已选起点·拖向终点");
+      }
+    }
+    o.brush.innerHTML = parts.join(" · ");
+    o.brush.classList.remove("hidden");
+    o.brush.classList.toggle("eraser", eraser);
+  }
 
   App.render = function () {
     App.computeLayout();
@@ -237,21 +250,6 @@
     o.overlay.innerHTML = buildRingHandles() + buildGhost();
     o.legend.innerHTML = buildLegend();
     App.refreshView();
-    // 画笔状态条
-    const bs = [];
-    if (App.activeTab === "link") {
-      if (App.eraser) bs.push("🪌 删线模式：点线删除");
-      else {
-        if (App.brush.bottom) bs.push(`◯${App.esc(App.nameOf("bottom", App.brush.bottom))}`);
-        if (App.brush.top) bs.push(`●${App.esc(App.nameOf("top", App.brush.top))}`);
-        const ar = App.state.tables.arrow.find((a) => a.key === App.brush.arrow);
-        if (ar) bs.push((ar.type === "one" ? "➜" : ar.type === "both" ? "⇄" : "—") + App.esc(ar.name));
-        if (App.linkSource) bs.push("已选起点，拖向终点");
-      }
-      o.brush.innerHTML = bs.join(" · ");
-      o.brush.classList.remove("hidden");
-    } else {
-      o.brush.classList.add("hidden");
-    }
+    renderModeBadge(o);
   };
 })();

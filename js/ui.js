@@ -13,6 +13,7 @@
   // =============== Tab 切换 ===============
   App.switchTab = function (tab) {
     App.activeTab = tab;
+    App.pendingLinkDel = null; // 切 Tab 清除删线待确认态
     document.querySelectorAll("#tabs .tab").forEach((b) => {
       b.classList.toggle("on", b.getAttribute("data-tab") === tab);
     });
@@ -63,13 +64,17 @@
   const PALETTE = ["#d32f2f", "#f57c00", "#fbc02d", "#43a047", "#1976d2", "#8e24aa", "#ec407a", "#00897b", "#5e35b1", "#222222", "#888888", "#1c1c1e"];
 
   function panelStyle() {
+    const arrowName = (App.state.meta && App.state.meta.arrowName) ? String(App.state.meta.arrowName) : "情感指向";
     return `<div class="pg">
       <div class="pg-t">◯ 底层色（喜好等级 · 粗线）<button class="mini" data-cmd="tbl-add" data-layer="bottom">＋添加</button></div>
       <div>${tableRows("bottom", false)}</div>
       <div class="pg-t">● 顶层色（关系类型 · 细线+白描边）<button class="mini" data-cmd="tbl-add" data-layer="top">＋添加</button></div>
       <div>${tableRows("top", false)}</div>
-      <div class="pg-t">➜ 箭头表<button class="mini" data-cmd="tbl-add" data-layer="arrow">＋添加</button></div>
-      <div>${tableRows("arrow", true)}</div>
+      <div class="pg-t">➡ 箭头含义</div>
+      <div class="trow"><span class="lg-ic" style="font-style:normal;padding:0 2px">➡</span>
+        <span class="tname"><input type="text" data-set="arrowName" value="${App.esc(arrowName)}" placeholder="情感指向"></span>
+      </div>
+      <div class="hint">箭头在图例/导出图里的标注名（如：情感指向、单恋、攻受…）。箭头类型固定为 无箭头/单箭头/双箭头，在「连线」面板选择。</div>
       <div class="ctrl-row">背景色：<input type="color" data-set="bg" value="${App.state.bg}"></div>
     </div>`;
   }
@@ -91,7 +96,7 @@
         <div class="pn"><input type="text" data-cmd="pm-rename" data-id="${c.id}" value="${App.esc(c.name)}" placeholder="角色名"></div>
         <span class="mini" style="color:#888;font-size:11px">${ringTxt}</span>
         <select data-cmd="pm-like" data-id="${c.id}">${likeOpts}</select>
-        <button class="mini" data-cmd="pm-center" data-id="${c.id}" title="设为圆心">⭐</button>
+        <button class="mini" data-cmd="pm-center" data-id="${c.id}" title="${c.ring === 0 ? "取消圆心" : "设为圆心"}"><img class="pm-star" src="assets/icons/${c.ring === 0 ? "star-fill" : "star-line"}.svg" alt=""></button>
         <button class="mini danger" data-cmd="pm-del" data-id="${c.id}" title="删除">🗑</button>
       </div>`;
     }).join("");
@@ -182,9 +187,13 @@
       const slotPart = st.ui.slotMode
         ? ` 槽位<input type="number" class="inp" style="width:56px" data-set="slots" data-ring="${ringNo}" value="${r.slots || n}" min="${Math.max(1, n)}">`
         : "";
+      // 第 1 圈不可删，不提供删除入口
+      const delPart = ringNo > 1
+        ? `<button class="mini danger" data-cmd="ly-delring" data-ring="${ringNo}" title="删除该轨道">🗑</button>`
+        : "";
       return `<div class="ctrl-row"><span style="width:44px">圈${ringNo}</span>
         半径<input type="number" class="inp" style="width:76px" data-set="rad" data-ring="${ringNo}" value="${Math.round(r.rad)}" min="40">
-        ${slotPart}<span style="color:#999;font-size:11px">${n}人</span></div>`;
+        ${slotPart}<span style="color:#999;font-size:11px">${n}人</span>${delPart}</div>`;
     }).join("");
   }
 
@@ -229,17 +238,43 @@
       opts += `<option value="${i}" ${c.ring === i ? "selected" : ""}>圈${i}</option>`;
     }
     $("opsRingSel").innerHTML = opts;
+    // ⑦ 圆心星标两态：实心=已是圆心（再点取消），空心=可设为圆心
+    const isC = c.ring === 0;
+    $("opsCenter").innerHTML = `<img class="pm-star" src="assets/icons/${isC ? "star-fill" : "star-line"}.svg" alt="">${isC ? "取消圆心" : "设为圆心"}`;
     box.classList.remove("hidden");
   }
 
   // =============== 菜单 / 弹窗 ===============
-  App.openModal = function (bodyHtml) {
+  App.openModal = function (bodyHtml, full) {
+    $("modalBox").classList.toggle("full", !!full);
     $("modalBox").innerHTML = bodyHtml;
     $("modalRoot").classList.remove("hidden");
   };
   App.closeModal = function () {
     $("modalRoot").classList.add("hidden");
+    $("modalBox").classList.remove("full");
     if (modalCloseCb) { const f = modalCloseCb; modalCloseCb = null; f(); }
+  };
+  // 图例点击 → 应用对应笔刷（不 commitHist，切换行为与 §十二 P5 一致）
+  App.applyLegendBrush = function (layer, key) {
+    if (layer === "bottom") App.brush.bottom = key;
+    else if (layer === "top") App.brush.top = key;
+    else if (layer === "arrow") App.brush.arrow = key;
+    if (App.activeTab !== "link") {
+      App.eraser = false;
+      App.linkSource = null;
+      App.selCharId = null;
+      App.dragGhost = null;
+      App.switchTab("link");
+      return;
+    }
+    if (App.eraser) {
+      App.eraser = false;
+      App.linkSource = null;
+      App.dragGhost = null;
+    }
+    if (App.renderPanel) App.renderPanel();
+    App.render();
   };
   function modalHead(title) {
     return `<div class="mh">${title}<span class="x" data-cmd="m-close">✕</span></div>`;
@@ -260,17 +295,91 @@
     App._okCb = onOk;
   };
   App.helpModal = function () {
-    App.openModal(`${modalHead("❓ 帮助")}
+    App.openModal(`${modalHead("❓ CP Chart 使用指南")}
       <div class="help-card">
-        <b>三步上手：</b><br>
-        1️⃣ <b>导入人物</b>：去 ≡ 菜单/👤人物「导入名单」。每圈一行，如<br>
-        <code>1: 甲，乙，丙</code><br>
-        <code>2: 丁，戊</code>；<code>圆心: 某人</code> 或 <code>0: 某人</code>。<br>
-        2️⃣ <b>画连线</b>：底部 💑连线，选 粗线(◯)/细线(●)/箭头，点角色A拖到B 松手成线；同一对底层粗线后画会覆盖，顶层可叠多条。<br>
-        3️⃣ <b>导出</b>：≡ 菜单导出图片 / 名单 / 全量快照。<br><br>
-        <b>其它</b>：🌐布局 里拖角色换圈、拖圈顶蓝点调半径、⭐设为圆心；🎨样式 可改图例与背景色；↩︎↪︎ 撤销重做。双指缩放、单指拖空白平移。
+        <div class="help-intro">一个专门用来画角色关系连线图的小工具。所有数据只保存在本机，不会上传。</div>
+
+        <div class="help-h">三步上手</div>
+        <div class="help-step"><b>第一步 · 导入人物</b>：点击底部「👤 人物」→「📥 导入名单」，按圈编辑，每圈一行：<br>
+          <code>1: 甲，乙，丙</code><br><code>2: 丁，戊，己，庚</code><br>
+          支持中英文逗号、空格、制表符分隔。<code>圆心: 某人</code> 或 <code>0: 某人</code> 可设置圆心，直接以 <code>1:</code> 开头则可留空圆心。</div>
+        <div class="help-step"><b>第二步 · 画连线</b>：点击底部「💑 连线」，先选三样：<br>
+          ◯ 粗线 = 喜好度（本命 / 很喜欢 / 路好 / 不吃）<br>
+          ● 细线 = 关系类型（爱情 / 友情 / 亲情 / QPR）<br>
+          ➜ 箭头 = 方向（无 / 单向 / 双向）<br>
+          然后从角色圆上按住，拖到另一个角色上松手即成线。同一对后画的会覆盖先画的。</div>
+        <div class="help-step"><b>第三步 · 导出</b>：右上「≡」菜单 → 导出图片（存相册）/ 导出名单（复制文本）/ 导出完整快照（备份）/ 发布笔记（唤起发布页）。</div>
+
+        <div class="help-h">各 Tab 是干嘛的</div>
+        <div class="help-tab"><b>🎨 样式</b>：改颜色、改图例名、显示/隐藏类型、调背景色</div>
+        <div class="help-tab"><b>👤 人物</b>：导入/编辑名单、设头像、调喜好度、设圆心</div>
+        <div class="help-tab"><b>💑 连线</b>：选笔刷、画线/删线、批量清理、连线记录</div>
+        <div class="help-tab"><b>🌐 布局</b>：拖角色换圈、调半径、加/删轨道、平均排布</div>
+        <div class="help-tab"><b>👋 抓手</b>：纯浏览、隐藏 UI 截图、保存图片</div>
+
+        <div class="help-h">常用操作小贴士</div>
+        <div class="help-tip">
+          • <b>拖角色换圈</b>：布局模式按住角色，拖到目标圈附近松手<br>
+          • <b>调圈半径</b>：拖圈顶 12 点方向的蓝色小圆点，或在布局面板输入数值<br>
+          • <b>删线</b>：连线 →「🪌 删线模式」，点哪条删哪条<br>
+          • <b>撤销/重做</b>：顶栏 ↩︎ / ↪︎ 可回退几乎所有操作<br>
+          • <b>缩放/平移</b>：双指缩放，单指拖空白区域平移<br>
+          • <b>图例直切</b>：点画布左上角图例色块可直接切换对应笔刷</div>
+
+        <div class="help-h">关于数据安全</div>
+        <div class="help-tip">
+          • 数据只存在手机本地草稿，不上传、不外泄<br>
+          • 编辑会自动保存草稿；需长期保存请用「导出完整快照」，把文本发给需要的设备后「导入快照」恢复<br>
+          • 快照不含头像，导入后头像需重新设置</div>
+
+        <div class="help-end">还有问题？「≡ 菜单 → 关于」可查看版本与作者信息。祝您吃好喝好！✨</div>
       </div>
       <div class="modal-btns"><button class="btn primary" data-cmd="m-close">知道了</button></div>`);
+  };
+
+  // 关于页（P12 · 全屏信息卡）：版本号跟随当前上线包 = v0.9.3；不含任何站外链接/仓库地址
+  App.aboutModal = function () {
+    App.openModal(`<div class="about-page">
+        <div class="about-logo"><svg width="64" height="64" viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <circle cx="32" cy="32" r="28" stroke="currentColor" stroke-width="2"></circle>
+          <circle cx="32" cy="32" r="18" stroke="currentColor" stroke-width="2" stroke-dasharray="4 4"></circle>
+          <circle cx="32" cy="32" r="8" fill="currentColor"></circle>
+          <line x1="12" y1="12" x2="24" y2="24" stroke="currentColor" stroke-width="2"></line>
+          <line x1="52" y1="12" x2="40" y2="24" stroke="currentColor" stroke-width="2"></line>
+          <line x1="12" y1="52" x2="24" y2="40" stroke="currentColor" stroke-width="2"></line>
+          <line x1="52" y1="52" x2="40" y2="40" stroke="currentColor" stroke-width="2"></line>
+          <text x="32" y="37" font-size="11" text-anchor="middle" fill="currentColor" font-weight="bold">CP</text>
+        </svg></div>
+        <div class="about-name">CP Chart <em>v0.9.3</em></div>
+        <div class="about-sub">人物关系连线图 · 小红书小工具版</div>
+        <div class="about-date">更新于 2026-09-07</div>
+
+        <div class="about-sec">📌 最近新增</div>
+        <ul class="about-list">
+          <li>+ 导出图片：标题 / 署名 / 图例一图成画</li>
+          <li>+ 一键发布笔记</li>
+          <li>+ 点图例色块直切笔刷</li>
+          <li>+ 名单 / 快照导入导出、本地草稿保存</li>
+          <li>+ 布局优化：平均排布不整圈旋转</li>
+          <li>+ 菜单分组与「关于」</li>
+        </ul>
+
+        <div class="about-sec">🔮 未来前瞻</div>
+        <ul class="about-list">
+          <li>+ 面板半开 / 全开浏览</li>
+          <li>+ 夜间模式</li>
+          <li class="ellipsis">+ 更多功能期待反馈</li>
+        </ul>
+
+        <div class="about-sec">👤 制作</div>
+        <ul class="about-list credit">
+          <li>小红书号：6357261896</li>
+          <li>小红书小工具@CP-Chart</li>
+          <li>基于 vibecoding 构建</li>
+        </ul>
+
+        <div class="about-btn"><button class="btn primary" data-cmd="m-close">知道了</button></div>
+      </div>`, true);
   };
 
   // 导出文本弹窗（E-2 模式）
@@ -298,14 +407,26 @@
       b.addEventListener("click", () => App.switchTab(b.getAttribute("data-tab")));
     });
 
+    // 画布内图例：点任意图例项 = 应用对应笔刷
+    $("legendChip").addEventListener("click", (e) => {
+      const lg = e.target.closest(".lg[data-layer]");
+      if (!lg) return;
+      App.applyLegendBrush(lg.getAttribute("data-layer"), lg.getAttribute("data-key"));
+    });
+
     // 撤销 / 重做 / 标题 / 菜单
     $("btnUndo").addEventListener("click", () => App.undo());
     $("btnRedo").addEventListener("click", () => App.redo());
     $("titleBox").addEventListener("click", () => {
-      App.promptText("修改图名", App.state.title, (v) => {
-        App.act(() => { App.state.title = String(v).trim() || "未命名关系图"; });
-        $("titleBox").textContent = App.state.title;
-      });
+      App.openModal(`${modalHead("修改图名 / 填表人")}
+        <div class="hint">图名用于导出图与发布笔记；填表人会写入导出图署名。</div>
+        <div style="font-size:12px;color:var(--sub);margin:2px 0 4px">图名</div>
+        <input type="text" id="promptTitle" class="inp" style="width:100%" value="${App.esc(App.state.title)}">
+        <div style="font-size:12px;color:var(--sub);margin:12px 0 4px">填表人（可选）</div>
+        <input type="text" id="promptFiller" class="inp" style="width:100%" value="${App.esc(App.getFiller())}" placeholder="未填写则不显示“填表：”">
+        <div class="modal-btns"><button class="btn" data-cmd="m-close">取消</button>
+        <button class="btn primary" data-cmd="title-ok">确定</button></div>`);
+      modalCloseCb = null;
     });
     $("btnMenu").addEventListener("click", () => $("menuRoot").classList.remove("hidden"));
     $("menuMask").addEventListener("click", () => $("menuRoot").classList.add("hidden"));
@@ -331,6 +452,34 @@
       if (ok2) {
         const v = ($("promptVal") || {}).value;
         const cb = App._okCb; App._okCb = null; App.closeModal(); if (cb) cb(v);
+        return;
+      }
+      // 标题/填表人双输入
+      const titleOk = e.target.closest('[data-cmd="title-ok"]');
+      if (titleOk) {
+        const t1 = ($("promptTitle") || {}).value;
+        const f1 = ($("promptFiller") || {}).value;
+        App.closeModal();
+        App.act(() => {
+          App.state.title = String(t1 == null ? "" : t1).trim() || "未命名关系图";
+          App.state.meta.filler = String(f1 == null ? "" : f1).trim();
+        });
+        return;
+      }
+      // 保存相册重试（导出失败/被拒后预览面板内）
+      const saveRetry = e.target.closest('[data-cmd="save-retry"]');
+      if (saveRetry) {
+        const url = App._retrySaveUrl;
+        if (!url) { App.toast("没有可保存的图片", true); return; }
+        App.saveImage(url).then((r2) => {
+          if (r2 && r2.ok) {
+            App.closeModal();
+            App._retrySaveUrl = null;
+            App.toast("已保存到相册 📸");
+          } else {
+            App.toast("保存未成功，请重试或长按图片另存", true);
+          }
+        });
         return;
       }
       if (e.target.closest('[data-cmd="m-close"]')) { App.closeModal(); return; }
@@ -370,6 +519,8 @@
       if (ring) App.commitHist();
       const slot = e.target.closest("[data-set=slots]");
       if (slot) App.commitHist();
+      const arrowNm = e.target.closest('[data-set="arrowName"]');
+      if (arrowNm) App.commitHist();
     });
     panel.addEventListener("focusout", (e) => {
       const el = e.target.closest("[data-row-edit]");
@@ -456,8 +607,14 @@
       }
       case "pm-center": {
         const id = el.getAttribute("data-id");
-        App.act(() => App.moveCharToRing(id, 0));
-        App.toast("已设为圆心");
+        const c = App.state.chars.find((x) => x.id === id);
+        if (c && c.ring === 0) {
+          App.act(() => App.moveCharToRing(id, 1));
+          App.toast("已取消圆心");
+        } else {
+          App.act(() => App.moveCharToRing(id, 0));
+          App.toast("已设为圆心");
+        }
         break;
       }
       case "pm-del": {
@@ -468,13 +625,14 @@
         break;
       }
       // ---------- 连线 ----------
-      case "br-b": { App.brush.bottom = App.brush.bottom === el.getAttribute("data-key") ? null : el.getAttribute("data-key"); App.render(); break; }
-      case "br-t": { App.brush.top = App.brush.top === el.getAttribute("data-key") ? null : el.getAttribute("data-key"); App.render(); break; }
-      case "br-a": { App.brush.arrow = el.getAttribute("data-key"); App.render(); break; }
+      case "br-b": { App.brush.bottom = App.brush.bottom === el.getAttribute("data-key") ? null : el.getAttribute("data-key"); App.render(); App.renderPanel(); break; }
+      case "br-t": { App.brush.top = App.brush.top === el.getAttribute("data-key") ? null : el.getAttribute("data-key"); App.render(); App.renderPanel(); break; }
+      case "br-a": { App.brush.arrow = el.getAttribute("data-key"); App.render(); App.renderPanel(); break; }
       case "lnk-eraser": {
         App.eraser = !App.eraser;
         App.linkSource = null;
         App.dragGhost = null;
+        App.pendingLinkDel = null; // 进出删线模式都清掉待确认态
         App.render(); renderPanel();
         break;
       }
@@ -511,6 +669,23 @@
         });
         break;
       }
+      case "ly-delring": {
+        const ringNo = parseInt(el.getAttribute("data-ring"), 10);
+        const n = App.charsOnRing(ringNo).length;
+        const doDel = () => {
+          try {
+            App.act(() => App.deleteRing(ringNo));
+            App.toast(`已删除圈 ${ringNo}`);
+          } catch (err) { App.toast(err.message || "删除失败", true); }
+        };
+        if (ringNo <= 1) { App.toast("第 1 圈不可删除", true); break; }
+        if (n > 0) {
+          App.confirm(`圈 ${ringNo} 上还有 ${n} 位角色，删除后将移入最近的轨道（尽量保持原位，重叠则自动均分）。`, "移到最近轨道", doDel);
+        } else {
+          doDel();
+        }
+        break;
+      }
       // nodeOps
       case "ops-del": {
         const c = App.state.chars.find((x) => x.id === App.selCharId);
@@ -519,7 +694,13 @@
       }
       case "ops-center": {
         const c = App.state.chars.find((x) => x.id === App.selCharId);
-        if (c) { App.act(() => App.moveCharToRing(c.id, 0)); App.toast("已设为圆心"); }
+        if (c && c.ring === 0) {
+          App.act(() => App.moveCharToRing(c.id, 1));
+          App.toast("已取消圆心");
+        } else if (c) {
+          App.act(() => App.moveCharToRing(c.id, 0));
+          App.toast("已设为圆心");
+        }
         break;
       }
       case "ops-close": { App.selCharId = null; App.notifyChanged(); break; }
@@ -553,6 +734,14 @@
       App.state.bg = t.value;
       document.body.style.setProperty("--bg", t.value);
       App.render();
+      if (e.type === "change") App.notifyChanged();
+      return;
+    }
+    const arrowInp = t.closest('[data-set="arrowName"]');
+    if (arrowInp) {
+      if (!App.state.meta) App.state.meta = {};
+      App.state.meta.arrowName = t.value;
+      App.render(); // 图例实时更新箭头标注名
       if (e.type === "change") App.notifyChanged();
       return;
     }
@@ -626,6 +815,7 @@
         });
         break;
       }
+      case "publish": App.publishNote(); break;
       case "img": exportImageFlow(); break;
       case "expnames": openExportNames(); break;
       case "impnames": openImportNames(false); break;
@@ -636,7 +826,7 @@
         break;
       }
       case "impsnap": openImportSnapshot(); break;
-      case "legend": App.switchTab("style"); break;
+      case "about": App.aboutModal(); break;
     }
   }
 
@@ -662,7 +852,8 @@
           App.deserialize(txt);
           App.notifyChanged();
           $("titleBox").textContent = App.state.title;
-          App.toast("快照已导入");
+          if (App.fitContent) App.fitContent();
+          App.toast("快照已导入（头像未包含，需重新设置头像）");
         } catch (err) { App.toast("导入失败：" + err.message, true); }
       });
   }
@@ -694,31 +885,40 @@
       });
     });
     $("titleBox").textContent = App.state.title;
+    if (App.fitContent) App.fitContent();
     App.toast("旧版 NRD 已导入（多圆心部分被忽略）");
   };
 
-  // 导出图片流程（E-1 + 降级）
+  // 导出图片流程（E-1 + 容器保存）：
+  // 容器环境 = 官方 API（writeTempFile{data} → saveImageToPhotosAlbum），失败 → 全屏预览 + 重试保存按钮；
+  // 网页版环境 = 无相册 API，预览大图，由浏览器原生「长按/右键另存」承接（容器禁用的文件下载能力不写入交付代码）。
   async function exportImageFlow() {
     if (!App.state.chars.length) { App.toast("画布为空，先导入人物", true); return; }
     App.toast("正在生成图片…");
     let dataUrl;
     try { dataUrl = await App.exportPNG(2); }
     catch (err) { App.toast("导出失败：" + err.message, true); return; }
-    const res = await App.saveImage(dataUrl);
-    if (res && res.ok) { App.toast("已保存到相册 📸"); return; }
-    // 降级：全屏预览 + 引导截图；仍尝试 a[download]
-    try {
-      const a = document.createElement("a");
-      a.href = dataUrl;
-      a.download = "CP关系图.png";
-      document.body.appendChild(a);
-      a.click();
-      setTimeout(() => { a.remove(); }, 200);
-    } catch (e) {}
-    App.openModal(`${modalHead("🖼 成品图")}
-      <div class="hint">图片已生成。可长按图片保存；若在浏览器/电脑上会自动下载。</div>
-      <img src="${dataUrl}" alt="关系图" style="width:100%;border-radius:10px;border:1px solid #eee">
-      <div class="modal-btns"><button class="btn primary" data-cmd="m-close">完成</button></div>`);
+    App._retrySaveUrl = dataUrl;
+    const hasSaveApi = !!(window.xhs && window.xhs.miniTool
+      && typeof window.xhs.miniTool.saveImageToPhotosAlbum === "function");
+    if (hasSaveApi) {
+      const res = await App.saveImage(dataUrl);
+      if (res && res.ok) { App.toast("已保存到相册 📸"); return; }
+      App.openModal(`${modalHead("🖼 成品图")}
+        <div class="hint">图片已生成。点「保存相册」调起系统保存；若未成功可重试，或长按图片另存。</div>
+        <img src="${dataUrl}" alt="关系图" style="width:100%;border-radius:10px;border:1px solid #eee">
+        <div class="modal-btns">
+          <button class="btn primary" data-cmd="save-retry">💾 保存相册</button>
+          <button class="btn" data-cmd="m-close">完成</button>
+        </div>`);
+    } else {
+      // 网页版（无容器 API）：长按/右键另存为（浏览器原生能力）
+      App.openModal(`${modalHead("🖼 成品图")}
+        <div class="hint">图片已生成。当前是网页预览环境，未接入相册保存——请长按图片或鼠标右键 →「保存图片 / 图片另存为」保存到设备。</div>
+        <img src="${dataUrl}" alt="关系图" style="width:100%;border-radius:10px;border:1px solid #eee">
+        <div class="modal-btns"><button class="btn primary" data-cmd="m-close">完成</button></div>`);
+    }
+    modalCloseCb = null;
   }
 
   // =============== 通知回调 ===============

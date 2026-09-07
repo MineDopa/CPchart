@@ -16,18 +16,25 @@
     { key: "t3", name: "亲情", color: "#1976d2" },
     { key: "t4", name: "QPR", color: "#8e24aa" },
   ];
+  // 箭头类型为固定枚举（连线面板选择用，不参与样式改名）：
+  // 类型名永远显示 无箭头/单箭头/双箭头；「含义名」为单一可编辑字段 meta.arrowName（默认"情感指向"）。
   const DEFAULT_ARROW = [
     { key: "none", name: "无箭头", type: "none" },
-    { key: "one", name: "单向", type: "one" },
-    { key: "both", name: "双向", type: "both" },
+    { key: "one", name: "单箭头", type: "one" },
+    { key: "both", name: "双箭头", type: "both" },
   ];
+  App.ARROW_STD = { none: "无箭头", one: "单箭头", both: "双箭头" };
+  // 箭头类型固定收敛：只保留 none/one/both 三项，名称/类型以 key 为准（丢弃历史增删/改名）
+  App.normalizeArrow = function (arr) {
+    return ["none", "one", "both"].map((key) => ({ key: key, name: App.ARROW_STD[key], type: key }));
+  };
 
-  // 参考预设名单（用于开局引导/示例）
+  // 参考预设名单（用于开局引导/示例）——中性占位名，不含任何具体角色/世界观名单
   const PRESET_TEXT = [
     "圆心: 甲",
-    "1: 乙, 丙, 丁",
-    "2: 戊, 己, 庚, 辛",
-    "3: 壬, 癸",
+    "1: 乙，丙",
+    "2: 丁，戊，己",
+    "3: 庚，辛",
   ].join("\n");
 
   // 半径按圈生成：第1圈起
@@ -51,7 +58,7 @@
         arrow: DEFAULT_ARROW.map((x) => ({ ...x })),
       },
       ui: { avatarMode: "both", showNames: true, slotMode: false },
-      meta: {},
+      meta: { filler: "", arrowName: "情感指向" }, // arrowName=箭头含义（图例/导出显示，可改）
     };
   }
 
@@ -60,6 +67,7 @@
   App.selCharId = null; // 当前选中角色
   App.linkSource = null; // 连线起点
   App.eraser = false; // 删线模式
+  App.pendingLinkDel = null; // 删线两段式：已选中待二次确认的连线 id
   App.brush = { bottom: null, top: null, arrow: "none" };
   App.dragGhost = null; // {x1,y1,x2,y2,layer,color}
   App.saved = false;
@@ -124,6 +132,36 @@
       });
       return;
     }
+    if (opts && opts.anchor) {
+      // 锚定最靠上角色（angle 距 -PI/2 最近者；angle=null 视作 -PI/2），
+      // 令其 angle=-PI/2，其余按相对原角度顺序向后等分，不做整圈旋转
+      let ai = 0;
+      let aBest = Infinity;
+      list.forEach((c, i) => {
+        const ae = c.angle == null ? -Math.PI / 2 : c.angle;
+        let d = Math.abs(ae - -Math.PI / 2) % (Math.PI * 2);
+        if (d > Math.PI) d = Math.PI * 2 - d;
+        if (d < aBest) { aBest = d; ai = i; }
+      });
+      const anchor = list[ai];
+      const a0 = anchor.angle == null ? -Math.PI / 2 : anchor.angle;
+      const sorted = list
+        .map((c) => ({
+          c,
+          isAnchor: c === anchor,
+          rel: App.normAngle((c.angle == null ? -Math.PI / 2 : c.angle) - a0),
+        }))
+        .sort((p, q) => {
+          if (p.isAnchor) return -1;
+          if (q.isAnchor) return 1;
+          return p.rel - q.rel;
+        });
+      sorted.forEach((it, i) => {
+        it.c.angle = -Math.PI / 2 + (i * 2 * Math.PI) / n;
+        it.c.slot = null;
+      });
+      return;
+    }
     const sorted = list
       .map((c) => ({ c, a: c.angle == null ? -Math.PI / 2 : App.normAngle(c.angle) }))
       .sort((p, q) => p.a - q.a);
@@ -133,10 +171,10 @@
     });
   };
 
-  // 平均排布（全部圈）
+  // 平均排布（全部圈，各圈锚定最靠上角色，不整圈旋转）
   App.evenAll = function () {
     const maxRing = Math.max(0, ...App.state.chars.map((c) => c.ring));
-    for (let r = 1; r <= maxRing; r++) App.distributeRing(r);
+    for (let r = 1; r <= maxRing; r++) App.distributeRing(r, { anchor: true });
     computeLayout();
   };
 
@@ -196,6 +234,55 @@
     computeLayout();
   };
 
+  // 删除轨道：无人直删；有人并入半径最近的相邻圈（等距默认向内），
+  // 移入角色按原角度尽量贴原位，重叠再均分；其余圈半径不动、不自动收拢。第 1 圈不可删。
+  App.deleteRing = function (ringNo) {
+    const st = App.state;
+    ringNo = Math.floor(Number(ringNo));
+    if (!(ringNo >= 2)) throw new Error("第 1 圈不可删除");
+    if (ringNo > st.rings.length) return;
+    const idx = ringNo - 1;
+    const r0 = st.rings[idx].rad;
+    // 最近邻轨道圈（等距默认向内）
+    const hasPrev = idx - 1 >= 0;
+    const hasNext = idx + 1 < st.rings.length;
+    let target;
+    if (!hasNext) target = ringNo - 1;
+    else if (!hasPrev) target = ringNo + 1;
+    else {
+      const dPrev = Math.abs(st.rings[idx - 1].rad - r0);
+      const dNext = Math.abs(st.rings[idx + 1].rad - r0);
+      target = dPrev <= dNext ? ringNo - 1 : ringNo + 1;
+    }
+    const shiftDown = (r) => (r > ringNo ? r - 1 : r);
+    const targetNew = shiftDown(target); // 删除后的新圈号
+    st.rings.splice(idx, 1);             // 移除本圈；其余圈半径不动（不自动收拢）
+    const movers = [];
+    st.chars.forEach((c) => {
+      if (c.ring === ringNo) { c.ring = targetNew; c.slot = null; movers.push(c); }
+      else if (c.ring > ringNo) c.ring = c.ring - 1;
+    });
+    if (movers.length) {
+      // 并入后任意相邻角距 < 两圆安全间距对应弧度 → 均分重排（锚最靠上，不整圈旋转）
+      const rad = App.radiusFor(targetNew);
+      const minGap = (2 * (App.NODE_R + 4)) / Math.max(40, rad);
+      const list = App.charsOnRing(targetNew);
+      const sorted = list
+        .map((c) => (c.angle == null ? -Math.PI / 2 : App.normAngle(c.angle)))
+        .sort((a, b) => a - b);
+      let crowded = false;
+      for (let i = 0; i < sorted.length; i++) {
+        if (sorted.length < 2) break;
+        const j = (i + 1) % sorted.length;
+        let d = Math.abs(sorted[j] - sorted[i]);
+        if (d > Math.PI) d = Math.PI * 2 - d;
+        if (d < minGap) { crowded = true; break; }
+      }
+      if (crowded) App.distributeRing(targetNew, { anchor: true });
+    }
+    computeLayout();
+  };
+
   // 从圈上移除/归入某圈用 dragEnd：angle 由真实落点给出
   App.snapChar = function (id, worldX, worldY) {
     const c = App.state.chars.find((x) => x.id === id);
@@ -235,25 +322,46 @@
   };
 
   // 连线操作
+  // 底层粗线按「无向对」唯一（A-B 只有一条，后画覆盖）；
+  // 顶层细线按「有向对」去重——A→B 与 B→A 两条单箭头可共存（各自可配不同关系色），同向则后画覆盖。
   function pairKey(a, b) { return a < b ? a + "|" + b : b + "|" + a; }
+  function dirKey(a, b) { return a + "→" + b; }
+  function linkUniqKey(k) {
+    if (k.layer === "top") return "top|" + dirKey(k.src, k.dst);
+    return "bottom|" + pairKey(k.src, k.dst);
+  }
   App.findBottomLink = function (a, b) {
     return App.state.links.find((k) => k.layer === "bottom" && pairKey(k.src, k.dst) === pairKey(a, b));
   };
   App.addLink = function (src, dst, layer, ckey, arrow) {
     if (!ckey) return null;
-    if (layer === "bottom") {
-      const exist = App.findBottomLink(src, dst);
-      if (exist) {
-        exist.ckey = ckey;
-        exist.arrow = arrow || "none";
-        return exist;
-      }
+    const key = layer === "top" ? dirKey(src, dst) : pairKey(src, dst);
+    const exist = App.state.links.find(
+      (k) => k.layer === layer && (layer === "top" ? dirKey(k.src, k.dst) === key : pairKey(k.src, k.dst) === key)
+    );
+    if (exist) {
+      exist.ckey = ckey;
+      exist.arrow = arrow || "none";
+      return exist;
     }
     const k = {
       id: App.uid("l"), src, dst, layer, ckey, arrow: arrow || "none",
     };
     App.state.links.push(k);
     return k;
+  };
+  // 收敛旧草稿/旧快照：bottom 无向对仅一条、top 同 (src,dst) 仅一条（均保最后画的那条）
+  App.normalizeLinks = function (links) {
+    const out = [];
+    const seen = {};
+    (links || []).forEach((k) => {
+      if (!k || !k.src || !k.dst) return;
+      const key = linkUniqKey(k);
+      if (seen[key] != null) out[seen[key]] = null;
+      seen[key] = out.length;
+      out.push(k);
+    });
+    return out.filter(Boolean);
   };
   App.removeLink = function (id) {
     App.state.links = App.state.links.filter((k) => k.id !== id);
@@ -316,9 +424,12 @@
     else App.selCharId = id;
   };
 
-  // 序列化/反序列化（JSON 文本往返）
+  // 序列化/反序列化（JSON 文本往返）。快照不含头像 base64。
   App.serialize = function () {
-    return JSON.stringify({ type: "xhs-cp-v1", doc: App.state }, null, 2);
+    const doc = Object.assign({}, App.state);
+    // 只做 chars 副本去头像，避免整个 state 深克隆携带 base64
+    doc.chars = App.state.chars.map((c) => Object.assign({}, c, { avatar: null }));
+    return JSON.stringify({ type: "xhs-cp-v1", doc }, null, 2);
   };
   App.deserialize = function (txt) {
     const obj = JSON.parse(txt);
@@ -334,7 +445,7 @@
       chars: (doc.chars || []).map((c) => ({
         id: c.id || App.uid("c"), name: c.name || "?", ring: Number(c.ring) || 0,
         angle: c.angle == null ? null : Number(c.angle), slot: c.slot == null ? null : c.slot,
-        like: c.like || null, avatar: c.avatar || null, x: 0, y: 0,
+        like: c.like || null, avatar: null, x: 0, y: 0,
       })),
       links: (doc.links || []).map((k) => ({
         id: k.id || App.uid("l"), src: k.src, dst: k.dst,
@@ -348,18 +459,23 @@
         top: (doc.tables && doc.tables.top && doc.tables.top.length)
           ? doc.tables.top.map((r) => ({ key: r.key, name: r.name, color: r.color }))
           : DEFAULT_TOP.map((x) => ({ ...x })),
-        arrow: (doc.tables && doc.tables.arrow && doc.tables.arrow.length)
-          ? doc.tables.arrow.map((r) => ({ key: r.key, name: r.name, type: r.type || "none" }))
-          : DEFAULT_ARROW.map((x) => ({ ...x })),
+        arrow: App.normalizeArrow(doc.tables && doc.tables.arrow),
       },
       ui: Object.assign({}, fresh.ui, doc.ui || {}),
-      meta: {},
+      meta: {
+        filler: doc.meta && doc.meta.filler ? String(doc.meta.filler) : "",
+        arrowName: doc.meta && doc.meta.arrowName ? String(doc.meta.arrowName) : "情感指向",
+      },
     };
-    if (!App.state.tables.arrow.some((a) => a.key === "none")) {
-      App.state.tables.arrow.unshift({ key: "none", name: "无箭头", type: "none" });
-    }
+    // 收敛旧快照里同对多条 top/bottom（top 保留 A→B 与 B→A 两个方向各一条）
+    App.state.links = App.normalizeLinks(App.state.links);
     ensureCenterUnique(null);
     computeLayout();
+  };
+
+  // 填表人（导出图/发布署名用）
+  App.getFiller = function () {
+    return (App.state.meta && App.state.meta.filler) || "";
   };
 
   // ------- 历史（撤销/重做）-------
@@ -378,7 +494,7 @@
     App.hist.r.push(clone());
     App.state = App.hist.u.pop();
     if (!App.state.ui) App.state.ui = { avatarMode: "both", showNames: true, slotMode: false };
-    App.selCharId = null; App.linkSource = null; App.dragGhost = null;
+    App.selCharId = null; App.linkSource = null; App.dragGhost = null; App.pendingLinkDel = null;
     computeLayout();
     App.notifyChanged();
   };
@@ -386,7 +502,7 @@
     if (!App.hist.r.length) return;
     App.hist.u.push(clone());
     App.state = App.hist.r.pop();
-    App.selCharId = null; App.linkSource = null; App.dragGhost = null;
+    App.selCharId = null; App.linkSource = null; App.dragGhost = null; App.pendingLinkDel = null;
     computeLayout();
     App.notifyChanged();
   };
@@ -411,7 +527,7 @@
 
   App.newDoc = function () {
     App.state = freshDoc();
-    App.selCharId = null; App.linkSource = null; App.dragGhost = null; App.eraser = false;
+    App.selCharId = null; App.linkSource = null; App.dragGhost = null; App.eraser = false; App.pendingLinkDel = null;
     App.hist = { u: [], r: [] };
     App.notifyChanged();
   };

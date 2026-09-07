@@ -41,7 +41,7 @@
     <!-- 布局模式：角色选中后的快捷操作条 -->
     <div id="nodeOps" class="hidden">
       <select id="opsRingSel"></select>
-      <button id="opsCenter" class="mini-btn">⭐设为圆心</button>
+      <button id="opsCenter" class="mini-btn"><img class="pm-star" src="assets/icons/star-line.svg" alt="">设为圆心</button>
       <button id="opsDel" class="mini-btn danger">🗑删除</button>
       <button id="opsClose" class="mini-btn">✕</button>
     </div>
@@ -70,14 +70,25 @@
 <div id="menuRoot" class="hidden">
   <div id="menuMask"></div>
   <div id="menuBox">
+    <div class="menu-group">帮助</div>
     <div class="menu-item" data-menu="help">❓ 帮助</div>
+    <div class="menu-sep"></div>
+    <div class="menu-group">工具</div>
     <div class="menu-item" data-menu="new">🆕 建立新连线图</div>
+    <div class="menu-sep"></div>
+    <div class="menu-group">发布</div>
+    <div class="menu-item" data-menu="publish">📝 发布笔记</div>
+    <div class="menu-sep"></div>
+    <div class="menu-group">导出</div>
     <div class="menu-item" data-menu="img">🖼 导出为图片</div>
     <div class="menu-item" data-menu="expnames">📤 导出人物名单</div>
-    <div class="menu-item" data-menu="impnames">📥 导入人物名单</div>
     <div class="menu-item" data-menu="expsnap">📦 导出布局·人物·图例</div>
+    <div class="menu-sep"></div>
+    <div class="menu-group">导入</div>
+    <div class="menu-item" data-menu="impnames">📥 导入人物名单</div>
     <div class="menu-item" data-menu="impsnap">📦 导入布局·人物·图例</div>
-    <div class="menu-item" data-menu="legend">🎨 图例修改</div>
+    <div class="menu-sep"></div>
+    <div class="menu-item" data-menu="about">ℹ️ 关于</div>
   </div>
 </div>
 

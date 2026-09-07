@@ -64,6 +64,8 @@
 
   // =============== pointer 事件 ===============
   function onPointerDown(e) {
+    // 落在图例角标（HTML 浮层）上的按下不进入画布 pan/drag
+    if (e.target && e.target.closest && e.target.closest("#legendChip")) return;
     const svgEl = getSvg();
     const rect = svgEl.getBoundingClientRect();
     ptrs.set(e.pointerId, { x: e.clientX, y: e.clientY });
@@ -89,17 +91,27 @@
       return;
     }
 
-    // ② 连线删线模式：点线删除 / 点人物筛选
+    // ② 连线删线模式（两段式）：第一次点线 = 选中高亮待删，再点同一条 = 确认删除；点人物 = 筛选其相关连线
     if (tab === "link" && App.eraser) {
       const linkId = lineAt(p.x, p.y);
       if (linkId) {
-        App.act(() => App.removeLink(linkId));
-        App.toast("已删除一条连线");
-        gesture = null;
+        if (App.pendingLinkDel === linkId) {
+          App.pendingLinkDel = null;
+          App.act(() => App.removeLink(linkId));
+          App.toast("已删除一条连线");
+          gesture = null;
+          return;
+        }
+        App.pendingLinkDel = linkId;
+        const k = App.state.links.find((x) => x.id === linkId);
+        const nm = (id) => { const c = App.state.chars.find((x) => x.id === id); return c ? c.name : "?"; };
+        App.render();
+        if (k) App.toast(`已选中 ${nm(k.src)} ↔ ${nm(k.dst)}，再点一次删除`);
         return;
       }
       const nid = nodeAt(p.x, p.y);
       if (nid) {
+        App.pendingLinkDel = null;
         App.selCharId = nid;
         App.render();
         if (App.renderPanel) App.renderPanel();
@@ -260,11 +272,11 @@
       const dRad = (gData.startY - p.y) / App.view.s;
       const rad = Math.max(40, gData.startRad + dRad);
       App.state.rings[gData.ring - 1].rad = rad;
-      // 直接更新轨道圆与手柄
+      // 直接更新轨道圆与手柄（手柄位于轨道外侧 3rem）
       const orb = getSvg().querySelector(`.orbit[data-orb="${gData.ring}"]`);
       if (orb) orb.setAttribute("r", rad);
       const hd = getSvg().querySelector(`[data-ring="${gData.ring}"]`);
-      if (hd) hd.setAttribute("cy", -rad);
+      if (hd) hd.setAttribute("cy", -(rad + (App.RING_HANDLE_OFFSET || 30)));
       hint(`圈${gData.ring} 半径 ${Math.round(rad)}`);
       return;
     }

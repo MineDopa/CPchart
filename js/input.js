@@ -80,6 +80,27 @@
     const tab = App.activeTab;
     const inStage = e.target.closest("#svg");
 
+    // ①-b 布局 + 槽位模式：点空槽 = 把当前选中角色放入该槽
+    if (tab === "layout" && App.state.ui && App.state.ui.slotMode) {
+      const slotEl = e.target.closest && e.target.closest("[data-slot]");
+      if (slotEl) {
+        if (!App.selCharId) { App.toast("先点选一个角色，再点空槽放入", true); return; }
+        const ringNo = parseInt(slotEl.getAttribute("data-ring"), 10);
+        const slotIdx = parseInt(slotEl.getAttribute("data-slot"), 10);
+        const c = App.state.chars.find((x) => x.id === App.selCharId);
+        if (c) {
+          const sl = Math.max(1, App.state.rings[ringNo - 1].slots || 1);
+          App.act(() => {
+            c.ring = ringNo; c.slot = slotIdx;
+            c.angle = -Math.PI / 2 + (slotIdx * 2 * Math.PI) / sl;
+          });
+          App.toast(`已放入 圈${ringNo} 槽${slotIdx + 1}`);
+        }
+        gesture = null;
+        return;
+      }
+    }
+
     // ① 布局：圈半径拖拽点
     const rh = e.target.closest && e.target.closest("[data-ring]");
     if (tab === "layout" && rh) {

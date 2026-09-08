@@ -124,9 +124,9 @@
   // 图例三段数据：bottom(实心圆) → top(白边色条) → arrow(化简为单项 ➡+名称)
   function legendSegments(st) {
     const segs = [];
-    const b = st.tables.bottom.filter((r) => r && r.name);
+    const b = st.tables.bottom.filter((r) => r && r.name && !r.hidden);
     if (b.length) segs.push({ items: b.map((r) => ({ kind: "dot", color: r.color, name: r.name })) });
-    const t = st.tables.top.filter((r) => r && r.name);
+    const t = st.tables.top.filter((r) => r && r.name && !r.hidden);
     if (t.length) segs.push({ items: t.map((r) => ({ kind: "bar", color: r.color, name: r.name })) });
     const arrowName = (st.meta && st.meta.arrowName) ? String(st.meta.arrowName) : "情感指向";
     if (arrowName) segs.push({ items: [{ kind: "arrow", type: "one", name: arrowName, icon: "➡" }] });
@@ -248,7 +248,7 @@
       const px = c.x - x0;
       const py = topBand + c.y - y0;
       pts.push({ x: px, y: py });
-      if (st.ui.showNames) pts.push({ x: px, y: py + App.NODE_R + 18 });
+      if (st.ui.showNames) pts.push({ x: px, y: py + App.nodeR() + 18 });
     });
     st.rings.forEach((r) => {
       const rad = Number(r.rad) || 150;
@@ -318,8 +318,8 @@
         };
         if (!st.chars.length) { reject(new Error("画布为空")); return; }
         st.chars.forEach((c) => {
-          acc(c.x - App.NODE_R - 12, c.y - App.NODE_R - 12);
-          acc(c.x + App.NODE_R + 12, c.y + App.NODE_R + 40);
+          acc(c.x - App.nodeR() - 12, c.y - App.nodeR() - 12);
+          acc(c.x + App.nodeR() + 12, c.y + App.nodeR() + 40);
         });
         st.rings.forEach((r) => { acc(-r.rad, -r.rad); acc(r.rad, r.rad); });
         if (!isFinite(minX)) { reject(new Error("没有可导出的内容")); return; }
@@ -352,12 +352,12 @@
           bgEl.setAttribute("y", y0 - 2000);
           bgEl.setAttribute("width", w + 4000);
           bgEl.setAttribute("height", h + 4000);
-          bgEl.setAttribute("fill", st.bg);
+          bgEl.setAttribute("fill", App.displayBg());
         } else {
           const bg = document.createElementNS("http://www.w3.org/2000/svg", "rect");
           bg.setAttribute("x", x0 - 2000); bg.setAttribute("y", y0 - 2000);
           bg.setAttribute("width", w + 4000); bg.setAttribute("height", h + 4000);
-          bg.setAttribute("fill", st.bg);
+          bg.setAttribute("fill", App.displayBg());
           clone.insertBefore(bg, clone.firstChild);
         }
 
@@ -370,7 +370,7 @@
           chartCanvas.width = Math.round(w * s);
           chartCanvas.height = Math.round(h * s);
           const cctx = chartCanvas.getContext("2d");
-          cctx.fillStyle = st.bg;
+          cctx.fillStyle = App.displayBg();
           cctx.fillRect(0, 0, chartCanvas.width, chartCanvas.height);
           cctx.drawImage(img, 0, 0, chartCanvas.width, chartCanvas.height);
           // ② 组合到最终画布
@@ -380,11 +380,12 @@
           cv.height = Math.round(H * s);
           const ctx = cv.getContext("2d");
           ctx.scale(s, s);
-          ctx.fillStyle = st.bg;
+          const dispBg = App.displayBg(); // 夜间模式下导出图跟随当前模式（深色）
+          ctx.fillStyle = dispBg;
           ctx.fillRect(0, 0, W, H);
           ctx.drawImage(chartCanvas, 0, TOP_BAND, w, h);
 
-          const fg = App.readableTextColor(st.bg);
+          const fg = App.readableTextColor(dispBg);
           const backing = fg === "#ffffff" ? "rgba(0,0,0,.35)" : "rgba(255,255,255,.6)";
           const title = st.title || "未命名关系图";
           const filler = App.getFiller();

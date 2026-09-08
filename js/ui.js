@@ -8,20 +8,44 @@
   let modalCloseCb = null;
   let pendingAvatarFor = null;
   let lastColorFocus = null;
+  let nodeRBefore = null; // 角色圆圈滑块拖动前的值（用于一次性记历史，避免每像素一条 undo）
+
+  // 批量编辑名单按钮图标（内联 SVG，currentColor 跟随按钮文字色，夜间自动变浅）
+  const IC_PEOPLE_PLUS =
+    '<svg class="ic-svg" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">' +
+    '<path d="M19 20C22.866 20 26 16.866 26 13C26 9.13401 22.866 6 19 6C15.134 6 12 9.13401 12 13C12 16.866 15.134 20 19 20Z" stroke="currentColor" stroke-width="4" stroke-linejoin="round"/>' +
+    '<path d="M36 29V41M30 35H42" stroke="currentColor" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>' +
+    '<path d="M27 28H18.8C14.3196 28 12.0794 28 10.3681 28.8719C8.86278 29.6389 7.63893 30.8628 6.87195 32.3681C6 34.0794 6 36.3196 6 40.8V42H27" stroke="currentColor" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>' +
+    '</svg>';
 
   const $ = App.byId;
 
   // =============== Tab 切换 ===============
   App.setPanelCollapsed = function (v) {
     App.panelCollapsed = !!v;
+    if (App.panelCollapsed && App.panelFull) App.setPanelFull(false); // 折叠与全开互斥
     document.body.classList.toggle("panel-collapsed", App.panelCollapsed);
     const b = $("btnPanelFold");
-    if (b) b.textContent = App.panelCollapsed ? "︿ 展开" : "﹀ 收起";
+    if (b) b.textContent = App.panelCollapsed ? "︿ 展开" : (App.panelFull ? "︽ 半开" : "﹀ 收起");
+  };
+  // 面板全开态（盖满画布，全屏浏览列表）：🏠 返回钮出现在左上（避开容器左上角按钮）
+  App.setPanelFull = function (v) {
+    App.panelFull = !!v;
+    if (App.panelFull && App.panelCollapsed) {
+      App.panelCollapsed = false; // 从折叠直接进全开时先展开
+      document.body.classList.remove("panel-collapsed");
+    }
+    document.body.classList.toggle("panel-full", App.panelFull);
+    const h = $("homeBtn");
+    if (h) h.classList.toggle("hidden", !App.panelFull);
+    const b = $("btnPanelFold");
+    if (b) b.textContent = App.panelCollapsed ? "︿ 展开" : (App.panelFull ? "︽ 半开" : "﹀ 收起");
   };
   App.switchTab = function (tab) {
     App.activeTab = tab;
     App.pendingLinkDel = null; // 切 Tab 清除删线待确认态
     if (App.panelCollapsed) App.setPanelCollapsed(false); // 切 Tab 视为要操作面板 → 自动展开
+    if (App.panelFull) App.setPanelFull(false); // 切 Tab 一律回半开
     document.querySelectorAll("#tabs .tab").forEach((b) => {
       b.classList.toggle("on", b.getAttribute("data-tab") === tab);
     });
@@ -58,12 +82,14 @@
           ${r.key === "none" ? "" : `<span class="mini danger del" data-cmd="tbl-del" data-layer="${layer}" data-key="${r.key}">🗑</span>`}
         </div>`;
       }
-      return `<div class="trow">
+      return `<div class="trow${r.hidden ? " off" : ""}">
         <span class="sw" style="background:${r.color};border-color:rgba(0,0,0,.2)"></span>
         <input type="color" value="${r.color}" data-row-edit="color" data-layer="${layer}" data-key="${r.key}">
         <span class="tname"><input type="text" data-row-edit="name" data-layer="${layer}" data-key="${r.key}"
           value="${App.esc(r.name)}" placeholder="名称"></span>
         <span class="pal">${PALETTE.map((c) => `<i data-cmd="pal" data-layer="${layer}" data-key="${r.key}" data-c="${c}" style="background:${c}"></i>`).join("")}</span>
+        <span class="mini eye ${r.hidden ? "off" : ""}" data-cmd="tbl-hide" data-layer="${layer}" data-key="${r.key}"
+          title="${r.hidden ? "已隐藏（不进图例），点一下恢复" : "点一下隐藏（不进图例，连线保留）"}">${r.hidden ? "🚫" : "👁"}</span>
         <span class="mini danger del" data-cmd="tbl-del" data-layer="${layer}" data-key="${r.key}">🗑</span>
       </div>`;
     }).join("");
@@ -73,7 +99,13 @@
 
   function panelStyle() {
     const arrowName = (App.state.meta && App.state.meta.arrowName) ? String(App.state.meta.arrowName) : "情感指向";
+    const night = !!(App.state.ui && App.state.ui.night);
     return `<div class="pg">
+      <div class="ctrl-row">外观：
+        <button class="chip ${!night ? "on" : ""}" data-cmd="ui-night" data-val="day">🌞 日间</button>
+        <button class="chip ${night ? "on" : ""}" data-cmd="ui-night" data-val="night">🌛 夜间</button>
+      </div>
+      <div class="hint">夜间模式只改外壳（面板 / 菜单 / 按钮）配色，画板与导出图保持你设的背景色。</div>
       <div class="pg-t">◯ 底层色（喜好等级 · 粗线）<button class="mini" data-cmd="tbl-add" data-layer="bottom">＋添加</button></div>
       <div>${tableRows("bottom", false)}</div>
       <div class="pg-t">● 顶层色（关系类型 · 细线+白描边）<button class="mini" data-cmd="tbl-add" data-layer="top">＋添加</button></div>
@@ -84,6 +116,7 @@
       </div>
       <div class="hint">箭头在图例/导出图里的标注名（如：情感指向、单恋、攻受…）。箭头类型固定为 无箭头/单箭头/双箭头，在「连线」面板选择。</div>
       <div class="ctrl-row">背景色：<input type="color" data-set="bg" value="${App.state.bg}"></div>
+      <div class="hint">👁 = 该项显示在画布图例与导出图里；点成 🚫 则不显示（已经画好的连线不受影响）。</div>
     </div>`;
   }
 
@@ -111,8 +144,7 @@
 
     return `<div class="pg">
       <div class="ctrl-row" style="flex-wrap:wrap">
-        <button class="btn" data-cmd="pm-import">📥 导入名单</button>
-        <button class="btn" data-cmd="pm-export">📤 导出名单</button>
+        <button class="btn" data-cmd="pm-batch" title="按圈批量编辑角色名单">${IC_PEOPLE_PLUS}批量编辑名单</button>
       </div>
       <div class="ctrl-row" style="flex-wrap:wrap">
         <span>头像显示：</span>
@@ -125,7 +157,7 @@
         <button class="chip ${st.ui.showNames ? "on" : ""}" data-cmd="pm-names">${st.ui.showNames ? "开" : "关"}</button>
       </div>
       <div class="pg-t">角色列表（${st.chars.length}）· 点📷行上传头像</div>
-      ${rows || '<div class="hint">暂无角色，先“导入名单”或去 ☰ 菜单导入</div>'}
+      ${rows || '<div class="hint">暂无角色，点上方「批量编辑名单」按圈录入</div>'}
     </div>`;
   }
 
@@ -162,8 +194,9 @@
       const aName = App.esc(a.name), bName = App.esc(b.name);
       const dot = isTop ? `<span class="ln-thin" style="background:${col}"></span>` : `<span class="ln-dot" style="background:${col}"></span>`;
       return `<div class="dlrow" data-pid="${k.src}">
-        <span class="dl-main" data-cmd="filter-link" data-id="${k.src}">${dot}<span>${aName} ${ar && ar.type === "one" ? "➜" : ar && ar.type === "both" ? "⇄" : "—"} ${bName}</span></span>
-        <button class="mini danger" data-cmd="link-del" data-id="${k.id}">🗑</button>
+        <span class="dl-main" data-cmd="link-edit" data-id="${k.id}" title="点击编辑箭头/方向">${dot}<span>${aName} ${ar && ar.type === "one" ? "➜" : ar && ar.type === "both" ? "⇄" : "—"} ${bName}</span></span>
+        <button class="mini" data-cmd="filter-link" data-id="${k.src}" title="只看此人连线">🔍</button>
+        <button class="mini danger" data-cmd="link-del" data-id="${k.id}" title="删除">🗑</button>
       </div>`;
     }).join("");
   }
@@ -193,7 +226,7 @@
       const ringNo = i + 1;
       const n = App.charsOnRing(ringNo).length;
       const slotPart = st.ui.slotMode
-        ? ` 槽位<input type="number" class="inp" style="width:56px" data-set="slots" data-ring="${ringNo}" value="${r.slots || n}" min="${Math.max(1, n)}">`
+        ? ` 槽位<input type="number" class="inp" style="width:56px" data-set="slots" data-ring="${ringNo}" value="${Math.max(r.slots || 0, App.SLOT_MIN, n)}" min="${Math.max(1, n)}">`
         : "";
       // 第 1 圈不可删，不提供删除入口
       const delPart = ringNo > 1
@@ -213,7 +246,12 @@
         <button class="btn" data-cmd="ly-addring">⊕ 添加轨道</button>
         <button class="chip ${st.ui.slotMode ? "on" : ""}" data-cmd="ly-slots">槽位 ${st.ui.slotMode ? "开" : "关"}</button>
       </div>
-      <div class="hint">拖拽角色=换圈/沿圈移动；拖动圈顶蓝点=改半径；点角色出现操作条。</div>
+      <div class="hint">拖拽角色=换圈/沿圈移动；<b>槽位关</b>时可停在轨道任意角度（间距可以不规则，不会自动均分）；<b>槽位开</b>时自动吸附到就近空槽，多余空槽显示成虚线占位圈。想恢复整齐再点「平均排布」。拖动圈顶蓝点=改半径；点角色出现操作条。</div>
+      <div class="pg-t">角色圆圈</div>
+      <div class="ctrl-row">大小
+        <input type="range" data-set="nodeR" min="${App.NODE_R_MIN}" max="${App.NODE_R_MAX}" step="1" value="${App.nodeR()}" style="flex:1">
+        <span id="nodeRVal" style="width:44px;text-align:right">${App.nodeR()}</span>
+      </div>
       <div class="pg-t">圈的半径与槽位</div>
       ${ringRows()}
     </div>`;
@@ -246,13 +284,43 @@
       opts += `<option value="${i}" ${c.ring === i ? "selected" : ""}>圈${i}</option>`;
     }
     $("opsRingSel").innerHTML = opts;
-    // ⑦ 圆心星标两态：实心=已是圆心（再点取消），空心=可设为圆心
+    // 槽位模式：在圆环选择旁提供「槽位」下拉，仅列出空闲槽（含当前槽），避免重叠
+    const slotWrap = $("opsSlotSel");
+    if (App.state.ui.slotMode && c.ring > 0) {
+      const sl = App.state.rings[c.ring - 1].slots || 0;
+      if (sl >= 1) {
+        const occ = new Set(App.charsOnRing(c.ring).filter((x) => x.id !== c.id).map((x) => x.slot).filter((s) => s != null));
+        // 只显示「槽 N」，不带「（当前）」后缀；未落槽时占位项显示「槽位」
+        let so = c.slot == null
+          ? `<option value="-1" selected>槽位</option>`
+          : `<option value="${c.slot}" selected>槽${c.slot + 1}</option>`;
+        for (let s = 0; s < sl; s++) {
+          if (occ.has(s) || s === c.slot) continue;
+          so += `<option value="${s}">槽${s + 1}</option>`;
+        }
+        slotWrap.innerHTML = so;
+        slotWrap.classList.remove("hidden");
+      } else {
+        slotWrap.classList.add("hidden");
+      }
+    } else {
+      slotWrap.classList.add("hidden");
+    }
+    // ⑦ 圆心星标两态：实心=已是圆心（再点取消），空心=可设为圆心（纯 icon，不配文字）
     const isC = c.ring === 0;
-    $("opsCenter").innerHTML = `<img class="pm-star" src="assets/icons/${isC ? "star-fill" : "star-line"}.svg" alt="">${isC ? "取消圆心" : "设为圆心"}`;
+    $("opsCenter").innerHTML = `<img class="pm-star" src="assets/icons/${isC ? "star-fill" : "star-line"}.svg" alt="">`;
+    $("opsCenter").title = isC ? "取消圆心" : "设为圆心";
     box.classList.remove("hidden");
   }
 
   // =============== 菜单 / 弹窗 ===============
+  // 夜间模式外壳类同步（画布主题在 render.js 按 ui.night 处理）
+  App.applyNight = function () {
+    const night = !!(App.state.ui && App.state.ui.night);
+    document.body.classList.toggle("night", night);
+    if (night) document.body.style.removeProperty("--bg"); // 防 inline 覆盖夜间变量
+    else document.body.style.setProperty("--bg", App.state.bg || "#ffffff");
+  };
   // 改名弹窗（原顶栏标题点击 → 现经菜单「改图名 / 填表人」进入）
   App.openTitleModal = function () {
     App.openModal(`${modalHead("修改图名 / 填表人")}
@@ -274,6 +342,31 @@
     $("modalRoot").classList.add("hidden");
     $("modalBox").classList.remove("full");
     if (modalCloseCb) { const f = modalCloseCb; modalCloseCb = null; f(); }
+  };
+  // 连线记录编辑弹窗：改箭头类型（无/单/双）、翻转方向（顶层有向）、删除
+  App.openLinkEdit = function (id) {
+    const k = App.getLink(id);
+    if (!k) { App.toast("连线不存在", true); return; }
+    const a = App.state.chars.find((c) => c.id === k.src), b = App.state.chars.find((c) => c.id === k.dst);
+    const aName = a ? App.esc(a.name) : "?", bName = b ? App.esc(b.name) : "?";
+    const on = (v) => (k.arrow === v ? "on" : "");
+    const isTop = k.layer === "top";
+    const html = `<div class="mh">编辑连线<span class="x" data-cmd="m-close">✕</span></div>
+      <div class="hint">${aName} ${isTop ? "→" : "—"} ${bName}</div>
+      <div class="pg-t">箭头类型</div>
+      <div class="chips">
+        <span class="chip ${on("none")}" data-cmd="link-edit-type" data-id="${k.id}" data-val="none">无箭头</span>
+        <span class="chip ${on("one")}" data-cmd="link-edit-type" data-id="${k.id}" data-val="one">单箭头</span>
+        <span class="chip ${on("both")}" data-cmd="link-edit-type" data-id="${k.id}" data-val="both">双箭头</span>
+      </div>
+      ${isTop
+        ? `<div class="pg-t">方向</div><button class="btn" data-cmd="link-edit-flip" data-id="${k.id}">⇄ 翻转方向（${aName} ↔ ${bName}）</button>`
+        : `<div class="hint">底层粗线无方向，不可翻转</div>`}
+      <div class="modal-btns">
+        <button class="btn danger" data-cmd="link-edit-del" data-id="${k.id}">删除此连线</button>
+        <button class="btn primary" data-cmd="m-close">完成</button>
+      </div>`;
+    App.openModal(html, true);
   };
   // 图例点击 → 应用对应笔刷（不 commitHist，切换行为与 §十二 P5 一致）
   App.applyLegendBrush = function (layer, key) {
@@ -320,7 +413,7 @@
         <div class="help-intro">一个专门用来画角色关系连线图的小工具。所有数据只保存在本机，不会上传。</div>
 
         <div class="help-h">三步上手</div>
-        <div class="help-step"><b>第一步 · 导入人物</b>：点击底部「👤 人物」→「📥 导入名单」，按圈编辑，每圈一行：<br>
+        <div class="help-step"><b>第一步 · 录入人物</b>：点击底部「👤 人物」→「批量编辑名单」，按圈编辑，每圈一行：<br>
           <code>1: 甲，乙，丙</code><br><code>2: 丁，戊，己，庚</code><br>
           支持中英文逗号、空格、制表符分隔。<code>圆心: 某人</code> 或 <code>0: 某人</code> 可设置圆心，直接以 <code>1:</code> 开头则可留空圆心。</div>
         <div class="help-step"><b>第二步 · 画连线</b>：点击底部「💑 连线」，先选三样：<br>
@@ -345,6 +438,7 @@
           • <b>撤销/重做</b>：画布右侧悬浮 ↩︎ / ↪︎ 可回退几乎所有操作<br>
           • <b>改图名 / 填表人</b>：☰ 菜单 → 工具 → 改图名 / 填表人<br>
           • <b>缩放/平移</b>：双指缩放，单指拖空白区域平移<br>
+          • <b>找不着图了？</b>点画布右侧悬浮 <b>¤ 定位坐标</b>，圆心立刻回到画面正中，并自动缩放到全部轨道可见<br>
           • <b>图例直切</b>：点画布左上角图例色块可直接切换对应笔刷</div>
 
         <div class="help-h">关于数据安全</div>
@@ -358,7 +452,7 @@
       <div class="modal-btns"><button class="btn primary" data-cmd="m-close">知道了</button></div>`);
   };
 
-  // 关于页（P12 · 全屏信息卡）：版本号跟随当前上线包 = v0.10.2；不含任何站外链接/仓库地址
+  // 关于页（P12 · 全屏信息卡）：版本号跟随当前上线包 = v0.11.0；不含任何站外链接/仓库地址
   App.aboutModal = function () {
     App.openModal(`<div class="about-page">
         <div class="about-logo"><svg width="64" height="64" viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -371,37 +465,51 @@
           <line x1="52" y1="52" x2="40" y2="40" stroke="currentColor" stroke-width="2"></line>
           <text x="32" y="37" font-size="11" text-anchor="middle" fill="currentColor" font-weight="bold">CP</text>
         </svg></div>
-        <div class="about-name">CP Chart <em>v0.10.2</em></div>
+        <div class="about-name">CP Chart <em>v0.11.0</em></div>
         <div class="about-sub">人物关系连线图 · 小红书小工具版</div>
         <div class="about-date">更新于 2026-09-08</div>
 
         <div class="about-sec">📌 更新日志</div>
+        <div class="log-ver">v0.11.0 · 2026-09-08</div>
+        <ul class="about-list">
+          <li>➕ <b>槽位布局真正可用</b>：开槽位后每圈按槽数等分铺位（默认保底 6 槽），多余空槽画成虚线占位圈；可拖到指定空槽、点空槽放人，或用操作条「槽位」下拉单槽指定</li>
+          <li>➕ <b>槽位关 = 自由摆放</b>：关闭槽位后拖动角色可停在轨道任意角度，不再被自动均分，同一圈可以有疏有密</li>
+          <li>➕ <b>批量编辑名单</b>：人物面板新按钮，一个输入框同时当编辑 / 导入 / 导出用，改完点「保存」即生效，头像与喜好度按名字保留</li>
+          <li>➕ 连线记录点行即编辑：改箭头（无 / 单 / 双向）、一键翻转方向、删除，不用先去画布上点</li>
+          <li>➕ 角色操作条改为纯图标：星标（设为 / 取消圆心）与垃圾桶一目了然，少挡画布</li>
+          <li>➕ <b>定位坐标 ¤</b>：画布右侧新按钮，一键把圆心归位到画面正中并自动缩放到全部轨道可见</li>
+          <li>➕ 面板三态：收起 / 半开 / 全开；把手长按或上滑即全开，左上角 🏠 一键回半开</li>
+          <li>➕ 头像圆圈大小滑块（布局面板，12–40）：头像、喜好环、名字、箭头同步缩放，导出同款</li>
+          <li>➕ 三表「显示 / 隐藏」👁：隐藏的类型不进图例与导出图，已画好的连线不受影响</li>
+          <li>➖ 夜间模式不再把画板与导出图染黑：只改外壳（面板 / 菜单 / 按钮）配色，画板与成品图始终是你设的背景色</li>
+          <li>➖ 手机（网页版）导出不再假下载：改为全屏预览，长按图片存相册</li>
+        </ul>
         <div class="log-ver">v0.10.0 · 2026-09-07</div>
         <ul class="about-list">
-          <li>+ 适配小红书容器：顶栏按钮全部移入画布悬浮工具条（撤销 / 重做 / 菜单），避开顶部官方按钮区</li>
-          <li>+ 菜单改为底部弹出；面板可折叠，画布一键全览</li>
-          <li>+ 图例排版：喜好粗线 / 关系细线 / 箭头含义 分行展示</li>
-          <li>+ A→B 与 B→A 单箭头可共存，可分别配不同关系色</li>
-          <li>+ 箭头含义可自定义（默认"情感指向"）</li>
-          <li>+ 导入名单 / 快照后自动缩放居中，圆心居于画面中央</li>
-          <li>+ 顶栏显示「填表人 的 图名」；圆心星标实心 / 空心两态</li>
+          <li>➕ 适配小红书容器：顶栏按钮全部移入画布悬浮工具条（撤销 / 重做 / 菜单），避开顶部官方按钮区</li>
+          <li>➕ 菜单改为底部弹出；面板可折叠，画布一键全览</li>
+          <li>➕ 图例排版：喜好粗线 / 关系细线 / 箭头含义 分行展示</li>
+          <li>➕ A→B 与 B→A 单箭头可共存，可分别配不同关系色</li>
+          <li>➕ 箭头含义可自定义（默认"情感指向"）</li>
+          <li>➕ 导入名单 / 快照后自动缩放居中，圆心居于画面中央</li>
+          <li>➕ 顶栏显示「填表人 的 图名」；圆心星标实心 / 空心两态</li>
         </ul>
         <div class="log-ver">v0.9.0 · 上线新版</div>
         <ul class="about-list">
-          <li>+ 一键发布笔记：当前画作直接唤起小红书发布页</li>
-          <li>+ 导出图片：标题 / 署名 / 图例 一图成画，一键存入相册</li>
-          <li>+ 名单 / 快照导入导出，编辑自动存本地草稿</li>
-          <li>+ 点图例色块直切对应笔刷</li>
-          <li>+ 连线规则对齐：同一对后画覆盖、箭头方向可设</li>
-          <li>+ 布局支持平均排布、增删轨道、拖拽换圈</li>
-          <li>+ 全新帮助页与「关于」，菜单按功能分组</li>
+          <li>➕ 一键发布笔记：当前画作直接唤起小红书发布页</li>
+          <li>➕ 导出图片：标题 / 署名 / 图例 一图成画，一键存入相册</li>
+          <li>➕ 名单 / 快照导入导出，编辑自动存本地草稿</li>
+          <li>➕ 点图例色块直切对应笔刷</li>
+          <li>➕ 连线规则对齐：同一对后画覆盖、箭头方向可设</li>
+          <li>➕ 布局支持平均排布、增删轨道、拖拽换圈</li>
+          <li>➕ 全新帮助页与「关于」，菜单按功能分组</li>
         </ul>
 
         <div class="about-sec">🔮 未来前瞻</div>
         <ul class="about-list">
-          <li>+ 夜间模式</li>
-          <li>+ 槽位布局</li>
-          <li class="ellipsis">+ 更多功能期待反馈</li>
+          <li>角色模式：手指划过一串人物，批量赋予同一种喜好 / 关系</li>
+          <li>视图记忆：导出或切 Tab 后保留当前缩放与平移位置</li>
+          <li class="ellipsis">更多功能期待反馈</li>
         </ul>
 
         <div class="about-sec">👤 制作</div>
@@ -416,10 +524,12 @@
   };
 
   // 导出文本弹窗（E-2 模式）
-  App.textModal = function (title, hint, text, importMode, onImport) {
+  // opts = { extraBtns:"", okText:"导入" }（批量编辑名单用到：附加「复制全部」+ 主钮改「保存」）
+  App.textModal = function (title, hint, text, importMode, onImport, opts) {
+    const o = opts || {};
     const ta = `<textarea class="export-txt" id="txtArea" ${importMode ? "" : "readonly"}>${App.esc(text)}</textarea>`;
     const btns = importMode
-      ? `<button class="btn" data-cmd="m-close">取消</button><button class="btn primary" data-cmd="txt-import">导入</button>`
+      ? `<button class="btn" data-cmd="m-close">取消</button>${o.extraBtns || ""}<button class="btn primary" data-cmd="txt-import">${o.okText || "导入"}</button>`
       : `<button class="btn" data-cmd="txt-select">重新全选</button><button class="btn primary" data-cmd="m-close">关闭</button>`;
     App.openModal(`${modalHead(title)}<div class="hint">${hint}</div>${ta}
       <div class="modal-btns">${btns}</div>`);
@@ -450,11 +560,36 @@
     // 撤销 / 重做 / 标题 / 菜单
     $("btnUndo").addEventListener("click", () => App.undo());
     $("btnRedo").addEventListener("click", () => App.redo());
-    // 面板折叠开关
+    // 定位坐标：圆心归位到画面正中 + 自动缩放全览
+    const rcBtn = $("btnRecenter");
+    if (rcBtn) rcBtn.addEventListener("click", () => App.recenter());
+    // 面板折叠开关 + 全开手势（长按 450ms 或上滑 ≥48px → 全开）
     const foldBtn = $("btnPanelFold");
     if (foldBtn) {
-      foldBtn.addEventListener("click", () => App.setPanelCollapsed(!App.panelCollapsed));
+      let pressTimer = null, startY = 0, wentFull = false;
+      const clearPress = () => { if (pressTimer) { clearTimeout(pressTimer); pressTimer = null; } };
+      foldBtn.addEventListener("pointerdown", (e) => {
+        startY = e.clientY; wentFull = false;
+        if (!App.panelCollapsed && !App.panelFull) {
+          pressTimer = setTimeout(() => { wentFull = true; App.setPanelFull(true); }, 450);
+        }
+      });
+      foldBtn.addEventListener("pointermove", (e) => {
+        if (pressTimer && startY - e.clientY >= 48) { // 上滑到底 → 全开
+          clearPress(); wentFull = true; App.setPanelFull(true);
+        }
+      });
+      foldBtn.addEventListener("pointerup", clearPress);
+      foldBtn.addEventListener("pointercancel", clearPress);
+      foldBtn.addEventListener("click", () => {
+        if (wentFull) { wentFull = false; return; } // 长按/上滑后的同源点击不当作折叠切换
+        if (App.panelFull) App.setPanelFull(false);
+        else App.setPanelCollapsed(!App.panelCollapsed);
+      });
     }
+    // 全开态左上角「返回画板」钮（避开容器左上角强制覆盖区，见 css #homeBtn 注释）
+    const homeBtn = $("homeBtn");
+    if (homeBtn) homeBtn.addEventListener("click", () => App.setPanelFull(false));
     // 顶部只读标题不再可点；改名入口在菜单「改图名 / 填表人」
     $("btnMenu").addEventListener("click", () => $("menuRoot").classList.remove("hidden"));
     $("menuMask").addEventListener("click", () => $("menuRoot").classList.add("hidden"));
@@ -523,6 +658,28 @@
         const val = ($("txtArea") || {}).value || "";
         App.closeModal();
         if (cb) { try { cb(val); } catch (err) { App.toast(err.message || "导入失败", true); } }
+      }
+      // 连线记录编辑弹窗内的操作
+      const leType = e.target.closest('[data-cmd="link-edit-type"]');
+      if (leType) {
+        const lid = leType.getAttribute("data-id");
+        App.setLinkArrow(lid, leType.getAttribute("data-val"));
+        App.openLinkEdit(lid); // 刷新弹窗高亮
+        return;
+      }
+      const leFlip = e.target.closest('[data-cmd="link-edit-flip"]');
+      if (leFlip) {
+        const lid = leFlip.getAttribute("data-id");
+        App.flipLink(lid);
+        App.openLinkEdit(lid);
+        return;
+      }
+      const leDel = e.target.closest('[data-cmd="link-edit-del"]');
+      if (leDel) {
+        const lid = leDel.getAttribute("data-id");
+        App.act(() => App.removeLink(lid));
+        App.closeModal(); App.renderPanel();
+        return;
       }
     });
 
@@ -597,6 +754,14 @@
     const st = App.state;
     switch (cmd) {
       // ---------- 样式 ----------
+      case "ui-night": {
+        const want = el.getAttribute("data-val") === "night";
+        if (!!st.ui.night !== want) {
+          App.act(() => { st.ui.night = want; });
+          App.applyNight();
+        }
+        break;
+      }
       case "tbl-add": {
         const layer = el.getAttribute("data-layer");
         App.act(() => App.addTableRow(layer, { name: layer === "arrow" ? "新箭头" : "新关系", type: layer === "arrow" ? "one" : undefined }));
@@ -618,7 +783,14 @@
         App.act(() => App.recolorTableRow(layer, key, col));
         break;
       }
+      case "tbl-hide": {
+        const layer = el.getAttribute("data-layer"), key = el.getAttribute("data-key");
+        const hidden = App.act(() => App.toggleTableHidden(layer, key));
+        App.toast(hidden ? "已隐藏：不进图例与导出图" : "已恢复显示");
+        break;
+      }
       // ---------- 人物 ----------
+      case "pm-batch": openBatchNames(); break;
       case "pm-import": openImportNames(); break;
       case "pm-export": openExportNames(); break;
       case "pm-mode": {
@@ -674,6 +846,10 @@
         App.act(() => App.removeLink(id));
         break;
       }
+      case "link-edit": {
+        App.openLinkEdit(el.getAttribute("data-id"));
+        break;
+      }
       case "filter-link": {
         App.selCharId = el.getAttribute("data-id");
         renderPanel(); App.render();
@@ -682,7 +858,12 @@
       // ---------- 布局 ----------
       case "ly-even": App.act(() => App.evenAll()); App.toast("已平均排布"); break;
       case "ly-addring": {
-        App.act(() => { App.state.rings.push({ rad: (App.state.rings[App.state.rings.length - 1] || { rad: 150 }).rad + 120, slots: null }); });
+        App.act(() => {
+          App.state.rings.push({
+            rad: (App.state.rings[App.state.rings.length - 1] || { rad: 150 }).rad + 120,
+            slots: App.state.ui.slotMode ? App.SLOT_MIN : null,
+          });
+        });
         break;
       }
       case "ly-slots": {
@@ -691,7 +872,7 @@
           if (st.ui.slotMode) {
             st.rings.forEach((r, i) => {
               const n = App.charsOnRing(i + 1).length;
-              r.slots = r.slots || Math.max(n, 1);
+              r.slots = Math.max(r.slots || 0, App.SLOT_MIN, n);
             });
             App.evenAll();
           }
@@ -745,6 +926,25 @@
     }
   }
 
+  // 角色圆圈过大提示：任一圈上相邻角色的弧长间距放不下两个圆时提醒（不阻止）
+  function warnNodeOverlap(R) {
+    const st = App.state;
+    const maxRing = Math.max(0, ...st.chars.map((c) => c.ring));
+    for (let r = 1; r <= maxRing; r++) {
+      const list = App.charsOnRing(r);
+      if (list.length < 2) continue;
+      const rad = Math.max(40, App.radiusFor(r) || 150);
+      const need = (2 * R + 8) / rad;
+      const angs = list.map((c) => App.normAngle(c.angle == null ? -Math.PI / 2 : c.angle)).sort((a, b) => a - b);
+      for (let i = 0; i < angs.length; i++) {
+        const j = (i + 1) % angs.length;
+        let d = Math.abs(angs[j] - angs[i]);
+        if (d > Math.PI) d = Math.PI * 2 - d;
+        if (d < need) { App.toast("圆圈偏大，部分角色可能挤在一起，可调小或点「平均排布」", true); return; }
+      }
+    }
+  }
+
   function onInput(e) {
     const t = e.target;
     const st = App.state;
@@ -761,7 +961,7 @@
     const bg = t.closest('[data-set="bg"]');
     if (bg) {
       App.state.bg = t.value;
-      document.body.style.setProperty("--bg", t.value);
+      if (!App.state.ui.night) document.body.style.setProperty("--bg", t.value); // 夜间时外壳保持深色，不跟随
       App.render();
       if (e.type === "change") App.notifyChanged();
       return;
@@ -772,6 +972,18 @@
       App.state.meta.arrowName = t.value;
       App.render(); // 图例实时更新箭头标注名
       if (e.type === "change") App.notifyChanged();
+      return;
+    }
+    const nrInp = t.closest('[data-set="nodeR"]');
+    if (nrInp) {
+      let v = parseInt(t.value, 10);
+      if (!v || v < App.NODE_R_MIN) v = App.NODE_R;
+      if (v > App.NODE_R_MAX) v = App.NODE_R_MAX;
+      if (nodeRBefore == null) { nodeRBefore = st.ui.nodeR; App.commitHist(); } // 一次拖动只记一条 undo
+      st.ui.nodeR = v;
+      const nv = $("nodeRVal"); if (nv) nv.textContent = String(v);
+      App.render();
+      if (e.type === "change") { nodeRBefore = null; App.notifyChanged(); warnNodeOverlap(v); }
       return;
     }
     const radInp = t.closest('[data-set="rad"]');
@@ -832,6 +1044,23 @@
     });
   }
 
+  // opsSlotSel change（布局操作条：把选中角色移到指定空闲槽）
+  function bindSlotSel() {
+    $("opsSlotSel").addEventListener("change", (e) => {
+      const id = App.selCharId;
+      const c = App.state.chars.find((x) => x.id === id);
+      if (!c || c.ring <= 0) return;
+      const slotIdx = parseInt(e.target.value, 10);
+      if (slotIdx < 0) return;
+      const sl = Math.max(1, App.state.rings[c.ring - 1].slots || 1);
+      App.act(() => {
+        c.slot = slotIdx;
+        c.angle = -Math.PI / 2 + (slotIdx * 2 * Math.PI) / sl;
+      });
+      App.toast(`已移到 圈${c.ring} 槽${slotIdx + 1}`);
+    });
+  }
+
   function onMenu(menu) {
     switch (menu) {
       case "help": App.helpModal(); break;
@@ -858,6 +1087,16 @@
       case "impsnap": openImportSnapshot(); break;
       case "about": App.aboutModal(); break;
     }
+  }
+
+  // 批量编辑角色名单：一个输入框同时当「编辑 / 导入 / 导出」用
+  function openBatchNames() {
+    const cur = App.exportNameListText();
+    const pre = cur || "圆心: 我\n1: 甲，乙，丙\n";
+    App.textModal("批量编辑角色名单",
+      "按圈编辑，每圈一行（圈号 + 名字，用 ，或空格分隔）：<br><code>圆心: 我<br>1: 甲，乙，丙<br>2: 丁，戊</code><br>改名 / 删人 / 加人直接改文字，点「保存」生效（头像与喜好度按名字保留）。",
+      pre, true, (txt) => { App.importNameList(txt); App.toast("名单已更新"); },
+      { extraBtns: '<button class="btn" data-cmd="txt-select">复制全部</button>', okText: "保存" });
   }
 
   // 打开名单导入弹窗
@@ -1061,9 +1300,9 @@
   App.uiInit = function () {
     bindEvents();
     bindRingSel();
+    bindSlotSel();
     App.setPanelCollapsed(App.panelCollapsed); // 同步折叠按钮初始文案
-    App.onChanged = refreshAll;
-    // 初始 tab
+    App.onChanged = refreshAll;    // 初始 tab
     document.querySelectorAll("#tabs .tab").forEach((b) => {
       b.classList.toggle("on", b.getAttribute("data-tab") === App.activeTab);
     });

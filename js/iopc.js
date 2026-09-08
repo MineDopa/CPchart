@@ -33,6 +33,11 @@
     return new Promise(function (resolve) {
       try {
         const fileName = buildFileName();
+        // 触屏设备（手机/iPad）浏览器对 a[download] 支持差、不呼出保存，
+        // 改为全屏预览 + 长按保存（移动端最稳的存图方式）。
+        const isTouch = ("ontouchstart" in window) || (navigator.maxTouchPoints > 0) ||
+          /iP(ad|hone|od)|Android|Mobile/i.test(navigator.userAgent || "");
+        if (isTouch) { showMobilePreview(dataUrl); resolve({ ok: true, method: "preview" }); return; }
         const link = document.createElement("a");
         link.href = dataUrl;
         link.download = fileName;
@@ -45,6 +50,31 @@
       }
     });
   };
+  function showMobilePreview(dataUrl) {
+    const ov = document.createElement("div");
+    ov.style.cssText = "position:fixed;inset:0;z-index:9999;background:rgba(0,0,0,.86);" +
+      "display:flex;flex-direction:column;align-items:center;justify-content:center;padding:16px;";
+    const img = document.createElement("img");
+    img.src = dataUrl;
+    img.style.cssText = "max-width:92%;max-height:68%;border-radius:12px;box-shadow:0 6px 30px rgba(0,0,0,.5);";
+    const tip = document.createElement("div");
+    tip.textContent = "长按上方图片 → 保存到相册";
+    tip.style.cssText = "color:#fff;font-size:14px;margin-top:16px;text-align:center;";
+    const bar = document.createElement("div");
+    bar.style.cssText = "margin-top:14px;display:flex;gap:10px;";
+    const close = document.createElement("button");
+    close.textContent = "关闭";
+    close.style.cssText = "padding:9px 22px;border-radius:10px;background:#0a84ff;color:#fff;font-size:15px;border:none;";
+    close.onclick = function () { if (ov.parentNode) ov.parentNode.removeChild(ov); };
+    const openNew = document.createElement("button");
+    openNew.textContent = "新标签打开";
+    openNew.style.cssText = "padding:9px 22px;border-radius:10px;background:#3a3a3c;color:#fff;font-size:15px;border:none;";
+    openNew.onclick = function () { window.open(dataUrl, "_blank"); };
+    bar.appendChild(close); bar.appendChild(openNew);
+    ov.onclick = function (e) { if (e.target === ov && ov.parentNode) ov.parentNode.removeChild(ov); };
+    ov.appendChild(img); ov.appendChild(tip); ov.appendChild(bar);
+    document.body.appendChild(ov);
+  }
   App.publishNote = function () {
     tip("网页版暂不支持直接发布笔记：请先「导出图片」保存图片后，在小红书 App 里手动发布。");
     return Promise.resolve({ ok: false, reason: "web-environment" });

@@ -23,7 +23,7 @@
       const d = Math.hypot(c.x || 0, c.y || 0);
       if (d > R) R = d;
     });
-    const full = Math.max(120, R + App.NODE_R + 64); // 轨道/角色外留边距（含名字）
+    const full = Math.max(120, R + App.nodeR() + 64); // 轨道/角色外留边距（含名字）
     App.view.s = Math.min(1, Math.min(vw, vh) / (full * 2));
     App.view.tx = vw / 2;
     App.view.ty = vh / 2;
@@ -32,6 +32,17 @@
     const zl = App.byId("zoomLabel"); if (zl) zl.textContent = pct;
     const zr = App.byId("zoomRange"); if (zr) zr.value = Math.round(App.view.s * 100);
     const zv = App.byId("zoomVal"); if (zv) zv.textContent = pct;
+  };
+
+  // 定位坐标：圆心（第一圈中心 = 画布原点 0,0）归位到画面正中，并自动缩放至全部轨道可见
+  // 用途：缩放/平移迷失后一键找回轨道位置。仅改视图，不动数据、不进撤销栈
+  App.recenter = function (opts) {
+    const silent = !!(opts && opts.silent);
+    App.fitContent();
+    if (!silent) {
+      const n = (App.state.rings && App.state.rings.length) || 1;
+      App.toast(`已定位：圆心居中 · ${n} 圈全览 ${Math.round(App.view.s * 100)}%`);
+    }
   };
 
   function saveDraft() {
@@ -75,8 +86,8 @@
   }
 
   App.start = function () {
-    // 设置背景变量
-    document.body.style.setProperty("--bg", App.state.bg);
+    // 设置背景变量（夜间模式则切深色外壳）
+    App.applyNight();
 
     // 先注册 UI/输入
     App.uiInit();

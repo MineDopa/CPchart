@@ -38,14 +38,26 @@
     <!-- 布局模式：角色选中后的快捷操作条 -->
     <div id="nodeOps" class="hidden">
       <select id="opsRingSel"></select>
-      <button id="opsCenter" class="mini-btn"><img class="pm-star" src="assets/icons/star-line.svg" alt="">设为圆心</button>
-      <button id="opsDel" class="mini-btn danger">🗑删除</button>
+      <select id="opsSlotSel" class="hidden"></select>
+      <button id="opsCenter" class="mini-btn icon-only" title="设为圆心"><img class="pm-star" src="assets/icons/star-line.svg" alt=""></button>
+      <button id="opsDel" class="mini-btn danger icon-only" title="删除" aria-label="删除"><svg class="ic-svg" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M9 10V44H39V10H9Z" fill="none" stroke="currentColor" stroke-width="4" stroke-linejoin="round"/><path d="M20 20V33" stroke="currentColor" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/><path d="M28 20V33" stroke="currentColor" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/><path d="M4 10H44" stroke="currentColor" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/><path d="M16 10L19.289 4H28.7771L32 10H16Z" fill="none" stroke="currentColor" stroke-width="4" stroke-linejoin="round"/></svg></button>
       <button id="opsClose" class="mini-btn">✕</button>
     </div>
     <!-- 画布右侧悬浮工具组（避开顶部容器占用区；整组可拖动、松手吸附到边） -->
     <div id="floatTools">
       <button id="btnUndo" class="tb-btn" title="上一步">↩︎</button>
       <button id="btnRedo" class="tb-btn" title="下一步">↪︎</button>
+      <!-- 定位坐标：圆心(第一圈中心)归位到画面正中 + 自动缩放显示全部轨道 -->
+      <button id="btnRecenter" class="tb-btn" title="定位坐标：圆心归位，自动缩放">
+        <svg width="20" height="20" viewBox="0 0 48 48" fill="none" aria-hidden="true">
+          <path d="M16 6H8C6.9 6 6 6.9 6 8V16" stroke="currentColor" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>
+          <path d="M16 42H8C6.9 42 6 41.1 6 40V32" stroke="currentColor" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>
+          <path d="M32 42H40C41.1 42 42 41.1 42 40V32" stroke="currentColor" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>
+          <path d="M32 6H40C41.1 6 42 6.9 42 8V16" stroke="currentColor" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>
+          <circle cx="24" cy="24" r="7.5" stroke="currentColor" stroke-width="4"/>
+          <circle cx="24" cy="24" r="3" fill="currentColor"/>
+        </svg>
+      </button>
       <button id="btnMenu" class="tb-btn menu-fab" title="菜单">☰</button>
     </div>
   </div>
@@ -105,6 +117,9 @@
 <!-- 全屏(隐藏UI)退出按钮 -->
 <button id="fullExit" class="hidden" title="退出全屏">✕</button>
 
+<!-- 面板全开态「返回画板」钮：左上角、位于容器左上角强制覆盖区（返回键圆钮）下方，避免重叠 -->
+<button id="homeBtn" class="hidden" title="返回画板">🏠</button>
+
 <script src="js/util.js"></script>
 <script src="js/state.js"></script>
 <script src="js/render.js"></script>
@@ -112,7 +127,6 @@
 <script src="js/ui.js"></script>
 <script src="js/input.js"></script>
 <script src="js/main.js"></script>
-<!-- 网页版 IO 覆盖层（下载保存/禁用发布；仅 web 分流版加载，容器包不含） -->
-<script src="js/iopc.js"></script>
+  <script src="js/iopc.js"></script>
 </body>
 </html>

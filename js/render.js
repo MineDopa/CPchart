@@ -21,6 +21,13 @@
 
   const S = (x, y) => `${x.toFixed(1)},${y.toFixed(1)}`;
 
+  // 画布显示主题：夜间模式只改 UI 外壳（CSS body.night），画板本身始终按用户设定的背景色 state.bg 渲染，
+  // 配色固定用「日间」调色板（深字浅节点），保证任意模式下画板清晰可读、且绝不被染黑。
+  function canvasTheme() {
+    return { bg: App.state.bg || "#ffffff", orbit: "#d5d5da", nodeFill: "#ffffff", innerFill: "#ffffff",
+      likeEmpty: "#ececec", nameCol: "#26262a", linkEdge: "#ffffff" };
+  }
+
   function buildArrowsLine(a, b, color, arrow, nodeR, extra) {
     const dx = b.x - a.x, dy = b.y - a.y;
     const len = Math.hypot(dx, dy) || 1;
@@ -50,6 +57,7 @@
   // 连线集（bottom/top 同对均单条直线）
   function buildLinks() {
     const st = App.state;
+    const th = canvasTheme();
     const colors = {
       bottom: (k) => App.colorOf("bottom", k),
       top: (k) => App.colorOf("top", k),
@@ -67,7 +75,7 @@
       const pend = App.pendingLinkDel === k.id ? " pending-del" : "";
       html += `<line class="ln ln-bottom${pend}" data-link="${k.id}" x1="${a.x}" y1="${a.y}" x2="${b.x}" y2="${b.y}"
         stroke="${col}" stroke-width="12" stroke-linecap="round" opacity="0.88"></line>`;
-      html += buildArrowsLine(a, b, col, k.arrow, App.NODE_R, null);
+      html += buildArrowsLine(a, b, col, k.arrow, App.nodeR(), null);
     });
 
     // 顶层细线（白描边，同对单条直线，与 bottom 相同命中/箭头规则）
@@ -78,10 +86,10 @@
       const col = colors.top(k.ckey) || "#555";
       const pend = App.pendingLinkDel === k.id ? " pending-del" : "";
       html += `<line class="ln ln-top${pend}" data-link="${k.id}" x1="${a.x}" y1="${a.y}" x2="${b.x}" y2="${b.y}"
-        stroke="#ffffff" stroke-width="6.5" stroke-linecap="round" opacity="0.95"></line>`;
+        stroke="${th.linkEdge}" stroke-width="6.5" stroke-linecap="round" opacity="0.95"></line>`;
       html += `<line class="ln ln-top-c${pend}" data-link="${k.id}" x1="${a.x}" y1="${a.y}" x2="${b.x}" y2="${b.y}"
         stroke="${col}" stroke-width="2.2" stroke-linecap="round"></line>`;
-      html += buildArrowsLine(a, b, col, k.arrow, App.NODE_R, { scale: 0.75 });
+      html += buildArrowsLine(a, b, col, k.arrow, App.nodeR(), { scale: 0.75 });
     });
 
     // 命中区（触屏容易点）
@@ -98,31 +106,39 @@
     // 返回内圈内部 html（不带头像时依据模式填充）
     const mode = App.state.ui.avatarMode;
     const likeCol = c.like ? App.colorOf("bottom", c.like) : null;
+    const th = canvasTheme();
     let html = "";
     const clipId = "cp" + c.id.replace(/[^a-zA-Z0-9]/g, "");
     const hasImg = !!c.avatar;
+    // 内圈随节点半径等比缩放（基准 r=18 → 内圈 11 / 图像 10.4 / 喜好环 12.2 / 环宽 3.2）
+    const k = App.nodeR() / App.NODE_R;
+    const inR = (11 * k).toFixed(2);
+    const imgR = (10.4 * k).toFixed(2);
+    const imgW = (20.8 * k).toFixed(2);
+    const ringR = (12.2 * k).toFixed(2);
+    const ringW = (3.2 * k).toFixed(2);
     if (hasImg) {
-      html += `<clipPath id="${clipId}"><circle cx="0" cy="0" r="10.4"></circle></clipPath>`;
+      html += `<clipPath id="${clipId}"><circle cx="0" cy="0" r="${imgR}"></circle></clipPath>`;
     }
     if (mode === "like") {
-      html += `<circle r="11" fill="${likeCol || "#ececec"}"></circle>`;
+      html += `<circle r="${inR}" fill="${likeCol || th.likeEmpty}"></circle>`;
     } else if (mode === "avatar") {
-      html += `<circle r="11" fill="#ffffff"></circle>`;
-      if (hasImg) html += `<image href="${c.avatar}" x="-10.4" y="-10.4" width="20.8" height="20.8" preserveAspectRatio="xMidYMid slice" clip-path="url(#${clipId})"></image>`;
+      html += `<circle r="${inR}" fill="${th.innerFill}"></circle>`;
+      if (hasImg) html += `<image href="${c.avatar}" x="-${imgR}" y="-${imgR}" width="${imgW}" height="${imgW}" preserveAspectRatio="xMidYMid slice" clip-path="url(#${clipId})"></image>`;
     } else {
       // both：底白+头像；喜好吗用外圈细环
-      html += `<circle r="11" fill="#ffffff"></circle>`;
-      if (hasImg) html += `<image href="${c.avatar}" x="-10.4" y="-10.4" width="20.8" height="20.8" preserveAspectRatio="xMidYMid slice" clip-path="url(#${clipId})"></image>`;
+      html += `<circle r="${inR}" fill="${th.innerFill}"></circle>`;
+      if (hasImg) html += `<image href="${c.avatar}" x="-${imgR}" y="-${imgR}" width="${imgW}" height="${imgW}" preserveAspectRatio="xMidYMid slice" clip-path="url(#${clipId})"></image>`;
     }
     if (mode === "both") {
-      html += `<circle r="12.2" fill="none" stroke="${likeCol || "#8e8e93"}" stroke-width="3.2"></circle>`;
+      html += `<circle r="${ringR}" fill="none" stroke="${likeCol || "#8e8e93"}" stroke-width="${ringW}"></circle>`;
     }
     return html;
   }
 
   function buildNodes() {
     const st = App.state;
-    const bg = st.bg;
+    const th = canvasTheme();
     let html = "";
     st.chars.forEach((c) => {
       const isSel = App.selCharId === c.id;
@@ -133,12 +149,12 @@
       const mode = st.ui.avatarMode;
       const innerHtml = avatarInner(c);
       const showName = st.ui.showNames;
-      const nameX = 0, nameY = App.NODE_R + 16;
-      const nameCol = "#26262a";
+      const nameX = 0, nameY = App.nodeR() + 16;
+      const nameCol = th.nameCol;
       html += `<g class="node" data-node="${c.id}" transform="translate(${c.x},${c.y})">
-        <circle class="outer" r="${App.NODE_R}" fill="#fff" stroke="${stroke}" stroke-width="${sw}"></circle>
+        <circle class="outer" r="${App.nodeR()}" fill="${th.nodeFill}" stroke="${stroke}" stroke-width="${sw}"></circle>
         ${innerHtml}
-        ${showName ? `<text class="nm" x="${nameX}" y="${nameY}" text-anchor="middle" font-size="14" stroke="${bg}" stroke-width="5"
+        ${showName ? `<text class="nm" x="${nameX}" y="${nameY}" text-anchor="middle" font-size="14" stroke="${th.bg}" stroke-width="5"
           paint-order="stroke" fill="${nameCol}">${App.esc(c.name)}</text>` : ""}
       </g>`;
     });
@@ -146,10 +162,10 @@
   }
 
   function buildOrbits() {
-    const st = App.state;
+    const th = canvasTheme();
     let html = "";
-    st.rings.forEach((r, i) => {
-      html += `<circle class="orbit" data-orb="${i + 1}" cx="0" cy="0" r="${r.rad}" fill="none" stroke="#d5d5da" stroke-width="1.2" stroke-dasharray="5 6"></circle>`;
+    App.state.rings.forEach((r, i) => {
+      html += `<circle class="orbit" data-orb="${i + 1}" cx="0" cy="0" r="${r.rad}" fill="none" stroke="${th.orbit}" stroke-width="1.2" stroke-dasharray="5 6"></circle>`;
     });
     return html;
   }
@@ -165,6 +181,28 @@
       const px = 0, py = -(r.rad + RING_HANDLE_OFFSET);
       html += `<circle class="rh" data-ring="${ringNo}" cx="${px}" cy="${py}" r="11" fill="rgba(10,132,255,0.22)"
         stroke="#0a84ff" stroke-width="1.6" stroke-dasharray="none"></circle>`;
+    });
+    return html;
+  }
+
+  // 槽位占位：布局 + 槽位模式下，画出每圈未被占据的空槽（虚线占位圈）
+  function buildSlots() {
+    const st = App.state;
+    if (!st.ui.slotMode || App.activeTab !== "layout") return "";
+    let html = "";
+    st.rings.forEach((r, i) => {
+      const ringNo = i + 1;
+      const sl = r.slots || 0;
+      if (sl < 1) return;
+      const rad = App.radiusFor(ringNo);
+      const occ = new Set(App.charsOnRing(ringNo).map((c) => c.slot).filter((s) => s != null));
+      for (let s = 0; s < sl; s++) {
+        if (occ.has(s)) continue;
+        const a = -Math.PI / 2 + (s * 2 * Math.PI) / sl;
+        const x = (rad * Math.cos(a)).toFixed(1);
+        const y = (rad * Math.sin(a)).toFixed(1);
+        html += `<circle class="slot-ph" data-ring="${ringNo}" data-slot="${s}" cx="${x}" cy="${y}" r="${(App.nodeR() * 0.6).toFixed(1)}" fill="rgba(120,120,128,0.10)" stroke="rgba(120,120,128,0.45)" stroke-width="1.4" stroke-dasharray="4 4"></circle>`;
+      }
     });
     return html;
   }
@@ -186,9 +224,9 @@
   function buildLegend() {
     const st = App.state;
     const seg = (items) => `<div class="lg-seg">${items.join("")}</div>`;
-    const bottomHtml = st.tables.bottom.map((r) =>
+    const bottomHtml = st.tables.bottom.filter((r) => !r.hidden).map((r) =>
       `<span class="lg" data-layer="bottom" data-key="${App.esc(r.key)}"><i style="background:${r.color}"></i><b>${App.esc(r.name)}</b></span>`).join("");
-    const topHtml = st.tables.top.map((r) =>
+    const topHtml = st.tables.top.filter((r) => !r.hidden).map((r) =>
       `<span class="lg" data-layer="top" data-key="${App.esc(r.key)}"><i style="background:${r.color};box-shadow:0 0 0 1.5px #fff"></i><b>${App.esc(r.name)}</b></span>`).join("");
     const arrowName = (st.meta && st.meta.arrowName) ? String(st.meta.arrowName) : "情感指向";
     const arrowHtml = arrowName
@@ -243,11 +281,11 @@
   App.render = function () {
     App.computeLayout();
     const o = ensureEls();
-    o.bg.setAttribute("fill", App.state.bg);
+    o.bg.setAttribute("fill", App.state.bg || "#ffffff");
     o.orbits.innerHTML = buildOrbits();
     o.links.innerHTML = buildLinks();
     o.nodes.innerHTML = buildNodes();
-    o.overlay.innerHTML = buildRingHandles() + buildGhost();
+    o.overlay.innerHTML = buildRingHandles() + buildGhost() + buildSlots();
     o.legend.innerHTML = buildLegend();
     App.refreshView();
     renderModeBadge(o);

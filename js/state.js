@@ -3,6 +3,7 @@
   const App = (window.App = window.App || {});
 
   const NODE_R = 18, INNER_R = 11;
+  const NODE_R_MIN = 12, NODE_R_MAX = 40; // 角色圆圈半径可调范围（布局面板滑块）
 
   const DEFAULT_BOTTOM = [
     { key: "b1", name: "本命", color: "#d32f2f" },
@@ -58,7 +59,7 @@
         top: DEFAULT_TOP.map((x) => ({ ...x })),
         arrow: DEFAULT_ARROW.map((x) => ({ ...x })),
       },
-      ui: { avatarMode: "both", showNames: true, slotMode: false },
+      ui: { avatarMode: "both", showNames: true, slotMode: false, nodeR: NODE_R, night: false },
       meta: { filler: "", arrowName: "情感指向" }, // arrowName=箭头含义（图例/导出显示，可改）
     };
   }
@@ -74,6 +75,21 @@
   App.saved = false;
   App.hist = { u: [], r: [] };
   App.HIST_MAX = 80;
+
+  // 当前角色圆圈半径（ui.nodeR，默认 18；越界/异常回落默认值）
+  App.nodeR = function () {
+    const v = App.state && App.state.ui ? Number(App.state.ui.nodeR) : 0;
+    if (!v || v < NODE_R_MIN) return NODE_R;
+    return Math.min(NODE_R_MAX, Math.round(v));
+  };
+
+  // 夜间模式：只改「显示」，不改用户设置的 state.bg 数据（切回日间原样恢复）
+  const NIGHT_BG = "#1c1c1e";
+  // 画布/导出应显示的背景色：始终用用户设定的背景色 state.bg。
+  // 夜间模式只改 UI 外壳（CSS body.night），既不染画板也不染导出图。
+  App.displayBg = function () {
+    return (App.state && App.state.bg) ? App.state.bg : "#ffffff";
+  };
 
   App.radiusFor = function (ring) {
     if (ring <= 0) return 0;
@@ -119,7 +135,9 @@
     const list = App.charsOnRing(ring);
     const n = list.length;
     if (n === 0) return;
-    const sl = (opts && opts.slots) || null;
+    const ringDef = App.state.rings[ring - 1];
+    const wantSlots = App.state.ui.slotMode && ringDef && ringDef.slots && ringDef.slots >= 1;
+    const sl = (opts && opts.slots) || (wantSlots ? Math.max(list.length, ringDef.slots) : null);
     if (sl) {
       // 槽位模式：把 n 人铺到 sl 个槽，尽量均布
       const sorted = list
@@ -266,7 +284,7 @@
     if (movers.length) {
       // 并入后任意相邻角距 < 两圆安全间距对应弧度 → 均分重排（锚最靠上，不整圈旋转）
       const rad = App.radiusFor(targetNew);
-      const minGap = (2 * (App.NODE_R + 4)) / Math.max(40, rad);
+      const minGap = (2 * (App.nodeR() + 4)) / Math.max(40, rad);
       const list = App.charsOnRing(targetNew);
       const sorted = list
         .map((c) => (c.angle == null ? -Math.PI / 2 : App.normAngle(c.angle)))
@@ -315,9 +333,28 @@
     const wasCenter = c.ring === 0;
     if (wasCenter && best === 1 && dist < 60) best = 1;
     c.ring = best;
-    c.angle = ang;
-    c.slot = null;
-    App.distributeRing(best);
+    const ringDef = App.state.rings[best - 1];
+    if (App.state.ui.slotMode && ringDef && ringDef.slots && ringDef.slots >= 1) {
+      // 槽位模式：吸附到最近的空闲槽，避免重叠
+      const sl = Math.max(1, ringDef.slots);
+      const occ = new Set(
+        App.charsOnRing(best).filter((x) => x.id !== c.id).map((x) => x.slot).filter((s) => s != null)
+      );
+      let bestSlot = -1, bestD = Infinity;
+      for (let s = 0; s < sl; s++) {
+        if (occ.has(s)) continue;
+        const sa = -Math.PI / 2 + (s * 2 * Math.PI) / sl;
+        const d = Math.abs(App.normAngle(ang - sa));
+        if (d < bestD) { bestD = d; bestSlot = s; }
+      }
+      if (bestSlot === -1) bestSlot = 0; // 全满兜底
+      c.slot = bestSlot;
+      c.angle = -Math.PI / 2 + (bestSlot * 2 * Math.PI) / sl;
+    } else {
+      // 自由模式（槽位关）：角色停在松手的角度，不做整圈均分 —— 允许同一圈上不规则间距
+      c.angle = ang;
+      c.slot = null;
+    }
     if (wasCenter && best !== 0) { /* 圆心留空 */ }
     computeLayout();
   };
@@ -350,6 +387,16 @@
     };
     App.state.links.push(k);
     return k;
+  };
+  // 连线记录编辑：改箭头类型 / 翻转方向（仅顶层有向可翻转）
+  App.getLink = function (id) { return App.state.links.find((k) => k.id === id); };
+  App.setLinkArrow = function (id, val) {
+    const k = App.getLink(id); if (!k) return;
+    App.act(() => { k.arrow = val; });
+  };
+  App.flipLink = function (id) {
+    const k = App.getLink(id); if (!k || k.layer !== "top") return;
+    App.act(() => { const t = k.src; k.src = k.dst; k.dst = t; });
   };
   // 收敛旧草稿/旧快照：bottom 无向对仅一条、top 同 (src,dst) 仅一条（均保最后画的那条）
   App.normalizeLinks = function (links) {
@@ -455,10 +502,10 @@
       })),
       tables: {
         bottom: (doc.tables && doc.tables.bottom && doc.tables.bottom.length)
-          ? doc.tables.bottom.map((r) => ({ key: r.key, name: r.name, color: r.color }))
+          ? doc.tables.bottom.map((r) => ({ key: r.key, name: r.name, color: r.color, hidden: !!r.hidden }))
           : DEFAULT_BOTTOM.map((x) => ({ ...x })),
         top: (doc.tables && doc.tables.top && doc.tables.top.length)
-          ? doc.tables.top.map((r) => ({ key: r.key, name: r.name, color: r.color }))
+          ? doc.tables.top.map((r) => ({ key: r.key, name: r.name, color: r.color, hidden: !!r.hidden }))
           : DEFAULT_TOP.map((x) => ({ ...x })),
         arrow: App.normalizeArrow(doc.tables && doc.tables.arrow),
       },
@@ -518,9 +565,10 @@
   // 统一的“变更一次”入口：记录历史 + 渲染 + 自动保存
   App.act = function (fn) {
     App.commitHist();
-    fn();
+    const r = fn();
     computeLayout();
     App.notifyChanged();
+    return r; // 透传变更结果（供调用方提示）
   };
 
   // 供渲染回调：通知 UI 更新（render/ui 内部实现）
@@ -540,7 +588,18 @@
     App.notifyChanged();
   };
 
+  // 表项显隐（关闭的项不进入画布图例与导出图例卡，连线本身保留）
+  App.toggleTableHidden = function (layer, key) {
+    const r = App.state.tables[layer].find((x) => x.key === key);
+    if (!r) return false;
+    r.hidden = !r.hidden;
+    return !!r.hidden;
+  };
+
   App.NODE_R = NODE_R;
+  App.NODE_R_MIN = NODE_R_MIN;
+  App.NODE_R_MAX = NODE_R_MAX;
+  App.SLOT_MIN = 6; // 开启槽位时每圈默认槽位保底数（不足 6 按 6 算，人数更多则按人数）
   App.INNER_R = INNER_R;
   App.PRESET_TEXT = PRESET_TEXT;
   App.computeLayout = computeLayout;

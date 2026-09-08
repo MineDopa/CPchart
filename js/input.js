@@ -140,9 +140,29 @@
       }
     }
 
-    // ③ 连线画线：点起点
+    // ③ 角色模式：点/划角色圆 → 批量赋当前喜好度（粗线画笔）；与画线互斥
+    if (tab === "link" && App.state.ui.charMode && !App.eraser) {
+      const cn = nodeAt(p.x, p.y);
+      if (cn) {
+        App.commitHist();
+        const c = App.state.chars.find((x) => x.id === cn);
+        const key = App.brush.bottom || null;
+        if (c) c.like = key;
+        App.selCharId = cn;
+        gesture = "charPaint";
+        gData = { lastId: cn };
+        try { svgEl.setPointerCapture(e.pointerId); } catch (err) {}
+        App.render();
+        if (App.renderPanel) App.renderPanel();
+        return;
+      }
+      // 点空白处：静默忽略，不弹任何提示
+      return;
+    }
+
+    // ④ 连线画线：点起点
     const nid = nodeAt(p.x, p.y);
-    if (tab === "link" && !App.eraser) {
+    if (tab === "link" && !App.eraser && !App.state.ui.charMode) {
       if (nid) {
         if (App.linkSource === nid) {
           // 再点一次取消
@@ -250,6 +270,18 @@
 
     if (ptrs.size > 1) return; // 其余情况忽略多指
 
+    if (gesture === "charPaint") {
+      const cn = nodeAt(p.x, p.y);
+      if (cn && cn !== gData.lastId) {
+        const c = App.state.chars.find((x) => x.id === cn);
+        if (c) c.like = App.brush.bottom || null;
+        gData.lastId = cn;
+        App.render();
+        if (App.renderPanel) App.renderPanel();
+      }
+      return;
+    }
+
     if (gesture === "pan") {
       App.view.tx = gData.tx + (p.x - gData.startX);
       App.view.ty = gData.ty + (p.y - gData.startY);
@@ -344,6 +376,15 @@
         App.selCharId = App.selCharId === c.id ? null : c.id;
         App.notifyChanged();
       }
+      gData = null;
+      return;
+    }
+
+    if (g === "charPaint") {
+      App.notifyChanged();
+      hint();
+      App.render();
+      if (App.renderPanel) App.renderPanel();
       gData = null;
       return;
     }

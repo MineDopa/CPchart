@@ -18,6 +18,32 @@
     '<path d="M27 28H18.8C14.3196 28 12.0794 28 10.3681 28.8719C8.86278 29.6389 7.63893 30.8628 6.87195 32.3681C6 34.0794 6 36.3196 6 40.8V42H27" stroke="currentColor" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>' +
     '</svg>';
 
+  // 内联 SVG 图标表（沿用 .ic-svg 规范：currentColor 描边，夜间自动变浅）
+  const ICONS = {
+    del:    '<svg class="ic-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18M8 6V4h8v2M6 6l1 14a2 2 0 0 0 2 2h6a2 2 0 0 0 2-2l1-14M10 11v6M14 11v6"/></svg>',
+    person: '<svg class="ic-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M5 21a7 7 0 0 1 14 0"/></svg>',
+    like:   '<svg class="ic-svg" viewBox="0 0 24 24" fill="currentColor" stroke="none"><path d="M12 21s-7-4.6-9.3-9C1.2 9 2.5 5.5 6 5.5c2 0 3.2 1.2 4 2.3.8-1.1 2-2.3 4-2.3 3.5 0 4.8 3.5 3.3 6.5C19 16.4 12 21 12 21z"/></svg>',
+    compat: '<svg class="ic-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 8h12l-3-3M20 16H8l3 3"/></svg>',
+    eye:    '<svg class="ic-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12s4-7 10-7 10 7 10 7-4 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/></svg>',
+    eyeOff: '<svg class="ic-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12s4-7 10-7c2 0 3.7.7 5 1.8M22 12s-4 7-10 7c-2 0-3.7-.7-5-1.8"/><path d="M3 3l18 18"/></svg>',
+    search: '<svg class="ic-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg>',
+    eraser: '<svg class="ic-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 15l6-6 6 6-3 3H8z"/><path d="M9 21h11"/></svg>',
+    sun:    '<svg class="ic-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4.5"/><path d="M12 2v2.5M12 19.5V22M2 12h2.5M19.5 12H22M4.6 4.6l1.8 1.8M17.6 17.6l1.8 1.8M19.4 4.6l-1.8 1.8M6.4 17.6l-1.8 1.8"/></svg>',
+    moon:   '<svg class="ic-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 13A9 9 0 1 1 11 3a7 7 0 0 0 10 10z"/></svg>',
+    save:   '<svg class="ic-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 3h12l4 4v14H5z"/><path d="M8 3v6h7V3M8 21v-6h7v6"/></svg>',
+    hide:   '<svg class="ic-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5"/></svg>',
+    brush:  '<svg class="ic-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.5 4.5l5 5-7 7-5-5z"/><path d="M9.5 9.5L4 21"/></svg>',
+    pen:    '<svg class="ic-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 19l3-1L20 6l-2-2L6 16z"/></svg>',
+    style:  '<svg class="ic-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3a9 9 0 1 0 0 18c1.5 0 2-1 2-2 0-1.2-1-1.5-1-2.5s1-1.5 2-1.5h1a4 4 0 0 0 4-4c0-4.4-4-6-7-6z"/><circle cx="7.5" cy="11" r="1"/><circle cx="12" cy="7.5" r="1"/><circle cx="16" cy="10.5" r="1"/></svg>',
+    hand:   '<svg class="ic-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M7 11V6a1.5 1.5 0 0 1 3 0v4M10 10V5a1.5 1.5 0 0 1 3 0v5M13 10V6a1.5 1.5 0 0 1 3 0v5M16 9a1.5 1.5 0 0 1 3 0v5a6 6 0 0 1-6 6h-1a6 6 0 0 1-5-2.6L4 16a1.5 1.5 0 0 1 2.5-1.6L7 15"/></svg>',
+    globe:  '<svg class="ic-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3c3 3.5 3 14.5 0 18M12 3c-3 3.5-3 14.5 0 18"/></svg>',
+    link:   '<svg class="ic-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 12h6M10 8a3 3 0 0 0 0 6M14 8a3 3 0 0 1 0 6"/></svg>',
+    close:  '<svg class="ic-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 6l12 12M18 6L6 18"/></svg>',
+    dlIn:   '<svg class="ic-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12M7 10l5 5 5-5"/><path d="M4 19h16"/></svg>',
+    dlOut:  '<svg class="ic-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 21V9M7 14l5-5 5 5"/><path d="M4 5h16"/></svg>',
+    pkg:    '<svg class="ic-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 8l9-5 9 5v8l-9 5-9-5z"/><path d="M3 8l9 5 9-5M12 13v8"/></svg>',
+  };
+
   const $ = App.byId;
 
   // =============== Tab 切换 ===============
@@ -79,7 +105,7 @@
           <span class="mini" style="width:18px;text-align:center">${icon}</span>
           <span class="tname"><input type="text" data-row-edit="name" data-layer="${layer}" data-key="${r.key}"
             value="${App.esc(r.name)}" placeholder="名称" ${r.key === "none" ? "readonly" : ""}></span>
-          ${r.key === "none" ? "" : `<span class="mini danger del" data-cmd="tbl-del" data-layer="${layer}" data-key="${r.key}">🗑</span>`}
+          ${r.key === "none" ? "" : `<span class="mini danger del" data-cmd="tbl-del" data-layer="${layer}" data-key="${r.key}">${ICONS.del}</span>`}
         </div>`;
       }
       return `<div class="trow${r.hidden ? " off" : ""}">
@@ -89,8 +115,8 @@
           value="${App.esc(r.name)}" placeholder="名称"></span>
         <span class="pal">${PALETTE.map((c) => `<i data-cmd="pal" data-layer="${layer}" data-key="${r.key}" data-c="${c}" style="background:${c}"></i>`).join("")}</span>
         <span class="mini eye ${r.hidden ? "off" : ""}" data-cmd="tbl-hide" data-layer="${layer}" data-key="${r.key}"
-          title="${r.hidden ? "已隐藏（不进图例），点一下恢复" : "点一下隐藏（不进图例，连线保留）"}">${r.hidden ? "🚫" : "👁"}</span>
-        <span class="mini danger del" data-cmd="tbl-del" data-layer="${layer}" data-key="${r.key}">🗑</span>
+          title="${r.hidden ? "已隐藏（不进图例），点一下恢复" : "点一下隐藏（不进图例，连线保留）"}">${r.hidden ? ICONS.eyeOff : ICONS.eye}</span>
+        <span class="mini danger del" data-cmd="tbl-del" data-layer="${layer}" data-key="${r.key}">${ICONS.del}</span>
       </div>`;
     }).join("");
   }
@@ -102,8 +128,8 @@
     const night = !!(App.state.ui && App.state.ui.night);
     return `<div class="pg">
       <div class="ctrl-row">外观：
-        <button class="chip ${!night ? "on" : ""}" data-cmd="ui-night" data-val="day">🌞 日间</button>
-        <button class="chip ${night ? "on" : ""}" data-cmd="ui-night" data-val="night">🌛 夜间</button>
+        <button class="chip ${!night ? "on" : ""}" data-cmd="ui-night" data-val="day">${ICONS.sun} 日间</button>
+        <button class="chip ${night ? "on" : ""}" data-cmd="ui-night" data-val="night">${ICONS.moon} 夜间</button>
       </div>
       <div class="hint">夜间模式只改外壳（面板 / 菜单 / 按钮）配色，画板与导出图保持你设的背景色。</div>
       <div class="pg-t">◯ 底层色（喜好等级 · 粗线）<button class="mini" data-cmd="tbl-add" data-layer="bottom">＋添加</button></div>
@@ -138,7 +164,7 @@
         <span class="mini" style="color:#888;font-size:11px">${ringTxt}</span>
         <select data-cmd="pm-like" data-id="${c.id}">${likeOpts}</select>
         <button class="mini" data-cmd="pm-center" data-id="${c.id}" title="${c.ring === 0 ? "取消圆心" : "设为圆心"}"><img class="pm-star" src="assets/icons/${c.ring === 0 ? "star-fill" : "star-line"}.svg" alt=""></button>
-        <button class="mini danger" data-cmd="pm-del" data-id="${c.id}" title="删除">🗑</button>
+        <button class="mini danger" data-cmd="pm-del" data-id="${c.id}" title="删除">${ICONS.del}</button>
       </div>`;
     }).join("");
 
@@ -148,9 +174,9 @@
       </div>
       <div class="ctrl-row" style="flex-wrap:wrap">
         <span>头像显示：</span>
-        <button class="chip ${st.ui.avatarMode === "avatar" ? "on" : ""}" data-cmd="pm-mode" data-val="avatar">👤 头像</button>
-        <button class="chip ${st.ui.avatarMode === "like" ? "on" : ""}" data-cmd="pm-mode" data-val="like">💗 喜好度</button>
-        <button class="chip ${st.ui.avatarMode === "both" ? "on" : ""}" data-cmd="pm-mode" data-val="both">😎 兼容</button>
+        <button class="chip ${st.ui.avatarMode === "avatar" ? "on" : ""}" data-cmd="pm-mode" data-val="avatar">${ICONS.person} 头像</button>
+        <button class="chip ${st.ui.avatarMode === "like" ? "on" : ""}" data-cmd="pm-mode" data-val="like">${ICONS.like} 喜好度</button>
+        <button class="chip ${st.ui.avatarMode === "both" ? "on" : ""}" data-cmd="pm-mode" data-val="both">${ICONS.compat} 兼容</button>
       </div>
       <div class="ctrl-row">
         <span>显示名字：</span>
@@ -195,8 +221,8 @@
       const dot = isTop ? `<span class="ln-thin" style="background:${col}"></span>` : `<span class="ln-dot" style="background:${col}"></span>`;
       return `<div class="dlrow" data-pid="${k.src}">
         <span class="dl-main" data-cmd="link-edit" data-id="${k.id}" title="点击编辑箭头/方向">${dot}<span>${aName} ${ar && ar.type === "one" ? "➜" : ar && ar.type === "both" ? "⇄" : "—"} ${bName}</span></span>
-        <button class="mini" data-cmd="filter-link" data-id="${k.src}" title="只看此人连线">🔍</button>
-        <button class="mini danger" data-cmd="link-del" data-id="${k.id}" title="删除">🗑</button>
+        <button class="mini" data-cmd="filter-link" data-id="${k.src}" title="只看此人连线">${ICONS.search}</button>
+        <button class="mini danger" data-cmd="link-del" data-id="${k.id}" title="删除">${ICONS.del}</button>
       </div>`;
     }).join("");
   }
@@ -204,15 +230,22 @@
   function panelLink() {
     const c = brushChips();
     return `<div class="pg">
-      <div class="pg-t">🖌 底层粗线笔刷</div>
-      <div class="chips">${c.bottom || '<span class="hint">暂无底层色，去 🎨样式 添加</span>'}</div>
-      <div class="pg-t">✒ 顶层细线笔刷</div>
-      <div class="chips">${c.top || '<span class="hint">暂无顶层色，去 🎨样式 添加</span>'}</div>
+      <div class="pg-t">${ICONS.brush} 底层粗线笔刷</div>
+      <div class="chips">${c.bottom || '<span class="hint">暂无底层色，去 ${ICONS.style}样式 添加</span>'}</div>
+      <div class="pg-t">${ICONS.pen} 顶层细线笔刷</div>
+      <div class="chips">${c.top || '<span class="hint">暂无顶层色，去 ${ICONS.style}样式 添加</span>'}</div>
       <div class="pg-t">↔️ 箭头</div>
       <div class="chips">${c.arrow}</div>
       <div class="ctrl-row">
-        <button class="btn ${App.eraser ? "danger" : ""}" data-cmd="lnk-eraser">🪌 ${App.eraser ? "退出删线" : "删线模式"}</button>
-        <button class="btn" data-cmd="lnk-clear">🗑 清空全部连线</button>
+        <button class="btn ${App.state.ui.charMode ? "primary" : ""}" data-cmd="lnk-charmode">角色模式${App.state.ui.charMode ? "：开" : ""}</button>
+        <span class="hint" style="margin:0">${App.state.ui.charMode ? (App.brush.bottom ? "点/划人物 → 赋「" + App.nameOf("bottom", App.brush.bottom) + "」" : "先选一个粗线笔刷") : "点/划人物批量上色"}</span>
+      </div>
+      <div class="ctrl-row">
+        <button class="btn" data-cmd="lnk-batch" title="用文字批量编辑喜好度与连线">批量编辑连线</button>
+      </div>
+      <div class="ctrl-row">
+        <button class="btn ${App.eraser ? "danger" : ""}" data-cmd="lnk-eraser">${ICONS.eraser} ${App.eraser ? "退出删线" : "删线模式"}</button>
+        <button class="btn" data-cmd="lnk-clear">${ICONS.del} 清空全部连线</button>
       </div>
       <div class="pg-t">🕘 连线记录${App.selCharId ? "（已按人物筛选）" : "（点画布人物可筛选）"}</div>
       ${recentLinks()}
@@ -230,7 +263,7 @@
         : "";
       // 第 1 圈不可删，不提供删除入口
       const delPart = ringNo > 1
-        ? `<button class="mini danger" data-cmd="ly-delring" data-ring="${ringNo}" title="删除该轨道">🗑</button>`
+        ? `<button class="mini danger" data-cmd="ly-delring" data-ring="${ringNo}" title="删除该轨道">${ICONS.del}</button>`
         : "";
       return `<div class="ctrl-row"><span style="width:44px">圈${ringNo}</span>
         半径<input type="number" class="inp" style="width:76px" data-set="rad" data-ring="${ringNo}" value="${Math.round(r.rad)}" min="40">
@@ -262,8 +295,8 @@
     const z = Math.round(App.view.s * 100);
     return `<div class="pg">
       <div class="ctrl-row" style="justify-content:space-between">
-        <button class="btn" data-cmd="hd-hide">🔲 ${App.fullUI ? "退出全屏" : "隐藏UI全屏"}</button>
-        <button class="btn primary" data-cmd="hd-save">💾 保存图片</button>
+        <button class="btn" data-cmd="hd-hide">${ICONS.hide} ${App.fullUI ? "退出全屏" : "隐藏UI全屏"}</button>
+        <button class="btn primary" data-cmd="hd-save">${ICONS.save} 保存图片</button>
       </div>
       <div class="ctrl-row">缩放
         <input type="range" id="zoomRange" min="30" max="260" value="${z}" style="flex:1">
@@ -344,29 +377,104 @@
     if (modalCloseCb) { const f = modalCloseCb; modalCloseCb = null; f(); }
   };
   // 连线记录编辑弹窗：改箭头类型（无/单/双）、翻转方向（顶层有向）、删除
-  App.openLinkEdit = function (id) {
+  // 同一对角色的所有连线（粗线 + 细线可能各一条）
+  function pairOf(k) {
+    return App.state.links.filter((x) => (x.src === k.src && x.dst === k.dst) || (x.src === k.dst && x.dst === k.src));
+  }
+  function eachPair(k, fn) { pairOf(k).forEach(fn); }
+  // 箭头 / 翻转的作用对象：优先细线
+  function pairTarget(id) {
     const k = App.getLink(id);
-    if (!k) { App.toast("连线不存在", true); return; }
-    const a = App.state.chars.find((c) => c.id === k.src), b = App.state.chars.find((c) => c.id === k.dst);
-    const aName = a ? App.esc(a.name) : "?", bName = b ? App.esc(b.name) : "?";
-    const on = (v) => (k.arrow === v ? "on" : "");
-    const isTop = k.layer === "top";
-    const html = `<div class="mh">编辑连线<span class="x" data-cmd="m-close">✕</span></div>
-      <div class="hint">${aName} ${isTop ? "→" : "—"} ${bName}</div>
-      <div class="pg-t">箭头类型</div>
-      <div class="chips">
-        <span class="chip ${on("none")}" data-cmd="link-edit-type" data-id="${k.id}" data-val="none">无箭头</span>
-        <span class="chip ${on("one")}" data-cmd="link-edit-type" data-id="${k.id}" data-val="one">单箭头</span>
-        <span class="chip ${on("both")}" data-cmd="link-edit-type" data-id="${k.id}" data-val="both">双箭头</span>
+    if (!k) return null;
+    const list = pairOf(k);
+    return list.find((x) => x.layer === "top") || list[0] || null;
+  }
+  // 设置某一层的线：val 为空 = 去掉这一层
+  function setLinkLayer(id, layer, val) {
+    const k0 = App.getLink(id);
+    if (!k0) return;
+    const list = pairOf(k0);
+    const cur = list.find((x) => x.layer === layer) || null;
+    if (!val) {
+      if (cur) App.state.links = App.state.links.filter((x) => x !== cur);
+    } else if (cur) {
+      cur.ckey = val;
+    } else {
+      const base = list[0];
+      App.addLink(base ? base.src : k0.src, base ? base.dst : k0.dst, layer, val, layer === "top" ? ((base || {}).arrow || "none") : "none");
+    }
+    App.render();
+    if (App.renderPanel) App.renderPanel();
+    const rest = pairOf(k0);
+    if (rest.length) App.openLinkEdit(rest[0].id);
+    else App.closeModal();
+  }
+
+  // 编辑连线：以「同一对角色」为单位，粗线（喜好度）与细线（关系）可同时设定
+  App.openLinkEdit = function (id) {
+    const k0 = App.getLink(id);
+    if (!k0) { App.toast("连线不存在", true); return; }
+    const st = App.state;
+    const list = pairOf(k0);
+    const bot = list.find((x) => x.layer === "bottom") || null;
+    const top = list.find((x) => x.layer === "top") || null;
+    const main = top || bot || k0;
+    const arrow = main.arrow || "none";
+    const nm = (cid) => { const c = st.chars.find((x) => x.id === cid); return c ? c.name : "?"; };
+    const opts = (selId) => st.chars.map((c) =>
+      `<option value="${c.id}"${c.id === selId ? " selected" : ""}>${App.esc(c.name)}</option>`).join("");
+    const chips = (layer, cur, cmd) => {
+      const rows = (st.tables[layer] || []).filter((r) => r.show !== false);
+      const h = rows.map((r) => `<span class="chip ${r.key === cur ? "on" : ""}" data-cmd="${cmd}" data-id="${k0.id}" data-val="${r.key}"><span class="sw" style="background:${r.color}"></span>${App.esc(r.name)}</span>`).join("");
+      return `<div class="chips">${h}<span class="chip ${cur ? "" : "on"}" data-cmd="${cmd}" data-id="${k0.id}" data-val="">无</span></div>`;
+    };
+    // 方向：开关表示「箭头是否朝反方向」；无箭头时不分方向
+    const dirHtml = arrow === "none"
+      ? '<div class="hint">没有箭头，不分方向</div>'
+      : `<div class="ln-row"><span class="ln-lab">方向</span><span class="ln-dir">${App.esc(nm(main.src))} → ${App.esc(nm(main.dst))}</span>
+         <span class="swbox ${main.src !== k0.src ? "on" : ""}" data-cmd="link-edit-flip" data-id="${k0.id}" role="switch" aria-label="翻转方向"><i></i></span></div>`;
+    const html = `<div class="mh">编辑连线 · ${App.esc(nm(k0.src))} ↔ ${App.esc(nm(k0.dst))}<span class="x" data-cmd="m-close">${ICONS.close}</span></div>
+      <div class="ln-ends">
+        <select class="inp" data-cmd="link-edit-end" data-end="src" data-id="${k0.id}" aria-label="这一端是谁">${opts(k0.src)}</select>
+        <span class="ln-mid">↔</span>
+        <select class="inp" data-cmd="link-edit-end" data-end="dst" data-id="${k0.id}" aria-label="另一端是谁">${opts(k0.dst)}</select>
       </div>
-      ${isTop
-        ? `<div class="pg-t">方向</div><button class="btn" data-cmd="link-edit-flip" data-id="${k.id}">⇄ 翻转方向（${aName} ↔ ${bName}）</button>`
-        : `<div class="hint">底层粗线无方向，不可翻转</div>`}
+      <div class="pg-t">粗线（喜好度）</div>
+      ${chips("bottom", bot ? bot.ckey : "", "link-edit-thick")}
+      <div class="pg-t">细线（关系）</div>
+      ${chips("top", top ? top.ckey : "", "link-edit-thin")}
+      <div class="pg-t">箭头</div>
+      <div class="chips">
+        <span class="chip ${arrow === "none" ? "on" : ""}" data-cmd="link-edit-type" data-id="${k0.id}" data-val="none">无箭头</span>
+        <span class="chip ${arrow === "one" ? "on" : ""}" data-cmd="link-edit-type" data-id="${k0.id}" data-val="one">单箭头</span>
+        <span class="chip ${arrow === "both" ? "on" : ""}" data-cmd="link-edit-type" data-id="${k0.id}" data-val="both">双箭头</span>
+      </div>
+      ${dirHtml}
       <div class="modal-btns">
-        <button class="btn danger" data-cmd="link-edit-del" data-id="${k.id}">删除此连线</button>
+        <button class="btn danger" data-cmd="link-edit-del" data-id="${k0.id}">删除此连线</button>
         <button class="btn primary" data-cmd="m-close">完成</button>
       </div>`;
     App.openModal(html, true);
+    // 端点换成别的角色
+    document.querySelectorAll("#modalBox [data-cmd='link-edit-end']").forEach((sel) => {
+      sel.addEventListener("change", () => {
+        const nid = sel.value, end = sel.getAttribute("data-end");
+        const oldId = end === "src" ? k0.src : k0.dst;
+        if (!nid || nid === oldId) return;
+        if (nid === (end === "src" ? k0.dst : k0.src)) {
+          App.toast("两端不能是同一个人", true);
+          App.openLinkEdit(k0.id);
+          return;
+        }
+        eachPair(k0, (x) => {
+          if (end === "src") { if (x.src === oldId) x.src = nid; }
+          else if (x.dst === oldId) x.dst = nid;
+        });
+        App.render();
+        if (App.renderPanel) App.renderPanel();
+        App.openLinkEdit(k0.id);
+      });
+    });
   };
   // 图例点击 → 应用对应笔刷（不 commitHist，切换行为与 §十二 P5 一致）
   App.applyLegendBrush = function (layer, key) {
@@ -390,7 +498,7 @@
     App.render();
   };
   function modalHead(title) {
-    return `<div class="mh">${title}<span class="x" data-cmd="m-close">✕</span></div>`;
+    return `<div class="mh">${title}<span class="x" data-cmd="m-close">${ICONS.close}</span></div>`;
   }
   App.confirm = function (msg, okText, onOk) {
     App.openModal(`${modalHead("确认")}
@@ -408,51 +516,51 @@
     App._okCb = onOk;
   };
   App.helpModal = function () {
-    App.openModal(`${modalHead("❓ CP Chart 使用指南")}
+    App.openModal(`${modalHead("CP Chart 使用指南")}
       <div class="help-card">
-        <div class="help-intro">一个专门用来画角色关系连线图的小工具。所有数据只保存在本机，不会上传。</div>
+        <div class="help-intro">一个小工具，专门用来画人物之间的关系连线图。数据都存在你自己的设备上，不会上传到任何服务器。</div>
 
         <div class="help-h">三步上手</div>
-        <div class="help-step"><b>第一步 · 录入人物</b>：点击底部「👤 人物」→「批量编辑名单」，按圈编辑，每圈一行：<br>
+        <div class="help-step"><b>第一步 · 录入人物</b>：点底部「人物」→「批量编辑名单」，按圈写，一圈一行：<br>
           <code>1: 甲，乙，丙</code><br><code>2: 丁，戊，己，庚</code><br>
-          支持中英文逗号、空格、制表符分隔。<code>圆心: 某人</code> 或 <code>0: 某人</code> 可设置圆心，直接以 <code>1:</code> 开头则可留空圆心。</div>
-        <div class="help-step"><b>第二步 · 画连线</b>：点击底部「💑 连线」，先选三样：<br>
+          中英文逗号、空格都能分隔。<code>圆心: 某人</code> 或 <code>0: 某人</code> 把某人放最中间；直接写 <code>1:</code> 也可以，圆心就先空着。</div>
+        <div class="help-step"><b>第二步 · 画连线</b>：点底部「连线」，先选好三样：<br>
           ◯ 粗线 = 喜好度（本命 / 很喜欢 / 路好 / 不吃）<br>
           ● 细线 = 关系类型（爱情 / 友情 / 亲情 / QPR）<br>
           ➜ 箭头 = 方向（无 / 单箭头 / 双箭头）<br>
-          然后从角色圆上按住，拖到另一个角色上松手即成线。同一对后画的会覆盖先画的。A→B 与 B→A 的单箭头可同时存在，配不同关系色。</div>
-        <div class="help-step"><b>第三步 · 导出</b>：点画布右侧悬浮 ☰ 菜单 → 导出图片（存相册）/ 导出名单（复制文本）/ 导出完整快照（备份）/ 发布笔记（唤起发布页）。</div>
+          然后在角色圆上按住，拖到另一个角色上松手，线就画好了。同一对人后画的会盖掉先画的；A→B 和 B→A 的单箭头可以各画各的，用不同颜色区分。</div>
+        <div class="help-step"><b>第三步 · 导出</b>：点画布右侧的「菜单」→ 可以导出图片存相册、复制名单文本、备份完整快照，或直接发布笔记。</div>
 
         <div class="help-h">各 Tab 是干嘛的</div>
-        <div class="help-tab"><b>🎨 样式</b>：改颜色、改图例名、显示/隐藏类型、调背景色</div>
-        <div class="help-tab"><b>👤 人物</b>：导入/编辑名单、设头像、调喜好度、设圆心</div>
-        <div class="help-tab"><b>💑 连线</b>：选笔刷、画线/删线、批量清理、连线记录</div>
-        <div class="help-tab"><b>🌐 布局</b>：拖角色换圈、调半径、加/删轨道、平均排布</div>
-        <div class="help-tab"><b>👋 抓手</b>：纯浏览、隐藏 UI 截图、保存图片</div>
+        <div class="help-tab"><b>样式</b>：调颜色、改图例名字、决定哪些类型显示/隐藏、换背景色</div>
+        <div class="help-tab"><b>人物</b>：导入或编辑名单、传头像、设喜好度、定圆心</div>
+        <div class="help-tab"><b>连线</b>：选笔刷、画线/删线、批量整理、看连线记录</div>
+        <div class="help-tab"><b>布局</b>：拖动换圈、调圈大小、加/减轨道、一键均匀排布</div>
+        <div class="help-tab"><b>抓手</b>：纯看图、隐藏界面截图、存图片</div>
 
         <div class="help-h">常用操作小贴士</div>
         <div class="help-tip">
           • <b>拖角色换圈</b>：布局模式按住角色，拖到目标圈附近松手<br>
           • <b>调圈半径</b>：拖圈顶 12 点方向的蓝色小圆点，或在布局面板输入数值<br>
-          • <b>删线</b>：连线 →「🪌 删线模式」，点哪条删哪条<br>
+          • <b>删线</b>：连线 →「${ICONS.eraser} 删线模式」，点哪条删哪条<br>
           • <b>撤销/重做</b>：画布右侧悬浮 ↩︎ / ↪︎ 可回退几乎所有操作<br>
-          • <b>改图名 / 填表人</b>：☰ 菜单 → 工具 → 改图名 / 填表人<br>
+          • <b>改图名 / 填表人</b>：菜单 → 工具 → 改图名 / 填表人<br>
           • <b>缩放/平移</b>：双指缩放，单指拖空白区域平移<br>
           • <b>找不着图了？</b>点画布右侧悬浮 <b>¤ 定位坐标</b>，圆心立刻回到画面正中，并自动缩放到全部轨道可见<br>
           • <b>图例直切</b>：点画布左上角图例色块可直接切换对应笔刷</div>
 
         <div class="help-h">关于数据安全</div>
         <div class="help-tip">
-          • 数据只存在手机本地草稿，不上传、不外泄<br>
-          • 编辑会自动保存草稿；需长期保存请用「导出完整快照」，把文本发给需要的设备后「导入快照」恢复<br>
-          • 快照不含头像，导入后头像需重新设置</div>
+          • 数据只存在你这台设备的本地草稿里，不会上传、不会外泄<br>
+          • 编辑会自动存草稿；想长期保存就点「导出完整快照」，把那段文本发到别的设备再「导入快照」就能恢复<br>
+          • 快照不含头像，导入后头像要重新传一下</div>
 
-        <div class="help-end">还有问题？「☰ 菜单 → 关于」可查看版本与作者信息。祝您吃好喝好！✨</div>
+        <div class="help-end">还有问题？点「菜单 → 关于」能看到版本和作者信息。祝你用得顺手！</div>
       </div>
       <div class="modal-btns"><button class="btn primary" data-cmd="m-close">知道了</button></div>`);
   };
 
-  // 关于页（P12 · 全屏信息卡）：版本号跟随当前上线包 = v0.11.0；不含任何站外链接/仓库地址
+  // 关于页（P12 · 全屏信息卡）：版本号跟随当前上线包 = v0.12.0；纯本地静态内容，无外链与第三方地址
   App.aboutModal = function () {
     App.openModal(`<div class="about-page">
         <div class="about-logo"><svg width="64" height="64" viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -465,11 +573,17 @@
           <line x1="52" y1="52" x2="40" y2="40" stroke="currentColor" stroke-width="2"></line>
           <text x="32" y="37" font-size="11" text-anchor="middle" fill="currentColor" font-weight="bold">CP</text>
         </svg></div>
-        <div class="about-name">CP Chart <em>v0.11.0</em></div>
-        <div class="about-sub">人物关系连线图 · 小红书小工具版</div>
+        <div class="about-name">CP Chart <em>v0.12.0</em></div>
+        <div class="about-sub">画人物关系连线的小工具 · 小红书离线版</div>
         <div class="about-date">更新于 2026-09-08</div>
 
         <div class="about-sec">📌 更新日志</div>
+        <div class="log-ver">v0.12.0 · 2026-09-08</div>
+        <ul class="about-list">
+          <li>➕ <b>菜单改为「+」号径向绽开</b>：点画布右侧 ➕，撤销 / 重做 / 导入 / 保存导出 / 关于 一圈按钮绕 + 弹出，不用再拉底部菜单，单手也好点</li>
+          <li>➕ 导入 / 保存导出 收进二级小窗：导入（名单 / 快照 / 改图名填表人 / 新建图）与保存（发布笔记 / 导出图片 / 名单 / 快照）点开再选具体项</li>
+          <li>＋ 顶栏帮助按钮：点「?」随时打开操作指南；面板全开时同位置变为「←」返回画板（一槽两用，避开容器左上角）</li>
+        </ul>
         <div class="log-ver">v0.11.0 · 2026-09-08</div>
         <ul class="about-list">
           <li>➕ <b>槽位布局真正可用</b>：开槽位后每圈按槽数等分铺位（默认保底 6 槽），多余空槽画成虚线占位圈；可拖到指定空槽、点空槽放人，或用操作条「槽位」下拉单槽指定</li>
@@ -534,7 +648,7 @@
     App.openModal(`${modalHead(title)}<div class="hint">${hint}</div>${ta}
       <div class="modal-btns">${btns}</div>`);
     modalCloseCb = null;
-    App._txtImport = onImport;
+    App._txtImport = function (v) { App.closeModal(); if (onImport) onImport(v); };
     const area = $("txtArea");
     if (!importMode) {
       setTimeout(() => {
@@ -558,8 +672,7 @@
     });
 
     // 撤销 / 重做 / 标题 / 菜单
-    $("btnUndo").addEventListener("click", () => App.undo());
-    $("btnRedo").addEventListener("click", () => App.redo());
+    // 撤销/重做已移入径向主菜单（#radialMenu .radial-btn[data-act=undo/redo]）
     // 定位坐标：圆心归位到画面正中 + 自动缩放全览
     const rcBtn = $("btnRecenter");
     if (rcBtn) rcBtn.addEventListener("click", () => App.recenter());
@@ -587,23 +700,29 @@
         else App.setPanelCollapsed(!App.panelCollapsed);
       });
     }
-    // 全开态左上角「返回画板」钮（避开容器左上角强制覆盖区，见 css #homeBtn 注释）
+    // 全开态左上角「返回画板」钮（与帮助钮同槽位，见 index.html #topbar 注释）
     const homeBtn = $("homeBtn");
     if (homeBtn) homeBtn.addEventListener("click", () => App.setPanelFull(false));
-    // 顶部只读标题不再可点；改名入口在菜单「改图名 / 填表人」
-    $("btnMenu").addEventListener("click", () => $("menuRoot").classList.remove("hidden"));
-    $("menuMask").addEventListener("click", () => $("menuRoot").classList.add("hidden"));
+    // 顶栏帮助钮（常态槽位；面板全开时 CSS 切换为返回画板，见 app.css .top-slot-btn）
+    const helpBtn = $("btnHelp");
+    if (helpBtn) helpBtn.addEventListener("click", () => App.helpModal());
+    // 顶部只读标题不再可点；改名入口在二级菜单「改图名 / 填表人」
+    // 径向主菜单（撤销/重做/导入/保存/关于，围绕 + 号绽开）
+    const btnMenuEl = $("btnMenu");
+    if (btnMenuEl) btnMenuEl.addEventListener("click", toggleRadial);
+    const radialMaskEl = $("radialMask");
+    if (radialMaskEl) radialMaskEl.addEventListener("click", closeRadial);
+    document.querySelectorAll("#radialMenu .radial-btn").forEach((b) => {
+      b.addEventListener("click", () => onRadialAct(b.getAttribute("data-act")));
+    });
+    // 二级菜单窗口（导入 / 保存，按钮带文字）
+    const subMaskEl = $("subMenuMask");
+    if (subMaskEl) subMaskEl.addEventListener("click", closeSubMenu);
     $("fullExit").addEventListener("click", () => {
       App.fullUI = false;
       document.body.classList.remove("hideui");
       $("fullExit").classList.add("hidden");
       renderPanel();
-    });
-    document.querySelectorAll("#menuBox .menu-item").forEach((it) => {
-      it.addEventListener("click", () => {
-        $("menuRoot").classList.add("hidden");
-        onMenu(it.getAttribute("data-menu"));
-      });
     });
     $("modalMask").addEventListener("click", () => App.closeModal());
 
@@ -638,14 +757,38 @@
           if (r2 && r2.ok) {
             App.closeModal();
             App._retrySaveUrl = null;
-            App.toast("已保存到相册 📸");
+            App.toast("已保存到相册");
           } else {
             App.toast("保存未成功，请重试或长按图片另存", true);
           }
         });
         return;
       }
+      // 结果屏：发布小红书（publishNote 内部自生成图并唤起发布页）
+      const pub = e.target.closest('[data-cmd="publish"]');
+      if (pub) { App.closeModal(); App.publishNote(); return; }
+      // 结果屏：建立新画布
+      const nc = e.target.closest('[data-cmd="new-canvas"]');
+      if (nc) { App.newDoc(); App.closeModal(); App.render(); return; }
       if (e.target.closest('[data-cmd="m-close"]')) { App.closeModal(); return; }
+      // 统一编辑器：切 Tab / 切导出导入（切换前先把当前输入存进内存）
+      const edTab = e.target.closest('[data-cmd="ed-tab"]');
+      if (edTab) {
+        const a0 = $("txtArea");
+        if (a0 && App._ed) App._ed.buf[App._ed.tab] = a0.value;
+        App._ed.tab = edTab.getAttribute("data-tab");
+        renderEditor();
+        return;
+      }
+      const edMode = e.target.closest('[data-cmd="ed-mode"]');
+      if (edMode) {
+        const a1 = $("txtArea");
+        if (a1 && App._ed) App._ed.buf[App._ed.tab] = a1.value;
+        App._ed.dataMode = edMode.getAttribute("data-mode");
+        delete App._ed.buf[App._ed.tab];
+        renderEditor();
+        return;
+      }
       const sel = e.target.closest('[data-cmd="txt-select"]');
       if (sel) {
         const a = $("txtArea");
@@ -654,30 +797,56 @@
       }
       const imp = e.target.closest('[data-cmd="txt-import"]');
       if (imp) {
-        const cb = App._txtImport; App._txtImport = null;
+        const cb = App._txtImport;
         const val = ($("txtArea") || {}).value || "";
-        App.closeModal();
+        // 是否关闭由回调决定：返回 false（或抛错）= 应用失败，保留弹窗与已输入的文字
         if (cb) { try { cb(val); } catch (err) { App.toast(err.message || "导入失败", true); } }
+        else App.closeModal();
       }
-      // 连线记录编辑弹窗内的操作
+      // 编辑器标题旁的「写法说明」
+      const edHelp = e.target.closest('[data-cmd="ed-help"]');
+      if (edHelp) {
+        const a2 = $("txtArea");
+        if (a2 && App._ed) App._ed.buf[App._ed.tab] = a2.value;
+        App._ed.helpOpen = !App._ed.helpOpen;
+        renderEditor();
+        return;
+      }
+      // 连线编辑弹窗内的操作（以「同一对角色」为单位）
+      const leThick = e.target.closest('[data-cmd="link-edit-thick"]');
+      if (leThick) { setLinkLayer(leThick.getAttribute("data-id"), "bottom", leThick.getAttribute("data-val")); return; }
+      const leThin = e.target.closest('[data-cmd="link-edit-thin"]');
+      if (leThin) { setLinkLayer(leThin.getAttribute("data-id"), "top", leThin.getAttribute("data-val")); return; }
       const leType = e.target.closest('[data-cmd="link-edit-type"]');
       if (leType) {
         const lid = leType.getAttribute("data-id");
-        App.setLinkArrow(lid, leType.getAttribute("data-val"));
+        // 箭头优先落在细线（顶层）上，没有细线时才挂粗线
+        const t = pairTarget(lid);
+        if (t) App.setLinkArrow(t.id, leType.getAttribute("data-val"));
         App.openLinkEdit(lid); // 刷新弹窗高亮
         return;
       }
       const leFlip = e.target.closest('[data-cmd="link-edit-flip"]');
       if (leFlip) {
         const lid = leFlip.getAttribute("data-id");
-        App.flipLink(lid);
+        const k = App.getLink(lid);
+        if (k) {
+          eachPair(k, (x) => { const t = x.src; x.src = x.dst; x.dst = t; });
+          App.render();
+          if (App.renderPanel) App.renderPanel();
+        }
         App.openLinkEdit(lid);
         return;
       }
       const leDel = e.target.closest('[data-cmd="link-edit-del"]');
       if (leDel) {
         const lid = leDel.getAttribute("data-id");
-        App.act(() => App.removeLink(lid));
+        const kd = App.getLink(lid);
+        // 一对角色可能同时有粗线与细线，删就一起删，不留半条
+        App.act(() => {
+          (kd ? pairOf(kd) : []).forEach((x) => App.removeLink(x.id));
+          if (!kd) App.removeLink(lid);
+        });
         App.closeModal(); App.renderPanel();
         return;
       }
@@ -726,27 +895,44 @@
       }
     });
 
-    // 头像文件选择
+    // 头像文件选择：原生 <input>，仅相册取向——绝不设置 capture 属性，避免强制调用摄像头权限
     const fileInp = document.createElement("input");
     fileInp.type = "file";
     fileInp.accept = "image/*";
     fileInp.style.display = "none";
     document.body.appendChild(fileInp);
-    fileInp.addEventListener("change", async () => {
-      const f = fileInp.files && fileInp.files[0];
-      fileInp.value = "";
-      if (!f || !pendingAvatarFor) return;
-      const id = pendingAvatarFor; pendingAvatarFor = null;
-      try {
-        const dataUrl = await App.resizeAvatar(f);
-        App.act(() => {
-          const c = App.state.chars.find((x) => x.id === id);
-          if (c) { c.avatar = dataUrl; App.AVATAR_CACHE[c.name] = dataUrl; }
-        });
-        App.toast("头像已设置");
-      } catch (err) { App.toast(err.message || "头像处理失败", true); }
-    });
+    fileInp.addEventListener("change", () => onAvatarFilePicked(fileInp));
     App._avatarInput = fileInp;
+
+    // 头像选择入口：默认走原生 <input>（无 capture，不调摄像头）。
+    // 彻底"仅相册、屏蔽系统拍照入口"需容器相册选图 API（限定 sourceType:['album']）。
+    // 小红书 miniTool 当前仅暴露 postNote/saveImageToPhotosAlbum/writeTempFile，无选图 API，故暂用原生 input。
+    // 接入时实现 App.avatarPicker(id) → Promise<dataURL> 钩子即可，无需改动调用点。
+    App.avatarPicker = null;
+    App.pickAvatar = function (id) {
+      pendingAvatarFor = id;
+      if (typeof App.avatarPicker === "function") {
+        App.avatarPicker(id).then((du) => applyAvatar(id, du)).catch(() => App._avatarInput.click());
+      } else {
+        App._avatarInput.click();
+      }
+    };
+    function onAvatarFilePicked(inputEl) {
+      const f = inputEl.files && inputEl.files[0];
+      inputEl.value = "";
+      const id = pendingAvatarFor; pendingAvatarFor = null;
+      if (!f || !id) return;
+      App.resizeAvatar(f).then((du) => applyAvatar(id, du)).catch((e) => App.toast(e.message || "头像处理失败", true));
+    }
+    function applyAvatar(id, dataUrl) {
+      if (!id || !dataUrl) return;
+      App.act(() => {
+        const c = App.state.chars.find((x) => x.id === id);
+        if (c) { c.avatar = dataUrl; App.AVATAR_CACHE[c.name] = dataUrl; }
+      });
+      App.toast("头像已设置");
+    }
+
     bindFloatDrag();
   }
 
@@ -790,7 +976,7 @@
         break;
       }
       // ---------- 人物 ----------
-      case "pm-batch": openBatchNames(); break;
+      case "pm-batch": App.editorModal({ tab: "people" }); break;
       case "pm-import": openImportNames(); break;
       case "pm-export": openExportNames(); break;
       case "pm-mode": {
@@ -802,8 +988,7 @@
         break;
       }
       case "pm-avatar": {
-        pendingAvatarFor = el.getAttribute("data-id");
-        App._avatarInput.click();
+        App.pickAvatar(el.getAttribute("data-id"));
         break;
       }
       case "pm-center": {
@@ -829,6 +1014,13 @@
       case "br-b": { App.brush.bottom = App.brush.bottom === el.getAttribute("data-key") ? null : el.getAttribute("data-key"); App.render(); App.renderPanel(); break; }
       case "br-t": { App.brush.top = App.brush.top === el.getAttribute("data-key") ? null : el.getAttribute("data-key"); App.render(); App.renderPanel(); break; }
       case "br-a": { App.brush.arrow = el.getAttribute("data-key"); App.render(); App.renderPanel(); break; }
+      case "lnk-charmode": {
+        App.state.ui.charMode = !App.state.ui.charMode;
+        if (App.state.ui.charMode) App.toast(App.brush.bottom ? ("角色模式开：点/划人物赋「" + App.nameOf("bottom", App.brush.bottom) + "」") : "角色模式开：先选一个粗线（喜好度）笔刷");
+        App.renderPanel(); App.render();
+        break;
+      }
+      case "lnk-batch": App.editorModal({ tab: "link" }); break;
       case "lnk-eraser": {
         App.eraser = !App.eraser;
         App.linkSource = null;
@@ -1078,41 +1270,220 @@
       case "img": exportImageFlow(); break;
       case "expnames": openExportNames(); break;
       case "impnames": openImportNames(false); break;
-      case "expsnap": {
-        App.textModal("📦 导出 布局·人物·图例",
-          "以下为完整快照（已全选）。长按文本框 →「复制」，或存到备忘录。不含头像。",
-          App.serialize(), false);
-        break;
-      }
-      case "impsnap": openImportSnapshot(); break;
+      case "expsnap": App.editorModal({ tab: "data", dataMode: "export" }); break;
+      case "impsnap": App.editorModal({ tab: "data", dataMode: "import" }); break;
+      case "edpeople": App.editorModal({ tab: "people" }); break;
+      case "edlink": App.editorModal({ tab: "link" }); break;
       case "about": App.aboutModal(); break;
     }
   }
 
-  // 批量编辑角色名单：一个输入框同时当「编辑 / 导入 / 导出」用
-  function openBatchNames() {
-    const cur = App.exportNameListText();
-    const pre = cur || "圆心: 我\n1: 甲，乙，丙\n";
-    App.textModal("批量编辑角色名单",
-      "按圈编辑，每圈一行（圈号 + 名字，用 ，或空格分隔）：<br><code>圆心: 我<br>1: 甲，乙，丙<br>2: 丁，戊</code><br>改名 / 删人 / 加人直接改文字，点「保存」生效（头像与喜好度按名字保留）。",
-      pre, true, (txt) => { App.importNameList(txt); App.toast("名单已更新"); },
-      { extraBtns: '<button class="btn" data-cmd="txt-select">复制全部</button>', okText: "保存" });
+  // ===== 径向主菜单 + 二级窗口 =====
+  const SUBMENU = {
+    import: { title: "导入", items: [
+      { menu: "impnames", label: "导入人物名单" },
+      { menu: "edpeople", label: "编辑人物名单" },
+      { menu: "impsnap",  label: "导入布局·人物·图例" },
+      { menu: "edlink",   label: "编辑 / 导入导出连线" },
+      { menu: "rename",   label: "改图名 / 填表人" },
+      { menu: "new",      label: "建立新连线图" },
+    ]},
+    save: { title: "保存 / 导出", items: [
+      { menu: "publish",  label: "发布笔记" },
+      { menu: "img",      label: "导出为图片" },
+      { menu: "expnames", label: "导出人物名单" },
+      { menu: "expsnap",  label: "导出布局·人物·图例" },
+    ]},
+  };
+
+  function toggleRadial() {
+    const rm = $("radialMenu");
+    if (!rm) return;
+    if (rm.classList.contains("hidden")) openRadial(); else closeRadial();
   }
+  function openRadial() {
+    const rm = $("radialMenu"), fab = $("btnMenu");
+    if (!rm || !fab) return;
+    const r = fab.getBoundingClientRect();
+    rm.style.left = (r.left + r.width / 2) + "px";
+    rm.style.top = (r.top + r.height / 2) + "px";
+    rm.classList.remove("hidden");
+    fab.classList.add("open");
+    refreshRadial();
+  }
+  function closeRadial() {
+    const rm = $("radialMenu"), fab = $("btnMenu");
+    if (rm) rm.classList.add("hidden");
+    if (fab) fab.classList.remove("open");
+  }
+  function refreshRadial() {
+    const u = document.querySelector('#radialMenu [data-act="undo"]');
+    const r = document.querySelector('#radialMenu [data-act="redo"]');
+    if (u) u.disabled = !App.canUndo();
+    if (r) r.disabled = !App.canRedo();
+  }
+  function onRadialAct(act) {
+    closeRadial();
+    if (act === "undo") App.undo();
+    else if (act === "redo") App.redo();
+    else if (act === "about") App.aboutModal();
+    else if (act === "import") openSubMenu("import");
+    else if (act === "save") openSubMenu("save");
+  }
+  function openSubMenu(kind) {
+    const root = $("subMenuRoot");
+    if (!root) return;
+    const cfg = SUBMENU[kind];
+    if (!cfg) return;
+    $("subMenuTitle").textContent = cfg.title;
+    $("subMenuList").innerHTML = cfg.items.map((it) =>
+      `<button class="sub-item" data-menu="${it.menu}">${it.label}</button>`).join("");
+    root.classList.remove("hidden");
+    root.querySelectorAll(".sub-item").forEach((it) => {
+      it.addEventListener("click", () => { closeSubMenu(); onMenu(it.getAttribute("data-menu")); });
+    });
+  }
+  function closeSubMenu() {
+    const root = $("subMenuRoot");
+    if (root) root.classList.add("hidden");
+  }
+
+  // ---- 统一编辑器（v1.0 #7）：人物 / 连线 / 完整数据 三 Tab，共用现有弹窗形态 ----
+  var ED_TABS = [["people", "人物"], ["link", "连线"], ["data", "完整数据"]];
+  var ED_PH = {
+    people: "0：我\n1：甲，乙，丙\n2：丁，戊",
+    link: "本命：甲，乙；路好：丙；\n甲—本命+爱情—乙；",
+  };
+  function edConf(tab) {
+    if (tab === "people") {
+      return {
+        title: "编辑名单",
+        hint: "按圈录入，圈号加名字，用「，」分隔。分号与换行等效。",
+        ph: ED_PH.people,
+        help: "写法：<br><code>0：我</code>（0 或 圆心 = 中心的人）<br><code>1：甲，乙，丙</code>（第 1 圈）<br><code>2：丁，戊</code>（第 2 圈）<br>分号「；」等同于换行，一行写完也可以。<br>改名 / 删人 / 加人，直接改文字后点「保存」。",
+        text: function () { return App.exportNameListText(); },
+        okText: "保存",
+        apply: function (v) { App.importNameList(v); App.toast("名单已更新"); },
+      };
+    }
+    if (tab === "link") {
+      return {
+        title: "编辑连线",
+        hint: "写喜好度（谁是本命）或两条人之间的连线。分号与换行等效。",
+        ph: ED_PH.link,
+        help: "喜好度：<code>本命：甲，乙；路好：丙；</code><br>连线：<code>甲—本命+爱情—乙；</code><br>方向：<code>—</code> 无箭头、<code>-&gt;</code> 单箭头、<code>&lt;-&gt;</code> 双箭头。<br><code>+</code> 用来同时给一条线加粗线与细线。<br>分号「；」等同于换行。<br>不认识的人名会提示，不会擅自新建。",
+        text: function () { return App.exportLinkText(); },
+        okText: "应用",
+        apply: function (v) {
+          const r = App.importLinkText(v);
+          if (r.errs && r.errs.length) { App.toast(r.errs.join("；"), true); return false; }
+          App.toast("已更新 " + r.added + " 条");
+        },
+      };
+    }
+    if (App._ed.dataMode === "import") {
+      return {
+        title: "导入完整数据",
+        hint: "粘贴整份数据串（新版压缩串、旧版 JSON 都认）。",
+        ph: "在这里粘贴数据串",
+        help: "把别人给你的整串数据粘进来，点「上传」。<br>新版以 <code>XHS2:</code> 开头，旧版是 JSON，两种都能读。<br>导入会覆盖当前画板全部内容。",
+        text: function () { return ""; },
+        okText: "上传",
+        apply: function (v) {
+          let obj = null;
+          try { obj = App.parseDataImport(v); }
+          catch (err) { App.toast(err.message || "数据读不出来", true); return false; }
+          App.confirm("导入会覆盖当前画板全部数据（人物、连线、布局、图例）。确认？", "确认", function () {
+            try {
+              if (obj && obj.type === "NRD") { App._importLegacy(obj); App.toast("完整数据已导入"); return; }
+              App.deserialize(obj && obj.doc ? obj.doc : obj);
+              App.toast("完整数据已导入");
+            } catch (err2) { App.toast("导入失败：" + (err2.message || ""), true); }
+          });
+        },
+      };
+    }
+    return {
+      title: "导出完整数据",
+      hint: "已全选，长按或点「复制全部」。不含头像。",
+      help: "这串文字包含人物、连线、布局、图例的完整信息。<br>复制后发给别人，对方在「导入完整数据」粘贴即可还原。<br>不含头像图片。",
+      text: function () { return App.exportFullData(); },
+      readonly: true,
+    };
+  }
+  function renderEditor() {
+    const ed = App._ed, c = edConf(ed.tab);
+    if (ed.buf[ed.tab] == null) ed.buf[ed.tab] = c.text ? c.text() : "";
+    const val = ed.buf[ed.tab];
+    const ro = !!c.readonly;
+    const tabs = ED_TABS.map(function (t) {
+      return '<button class="ed-tab' + (ed.tab === t[0] ? " on" : "") + '" data-cmd="ed-tab" data-tab="' + t[0] + '">' + t[1] + "</button>";
+    }).join("");
+    const sub = ed.tab === "data"
+      ? '<div class="ed-sub">' + [["export", "导出"], ["import", "导入"]].map(function (m) {
+          return '<button class="ed-tab sm' + (ed.dataMode === m[0] ? " on" : "") + '" data-cmd="ed-mode" data-mode="' + m[0] + '">' + m[1] + "</button>";
+        }).join("") + "</div>"
+      : "";
+    const helpBtn = c.help
+      ? '<button class="mh-q' + (ed.helpOpen ? " on" : "") + '" data-cmd="ed-help" title="写法说明" aria-label="写法说明">' +
+        '<svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="2"/>' +
+        '<path d="M9.6 9.2a2.5 2.5 0 1 1 3.4 2.3c-.6.3-1 .9-1 1.6v.4" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>' +
+        '<circle cx="12" cy="17.2" r="1.1" fill="currentColor"/></svg></button>'
+      : "";
+    const helpBox = c.help && ed.helpOpen ? '<div class="ed-help">' + c.help + "</div>" : "";
+    const btns = ro
+      ? '<button class="btn" data-cmd="txt-select">复制全部</button><button class="btn primary" data-cmd="m-close">关闭</button>'
+      : '<button class="btn" data-cmd="m-close">取消</button><button class="btn" data-cmd="txt-select">复制全部</button><button class="btn primary" data-cmd="txt-import">' + (c.okText || "应用") + "</button>";
+    App.openModal(
+      '<div class="mh"><span>' + c.title + "</span>" + helpBtn + '<span class="x" data-cmd="m-close">' + ICONS.close + '</span></div>' +
+      '<div class="ed-tabs">' + tabs + "</div>" + sub +
+      '<div class="hint">' + c.hint + "</div>" + helpBox +
+      '<textarea class="export-txt tall" id="txtArea" placeholder="' + App.esc(c.ph || "") + '"' + (ro ? " readonly" : "") + ">" + App.esc(val) + "</textarea>" +
+      '<div class="modal-btns">' + btns + "</div>", true);
+    modalCloseCb = null;
+    // 返回 false = 应用失败：保留弹窗与已输入的文字，让用户就地改
+    App._txtImport = function (v) {
+      ed.buf[ed.tab] = v;
+      let ok = true;
+      if (c.apply) {
+        try { ok = c.apply(v) !== false; }
+        catch (err) { ok = false; App.toast(err.message || "应用失败", true); }
+      }
+      if (ok) { App._txtImport = null; App.closeModal(); }
+      else { renderEditor(); } // 重绘，把刚输入的内容留在框里
+      App.render();
+    };
+    if (ro) {
+      setTimeout(function () {
+        try { const a = $("txtArea"); a.focus(); a.select(); a.setSelectionRange(0, a.value.length); } catch (e) {}
+      }, 60);
+    }
+  }
+  // opts = { tab:'people'|'link'|'data', dataMode:'export'|'import' }
+  App.editorModal = function (opts) {
+    const o = opts || {};
+    App._ed = App._ed || { tab: "people", dataMode: "export", buf: {}, helpOpen: false };
+    if (o.tab) App._ed.tab = o.tab;
+    if (o.dataMode) App._ed.dataMode = o.dataMode;
+    App._ed.helpOpen = false; // 每次打开默认收起说明
+    delete App._ed.buf[App._ed.tab]; // 从入口重开 → 重新拉最新内容
+    renderEditor();
+  };
 
   // 打开名单导入弹窗
   function openImportNames(isNew) {
     const pre = isNew ? App.PRESET_TEXT : "";
-    App.textModal("📥 导入人物名单",
+    App.textModal(ICONS.dlIn + " 导入人物名单",
       "每圈一行：圈号加名字（用 ，或空格分隔）。示例：<br><code>圆心: 我<br>1: 甲，乙，丙<br>2: 丁，戊</code><br>直接粘贴你的名单并点“导入”。",
       pre, true, (txt) => { App.importNameList(txt); });
   }
   function openExportNames() {
-    App.textModal("📤 导出人物名单",
+    App.textModal(ICONS.dlOut + " 导出人物名单",
       "已全选，请复制。改动后可直接“导入名单”贴回。",
       App.exportNameListText(), false);
   }
   function openImportSnapshot() {
-    App.textModal("📦 导入快照",
+    App.textModal(ICONS.pkg + " 导入快照",
       "粘贴快照 JSON（含布局/三表/连线/背景）。旧版 NRD JSON 也可尝试导入。",
       "", true, (txt) => {
         try {
@@ -1160,8 +1531,9 @@
 
   // 导出图片流程（E-1 + 容器保存）：
   // 容器环境 = 官方 API（writeTempFile{data} → saveImageToPhotosAlbum），失败 → 全屏预览 + 重试保存按钮；
-  // 网页环境 = 无容器 API：若页面末尾挂了网页 IO 覆盖层（web 分流版的 js/iopc.js）则直接触发浏览器保存并提示，
+  // 网页环境 = 无容器 API：若页面末尾挂了网页 IO 覆盖层（仅网页分流版挂载）则直接触发浏览器保存并提示，
   //            否则预览大图，由浏览器原生「长按/右键另存」承接（容器禁用能力不写入容器交付代码）。
+  // 导出图片结果屏（v1.0 #10）：生成后展示成品图 + 极简提示 + 发布/新画布/保存/关闭
   async function exportImageFlow() {
     if (!App.state.chars.length) { App.toast("画布为空，先导入人物", true); return; }
     App.toast("正在生成图片…");
@@ -1171,25 +1543,27 @@
     App._retrySaveUrl = dataUrl;
     const hasSaveApi = !!(window.xhs && window.xhs.miniTool
       && typeof window.xhs.miniTool.saveImageToPhotosAlbum === "function");
-    if (hasSaveApi) {
-      const res = await App.saveImage(dataUrl);
-      if (res && res.ok) { App.toast("已保存到相册 📸"); return; }
-      App.openModal(`${modalHead("🖼 成品图")}
-        <div class="hint">图片已生成。点「保存相册」调起系统保存；若未成功可重试，或长按图片另存。</div>
-        <img src="${dataUrl}" alt="关系图" style="width:100%;border-radius:10px;border:1px solid #eee">
-        <div class="modal-btns">
-          <button class="btn primary" data-cmd="save-retry">💾 保存相册</button>
-          <button class="btn" data-cmd="m-close">完成</button>
-        </div>`);
-    } else {
-      // 网页版：先试一次保存（web 覆盖层成功即返回；无覆盖层时容器版实现返回失败 → 走预览）
-      const res2 = await App.saveImage(dataUrl);
-      if (res2 && res2.ok) { App.toast("图片已保存"); return; }
-      App.openModal(`${modalHead("🖼 成品图")}
-        <div class="hint">图片已生成。请长按图片或鼠标右键 →「保存图片 / 图片另存为」保存到设备。</div>
-        <img src="${dataUrl}" alt="关系图" style="width:100%;border-radius:10px;border:1px solid #eee">
-        <div class="modal-btns"><button class="btn primary" data-cmd="m-close">完成</button></div>`);
-    }
+    let saved = false;
+    try { const r = await App.saveImage(dataUrl); saved = !!(r && r.ok); }
+    catch (e) { saved = false; }
+    showResultScreen(dataUrl, saved, hasSaveApi);
+  }
+
+  // 结果屏：成品图 + 一行提示 + 操作钮（发布/新画布/保存/关闭）；关闭钮放底部避开顶部禁触碰区
+  function showResultScreen(dataUrl, saved, hasSaveApi) {
+    const note = saved ? "已保存到相册"
+      : (hasSaveApi ? "若未自动保存，点下方「保存相册」重试" : "长按图片，或右键 → 图片另存为");
+    const saveBtn = saved ? "" : '<button class="btn" data-cmd="save-retry">保存相册</button>';
+    App.openModal(
+      '<div class="mh"><span>生成完成</span></div>' +
+      '<div class="rs-img"><img src="' + dataUrl + '" alt="关系图"></div>' +
+      '<div class="hint rs-note">' + note + '</div>' +
+      '<div class="modal-btns rs-btns">' +
+        '<button class="btn" data-cmd="m-close">关闭</button>' +
+        '<button class="btn" data-cmd="new-canvas">建立新画布</button>' +
+        '<button class="btn primary" data-cmd="publish">发布小红书</button>' +
+        saveBtn +
+      '</div>', true);
     modalCloseCb = null;
   }
 
@@ -1253,8 +1627,10 @@
     tb.textContent = App.getTitleText();
     const zl = $("zoomLabel");
     if (zl) zl.textContent = Math.round(App.view.s * 100) + "%";
-    $("btnUndo").disabled = !App.canUndo();
-    $("btnRedo").disabled = !App.canRedo();
+    const rUndo = document.querySelector('#radialMenu [data-act="undo"]');
+    const rRedo = document.querySelector('#radialMenu [data-act="redo"]');
+    if (rUndo) rUndo.disabled = !App.canUndo();
+    if (rRedo) rRedo.disabled = !App.canRedo();
     if (App.activeTab === "layout") updateNodeOps();
     // 自动保存草稿
     if (App.scheduleSave) App.scheduleSave();
@@ -1269,8 +1645,8 @@
     const hasDraft = raw && JSON.parse(raw).chars && JSON.parse(raw).chars.length;
     if (hasDraft && !force) return; // 已有草稿直接继续
     const preset = App.PRESET_TEXT;
-    App.openModal(`${modalHead("欢迎 · 角色关系星图")}
-      <div class="hint">粘贴角色名单开始。每圈一行：<br><code>圆心: 名字</code><br><code>1: 甲，乙，丙</code><br>也可以直接点下方示例按钮。</div>
+    App.openModal(`${modalHead("欢迎 · 人物关系连线图")}
+      <div class="hint">先把角色名单粘进来就能开始。一圈写一行：<br><code>圆心: 名字</code><br><code>1: 甲，乙，丙</code><br>不想手敲也行，直接点下面的「载入示例」。</div>
       <textarea class="export-txt" id="welTxt">${App.esc(preset)}</textarea>
       <div class="modal-btns">
         <button class="btn" data-cmd="m-close">跳过</button>

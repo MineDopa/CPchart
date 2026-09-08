@@ -22,7 +22,7 @@
   const S = (x, y) => `${x.toFixed(1)},${y.toFixed(1)}`;
 
   // 画布显示主题：夜间模式只改 UI 外壳（CSS body.night），画板本身始终按用户设定的背景色 state.bg 渲染，
-  // 配色固定用「日间」调色板（深字浅节点），保证任意模式下画板清晰可读、且绝不被染黑。
+  // 配色固定用「日间」调色板（深字浅节点），让画板在任意模式下都清晰可读，且绝不被染黑。
   function canvasTheme() {
     return { bg: App.state.bg || "#ffffff", orbit: "#d5d5da", nodeFill: "#ffffff", innerFill: "#ffffff",
       likeEmpty: "#ececec", nameCol: "#26262a", linkEdge: "#ffffff" };

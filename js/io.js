@@ -4,7 +4,8 @@
 
   // ---------------- 名单解析 ----------------
   App.parseNameList = function (text) {
-    const lines = String(text || "").split(/\r?\n/);
+    // 分号与换行等效：先按 ；/; 断行，再逐行解析（写法更自由，一行写完也认）
+    const lines = String(text || "").replace(/\r/g, "").replace(/[；;]/g, "\n").split("\n");
     const out = []; // {name, ring}
     let curRing = 1;
     const HEAD = /^\s*(?:([0-9]+)|(圆心|中心|center|第0圈|圈0))?\s*[:：,，、.\-]?\s*/i;
@@ -14,13 +15,15 @@
       const m = s.match(HEAD);
       let ring = null;
       let rest = s;
-      if (m && (m[1] != null || m[2] != null)) {
+      const hasRing = !!(m && (m[1] != null || m[2] != null));
+      if (hasRing) {
         ring = m[1] != null ? Math.max(0, parseInt(m[1], 10)) : 0;
         rest = s.slice(m[0].length);
-        if (ring > 0) curRing = ring;
-        else curRing = ring;
+        curRing = ring;
       }
-      const parts = rest.split(/[,，、;；\t]+/).map((x) => x.trim()).filter(Boolean);
+      // 跳过「本命：言和」这类喜好度行：它不是名单，不该被建成角色
+      if (!hasRing && /[：:]/.test(rest)) return;
+      const parts = rest.split(/[,，、\t]+/).map((x) => x.trim()).filter(Boolean);
       if (!parts.length) return;
       const r = ring == null ? curRing : ring;
       parts.forEach((nm) => out.push({ name: nm, ring: r }));
@@ -29,35 +32,38 @@
   };
 
   // 导入名单：替换角色/清空连线与喜好度，按圈均分
+  // 导入名单 = 合并语义：已存在的同名角色保留其位置/喜好/头像；
+  // 只新增名单里没有的角色；绝不清空连线（links 不动），旧连线与喜好度全部保留。
   App.importNameList = function (text) {
     const parsed = App.parseNameList(text);
     if (!parsed.length) throw new Error("没有解析到任何名字");
+    let added = 0;
     App.act(() => {
-      // 缓存旧头像按名回填
-      const av = {};
-      App.state.chars.forEach((c) => { if (c.avatar) av[c.name] = c.avatar; });
-      const likes = {};
-      App.state.chars.forEach((c) => { if (c.like) likes[c.name] = c.like; });
-
-      const maxRing = Math.max(...parsed.map((p) => p.ring));
-      App.state.chars = parsed.map((p) => ({
-        id: App.uid("c"), name: p.name, ring: p.ring, angle: null, slot: null,
-        like: likes[p.name] || null, avatar: av[p.name] || null,
-      }));
-      App.state.links = [];
-      // 圆心唯一
-      const centers = App.state.chars.filter((c) => c.ring === 0);
-      if (centers.length > 1) {
-        centers.slice(1).forEach((c) => { c.ring = 1; });
-      }
-      for (let r = 0; r <= maxRing; r++) {
-        if (r > 0) App.distributeRing(r);
-      }
-      App.radiusFor(Math.max(1, maxRing));
+      const byName = {};
+      App.state.chars.forEach((c) => { byName[c.name] = c; });
+      const av = {}, likes = {};
+      App.state.chars.forEach((c) => { if (c.avatar) av[c.name] = c.avatar; if (c.like) likes[c.name] = c.like; });
+      const hadRings = new Set(App.state.chars.map((c) => c.ring));
+      const fresh = [];
+      parsed.forEach((p) => {
+        if (byName[p.name]) return; // 已存在：保留原设置，不覆盖
+        fresh.push({
+          id: App.uid("c"), name: p.name, ring: p.ring, angle: null, slot: null,
+          like: likes[p.name] || null, avatar: av[p.name] || null,
+        });
+      });
+      added = fresh.length;
+      if (!added) return;
+      App.state.chars = App.state.chars.concat(fresh); // 不重建、不清空 links
+      const touched = new Set(fresh.map((c) => c.ring));
+      touched.forEach((r) => {
+        if (r > 0) hadRings.has(r) ? App.distributeRing(r, { anchor: true }) : App.distributeRing(r);
+      });
+      const maxRing = Math.max(1, ...App.state.chars.map((c) => c.ring));
+      App.radiusFor(maxRing);
     });
-    // ① 导入后自动适配：全部轨道可见 + 圆心居画面中央
     if (App.fitContent) App.fitContent();
-    App.toast(`已导入 ${App.state.chars.length} 位角色`);
+    App.toast(added ? `已添加 ${added} 位新角色（原有连线与喜好度已保留）` : "名单里没有新角色，未做改动");
   };
 
   // 导出名单文本
@@ -77,6 +83,195 @@
       lines.push(`${label}: ${list.map((c) => c.name).join("，")}`);
     });
     return lines.join("\n");
+  };
+
+  // ---------------- 完整数据串（v1.0 #8） ----------------
+  // 新格式：XHS2:<压缩串>；同时继续接受旧 JSON（含早期 NRD）
+  var XHS2 = "XHS2:";
+  App.exportFullData = function () {
+    const json = App.serialize();
+    const LZ = window.LZString;
+    if (LZ) {
+      try { return XHS2 + LZ.compressToBase64(json); } catch (e) { /* 退回原文 */ }
+    }
+    return json;
+  };
+  // 解析：自动识别新压缩串 / 旧 JSON；失败抛错（由调用方提示并保留输入）
+  App.parseDataImport = function (txt) {
+    const s = String(txt || "").trim();
+    if (!s) throw new Error("内容为空");
+    if (s.indexOf(XHS2) === 0) {
+      const LZ = window.LZString;
+      if (!LZ) throw new Error("数据串读不了，请升级后重试");
+      const json = LZ.decompressFromBase64(s.slice(XHS2.length));
+      if (!json) throw new Error("数据串不完整或已损坏");
+      return JSON.parse(json);
+    }
+    return JSON.parse(s);
+  };
+
+  // ---------------- 连线批量文本（v1.0 §3.1.2） ----------------
+  // 语法：喜好度行「本命：甲，乙；很喜欢：丙」；连线行「甲—本命+爱情—乙；」
+  // 方向符：<-> 双箭头 / -> 》 ➡️ 单箭头 / — - 无箭头；+ 分隔同一连线的粗线与细线
+  function lgRow(layer, key) {
+    return (App.state.tables[layer] || []).find((x) => x.key === key) || null;
+  }
+  function lgNameOf(layer, key) { const t = lgRow(layer, key); return t ? t.name : ""; }
+  function lgKeyOfName(layer, name) {
+    const t = (App.state.tables[layer] || []).find((x) => x.name === name);
+    return t ? t.key : null;
+  }
+  function charByName(name) {
+    return App.state.chars.find((c) => (c.name || "").trim() === String(name).trim()) || null;
+  }
+  function centerChar() { return App.state.chars.find((c) => c.ring === 0) || null; }
+  var AUTO_COLORS = ["#ff5b7f", "#ffb020", "#34c759", "#0a84ff", "#af52de", "#ff9500", "#5ac8fa", "#ff2d55"];
+  // 未知图例名 → 自动新增到对应层并配色（规则 §3.1.2-4）
+  App.addLegendAuto = function (layer, name) {
+    const key = (layer === "top" ? "t" : "b") + Date.now().toString(36) + Math.floor(Math.random() * 1000);
+    const list = App.state.tables[layer] || (App.state.tables[layer] = []);
+    const color = AUTO_COLORS[list.length % AUTO_COLORS.length];
+    list.push({ key: key, name: name, color: color, show: true });
+    return key;
+  };
+
+  App.exportLinkText = function () {
+    const st = App.state;
+    const nameOf = (id) => { const c = st.chars.find((x) => x.id === id); return c ? c.name : ""; };
+    const lines = [];
+    // 喜好度行：按底层图例分组（取每条粗线中非圆心的一端）
+    const fav = [];
+    (st.tables.bottom || []).forEach((t) => {
+      const names = [];
+      st.links.forEach((k) => {
+        if (k.layer !== "bottom" || k.ckey !== t.key) return;
+        const a = st.chars.find((x) => x.id === k.src), b = st.chars.find((x) => x.id === k.dst);
+        if (!a || !b) return;
+        const other = a.ring === 0 ? b : (b.ring === 0 ? a : b);
+        if (other && other.name) names.push(other.name);
+      });
+      if (names.length) fav.push(t.name + "：" + names.join("，"));
+    });
+    if (fav.length) lines.push(fav.join("；"));
+    // 连线行：同一对角色合并粗线 + 细线
+    const pairs = new Map();
+    st.links.forEach((k) => {
+      const key = [k.src, k.dst].sort().join("|");
+      if (!pairs.has(key)) pairs.set(key, { src: k.src, dst: k.dst, bottom: null, top: null, arrow: "none" });
+      const p = pairs.get(key);
+      if (k.layer === "bottom") p.bottom = k.ckey; else p.top = k.ckey;
+      if (k.arrow && k.arrow !== "none") p.arrow = k.arrow;
+    });
+    pairs.forEach((p) => {
+      // 圆心到某人的纯粗线已由「喜好度行」表达，连线行不再重复输出
+      if (!p.top && p.arrow === "none") {
+        const ra = (st.chars.find((x) => x.id === p.src) || {}).ring;
+        const rb = (st.chars.find((x) => x.id === p.dst) || {}).ring;
+        if (ra === 0 || rb === 0) return;
+      }
+      const seg = [];
+      if (p.bottom) { const n = lgNameOf("bottom", p.bottom); if (n) seg.push(n); }
+      if (p.top) { const n = lgNameOf("top", p.top); if (n) seg.push(n); }
+      const arr = p.arrow === "both" ? "<->" : p.arrow === "one" ? "->" : "—";
+      const a = nameOf(p.src), b = nameOf(p.dst);
+      if (!a || !b) return;
+      lines.push(a + arr + seg.join("+") + arr + b + "；");
+    });
+    return lines.join("\n");
+  };
+
+  // 解析连线文本：返回 { added:Number, errs:[String] }（未知人名只报错，不新建角色）
+  App.importLinkText = function (text) {
+    const res = { added: 0, errs: [] };
+    const raw = String(text || "").replace(/\r/g, "");
+    const items = raw.split(/[；;\n]+/).map((x) => x.trim()).filter(Boolean);
+    const center = centerChar();
+    const pending = [];
+    items.forEach((it) => {
+      // 先判方向符 → 连线条目；否则含冒号 → 喜好度条目
+      let arrow = "none", parts = null;
+      if (it.indexOf("<->") >= 0) { arrow = "both"; parts = it.split("<->"); }
+      else if (it.indexOf("->") >= 0 || it.indexOf("》") >= 0 || it.indexOf("➡️") >= 0) {
+        arrow = "one"; parts = it.split(/->|》|➡️/);
+      } else if (it.indexOf("—") >= 0) { parts = it.split("—"); }
+      else if (/[^-]-[^-]/.test(it)) { parts = it.split("-"); }
+      if (parts && parts.length >= 2) {
+        const a = parts[0].trim(), b = parts[parts.length - 1].trim();
+        const mid = parts.slice(1, parts.length - 1).join("+").trim();
+        const ca = charByName(a), cb = charByName(b);
+        if (!ca) { res.errs.push("未知名：" + a); return; }
+        if (!cb) { res.errs.push("未知名：" + b); return; }
+        const segs = mid.split("+").map((x) => x.trim()).filter(Boolean);
+        const bottomName = segs.find((s) => lgKeyOfName("bottom", s)) || null;
+        const topName = segs.find((s) => lgKeyOfName("top", s)) || null;
+        const unknown = segs.filter((s) => !lgKeyOfName("bottom", s) && !lgKeyOfName("top", s));
+        pending.push({ type: "link", a: ca, b: cb, bottomName: bottomName || null, topName: topName || null, unknown: unknown, arrow: arrow });
+        return;
+      }
+      const m = it.match(/^([^：:]+)[：:](.+)$/);
+      if (m) {
+        const lname = m[1].trim();
+        // 「0：我」「1：甲，乙」是名单行，不属于连线文本，跳过（避免被当成新图例名）
+        if (/^[0-9]+$/.test(lname) || lname === "圆心" || lname === "中心") return;
+        const names = m[2].split(/[,，、\s]+/).map((x) => x.trim()).filter(Boolean);
+        const bkey = lgKeyOfName("bottom", lname);
+        const unknown = bkey ? [] : [lname];
+        names.forEach((n) => {
+          const c = charByName(n);
+          if (!c) { res.errs.push("未知名：" + n); return; }
+          pending.push({ type: "fav", char: c, bottomName: lname, unknown: unknown, arrow: "none" });
+        });
+        return;
+      }
+      if (it) res.errs.push("看不懂：" + it);
+    });
+    if (!pending.length) return res;
+    // 未知图例名：自动新增（底层优先），并提示
+    const addedNames = [];
+    pending.forEach((p) => {
+      (p.unknown || []).forEach((n) => {
+        if (!lgKeyOfName("bottom", n) && !lgKeyOfName("top", n)) {
+          App.addLegendAuto("bottom", n);
+          addedNames.push(n);
+        }
+      });
+    });
+    pending.forEach((p) => {
+      if (p.type === "fav") {
+        if (!center) { res.errs.push("没有圆心，无法记喜好度"); return; }
+        const bkey = lgKeyOfName("bottom", p.bottomName);
+        if (!bkey) return;
+        const other = p.char.id === center.id ? null : p.char;
+        if (!other) return;
+        const exist = App.state.links.find((k) => k.layer === "bottom" &&
+          ((k.src === center.id && k.dst === other.id) || (k.src === other.id && k.dst === center.id)));
+        if (exist) { exist.ckey = bkey; } else { App.addLink(center.id, other.id, "bottom", bkey, "none"); }
+        res.added++;
+      } else {
+        const bkey = p.bottomName ? lgKeyOfName("bottom", p.bottomName) : null;
+        const tkey = p.topName ? lgKeyOfName("top", p.topName) : null;
+        if (bkey) {
+          const exist = App.state.links.find((k) => k.layer === "bottom" &&
+            ((k.src === p.a.id && k.dst === p.b.id) || (k.src === p.b.id && k.dst === p.a.id)));
+          if (exist) exist.ckey = bkey; else { App.addLink(p.a.id, p.b.id, "bottom", bkey, "none"); res.added++; }
+        }
+        if (tkey) {
+          const exist = App.state.links.find((k) => k.layer === "top" &&
+            ((k.src === p.a.id && k.dst === p.b.id) || (k.src === p.b.id && k.dst === p.a.id)));
+          // 箭头优先给细线（§3.1.2-3）
+          if (exist) { exist.ckey = tkey; exist.arrow = p.arrow; } else { App.addLink(p.a.id, p.b.id, "top", tkey, p.arrow); res.added++; }
+        } else if (bkey) {
+          // 无细线时箭头挂粗线
+          const exist = App.state.links.find((k) => k.layer === "bottom" &&
+            ((k.src === p.a.id && k.dst === p.b.id) || (k.src === p.b.id && k.dst === p.a.id)));
+          if (exist) exist.arrow = p.arrow;
+        }
+      }
+    });
+    if (addedNames.length) {
+      res.errs.unshift("已自动新增图例：" + addedNames.filter((v, i, arr) => arr.indexOf(v) === i).join("、"));
+    }
+    return res;
   };
 
   // ---------------- 头像处理 ----------------

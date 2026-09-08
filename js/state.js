@@ -59,7 +59,7 @@
         top: DEFAULT_TOP.map((x) => ({ ...x })),
         arrow: DEFAULT_ARROW.map((x) => ({ ...x })),
       },
-      ui: { avatarMode: "both", showNames: true, slotMode: false, nodeR: NODE_R, night: false },
+      ui: { avatarMode: "both", showNames: true, slotMode: false, nodeR: NODE_R, night: false, charMode: false },
       meta: { filler: "", arrowName: "情感指向" }, // arrowName=箭头含义（图例/导出显示，可改）
     };
   }
@@ -102,7 +102,7 @@
     return App.state.rings[ring - 1].rad;
   };
 
-  // 圆心（ring=0）唯一性：把其它角色从圆心移走
+  // 圆心（ring=0）单一性：把其它角色从圆心移走
   function ensureCenterUnique(exceptId) {
     const cs = App.state.chars.filter((c) => c.ring === 0 && c.id !== exceptId);
     cs.forEach((c) => {
@@ -360,7 +360,7 @@
   };
 
   // 连线操作
-  // 底层粗线按「无向对」唯一（A-B 只有一条，后画覆盖）；
+  // 底层粗线按「无向对」去重（A-B 只有一条，后画覆盖）；
   // 顶层细线按「有向对」去重——A→B 与 B→A 两条单箭头可共存（各自可配不同关系色），同向则后画覆盖。
   function pairKey(a, b) { return a < b ? a + "|" + b : b + "|" + a; }
   function dirKey(a, b) { return a + "→" + b; }
@@ -393,10 +393,6 @@
   App.setLinkArrow = function (id, val) {
     const k = App.getLink(id); if (!k) return;
     App.act(() => { k.arrow = val; });
-  };
-  App.flipLink = function (id) {
-    const k = App.getLink(id); if (!k || k.layer !== "top") return;
-    App.act(() => { const t = k.src; k.src = k.dst; k.dst = t; });
   };
   // 收敛旧草稿/旧快照：bottom 无向对仅一条、top 同 (src,dst) 仅一条（均保最后画的那条）
   App.normalizeLinks = function (links) {
@@ -548,7 +544,7 @@
     if (!App.hist.u.length) return;
     App.hist.r.push(clone());
     App.state = App.hist.u.pop();
-    if (!App.state.ui) App.state.ui = { avatarMode: "both", showNames: true, slotMode: false };
+    if (!App.state.ui) App.state.ui = { avatarMode: "both", showNames: true, slotMode: false, charMode: false };
     App.selCharId = null; App.linkSource = null; App.dragGhost = null; App.pendingLinkDel = null;
     computeLayout();
     App.notifyChanged();

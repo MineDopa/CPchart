@@ -30,16 +30,25 @@ button:active{ opacity:.7; }
 .hidden{ display:none !important; }
 
 /* ---------- 顶部栏（容器占用上方点击区 → 只读标题，无可点按钮） ---------- */
-#topbar{ display:flex; align-items:center; justify-content:center;
+#topbar{ display:flex; align-items:center; justify-content:center; position:relative;
   background:var(--bar); border-bottom:1px solid var(--line); flex:0 0 auto;
   padding-top:calc(2px + env(safe-area-inset-top)); }
 .tb-title{ flex:1; text-align:center; font-size:15px; font-weight:600; padding:5px 8px;
   border-radius:8px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;
   cursor:default; -webkit-user-select:none; user-select:none; }
 .tb-title:active{ background:transparent; }
+/* 顶栏左槽按钮（容器返回箭头右侧、星羽 09-08 标注定稿位）：
+   常态 = 帮助(#btnHelp)；面板全开 = 返回画板(#homeBtn)，两钮同槽位按 body.panel-full 切换 */
+.top-slot-btn{ position:absolute; left:54px; top:50%; transform:translateY(-50%);
+  width:26px; height:26px; border-radius:50%; background:transparent;
+  border:1.5px solid var(--sub); box-shadow:none;
+  display:flex; align-items:center; justify-content:center;
+  font-size:15px; line-height:1; color:var(--ink); padding:0; cursor:pointer; }
+.top-slot-btn:active{ opacity:.7; }
+body.panel-full #btnHelp{ display:none; }
 
-/* ---------- 画布右侧悬浮工具组（撤销/重做/菜单；可拖动吸附） ---------- */
-#floatTools{ position:absolute; z-index:6; right:10px; top:calc(50% - 94px); /* 4 钮(188px)垂直居中 */
+/* ---------- 画布右侧悬浮工具组（定位坐标 + 菜单触发；可拖动吸附） ---------- */
+#floatTools{ position:absolute; z-index:6; right:10px; top:calc(50% - 48px); /* 2 钮垂直居中 */
   display:flex; flex-direction:column; align-items:center; gap:8px;
   padding:6px 4px; border-radius:16px;
   background:var(--surf-glass); border:1px solid var(--line); box-shadow:var(--shadow);
@@ -50,6 +59,44 @@ button:active{ opacity:.7; }
 #floatTools .tb-btn:active{ opacity:.7; background:var(--accent-soft); }
 #floatTools .tb-btn:disabled{ opacity:.32; }
 #floatTools .menu-fab{ background:var(--accent); border-color:var(--accent); color:#fff; font-size:20px; }
+#floatTools .menu-fab .fab-plus{ transition:transform .25s ease; }
+#floatTools .menu-fab.open .fab-plus{ transform:rotate(45deg); }
+
+/* ---------- 径向主菜单（点击 + 号绽开一圈操作钮） ---------- */
+#radialMenu{ position:fixed; z-index:30; width:0; height:0; }
+.radial-mask{ position:fixed; inset:0; z-index:30; background:transparent; }
+.radial-ring{ position:absolute; left:0; top:0; z-index:31; width:0; height:0; }
+.radial-btn{ position:absolute; left:0; top:0; width:46px; height:46px; margin:-23px;
+  border-radius:50%; background:var(--surf-glass); border:1px solid var(--line);
+  box-shadow:var(--shadow); color:var(--ink);
+  display:flex; align-items:center; justify-content:center;
+  opacity:0; transform:rotate(var(--a)) translateY(0) rotate(calc(-1 * var(--a))) scale(.4); }
+.radial-btn svg{ width:22px; height:22px; }
+.radial-btn:active{ background:var(--accent-soft); }
+.radial-btn:disabled{ opacity:.32; }
+#radialMenu:not(.hidden) .radial-btn{ animation:radialPop .28s cubic-bezier(.34,1.56,.64,1) var(--d,0s) both; }
+@keyframes radialPop{
+  0%{ opacity:0; transform:rotate(var(--a)) translateY(0) rotate(calc(-1 * var(--a))) scale(.4); }
+  100%{ opacity:1; transform:rotate(var(--a)) translateY(calc(-1 * var(--r))) rotate(calc(-1 * var(--a))) scale(1); }
+}
+/* 朝左半圆扇形：+ 在屏幕右侧，钮全铺在左侧贴内缘，避免甩出屏幕右侧不可点 */
+.radial-ring > :nth-child(1){ --a:0deg;   --d:0s; }
+.radial-ring > :nth-child(2){ --a:-45deg; --d:.04s; }
+.radial-ring > :nth-child(3){ --a:-90deg; --d:.08s; }
+.radial-ring > :nth-child(4){ --a:-135deg;--d:.12s; }
+.radial-ring > :nth-child(5){ --a:-180deg;--d:.16s; }
+.radial-ring > *{ --r:82px; }
+
+/* ---------- 二级菜单窗口（导入 / 保存，按钮带文字） ---------- */
+#subMenuRoot{ position:fixed; inset:0; z-index:40; display:flex; align-items:center; justify-content:center; }
+.sub-mask{ position:absolute; inset:0; background:rgba(0,0,0,.35); }
+.sub-box{ position:relative; z-index:1; width:min(86vw,320px); max-height:80vh; overflow:auto;
+  background:var(--surf); border:1px solid var(--line); border-radius:16px; box-shadow:var(--shadow); padding:14px; }
+.sub-title{ font-size:13px; font-weight:600; color:var(--sub); padding:2px 4px 10px; }
+.sub-list{ display:flex; flex-direction:column; gap:8px; }
+.sub-item{ text-align:left; font-size:15px; color:var(--ink); padding:13px 14px; border-radius:12px;
+  background:var(--surf-glass); border:1px solid var(--line); }
+.sub-item:active{ background:var(--accent-soft); }
 
 /* ---------- 视图指示条 ---------- */
 #viewstrip{ flex:0 0 auto; display:flex; align-items:center; gap:8px;
@@ -97,6 +144,11 @@ button:active{ opacity:.7; }
 .mini-btn.icon-only{ padding:5px 6px; display:inline-flex; align-items:center; justify-content:center; }
 .mini-btn .ic-svg{ width:16px; height:16px; display:block; }
 .btn .ic-svg{ width:16px; height:16px; vertical-align:-3px; margin-right:2px; }
+.ic-svg{ width:16px; height:16px; flex:none; }
+.chip .ic-svg{ width:14px; height:14px; }
+.mini .ic-svg{ width:14px; height:14px; }
+.tab .ic-svg{ width:18px; height:18px; margin:0 auto 2px; display:block; }
+.pg-t .ic-svg{ width:14px; height:14px; vertical-align:-2px; margin-right:3px; }
 #opsRingSel{ font-size:13px; border:1px solid var(--line); border-radius:8px; padding:4px; background:var(--surf); }
 
 /* ---------- 面板折叠把手（面板顶部/画板底部；折叠后仅留此条） ---------- */
@@ -180,19 +232,9 @@ input[type=range]{ accent-color:var(--accent); }
   border-bottom:2px solid transparent; }
 .tab.on{ color:var(--accent); border-bottom-color:var(--accent); font-weight:600; }
 
-/* ---------- 菜单（顶部禁点区 → 改为底部弹出面板） ---------- */
-#menuRoot,#modalRoot{ position:fixed; inset:0; z-index:40; }
-#menuMask,#modalMask{ position:absolute; inset:0; background:rgba(0,0,0,.35); }
-#menuBox{ position:absolute; left:50%; bottom:0; transform:translateX(-50%);
-  width:min(94vw,430px); max-height:66dvh; overflow-y:auto;
-  background:var(--surf); border-radius:16px 16px 0 0; box-shadow:0 -6px 24px rgba(0,0,0,.16);
-  padding-bottom:calc(8px + env(safe-area-inset-bottom)); }
-.menu-group{ padding:10px 16px 2px; font-size:11px; color:var(--sub); }
-.menu-sep{ height:1px; margin:4px 8px; background:var(--sep); }
-.menu-item{ padding:11px 16px; font-size:15px; border-bottom:1px solid var(--sep); }
-.menu-group + .menu-item{ border-bottom-color:transparent; }
-.menu-item:last-child{ border-bottom:none; }
-.menu-item:active{ background:var(--hover); }
+/* ---------- 通用弹窗（菜单/文本/输入/确认共用 #modalRoot） ---------- */
+#modalRoot{ position:fixed; inset:0; z-index:40; }
+#modalMask{ position:absolute; inset:0; background:rgba(0,0,0,.35); }
 #modalBox{ position:absolute; left:50%; top:45%; transform:translate(-50%,-50%);
   width:min(92vw,420px); max-height:78dvh; overflow-y:auto; background:var(--surf);
   border-radius:16px; padding:16px; box-shadow:var(--shadow); }
@@ -202,6 +244,27 @@ input[type=range]{ accent-color:var(--accent); }
 textarea.export-txt{ width:100%; min-height:180px; font-family:ui-monospace,Menlo,Consolas,monospace;
   font-size:11px; border:1px solid var(--line); border-radius:10px; padding:8px; background:var(--panel); }
 .modal-btns{ display:flex; gap:8px; justify-content:flex-end; margin-top:12px; }
+.rs-img{ margin:2px 0 10px; }
+.rs-img img{ width:100%; max-height:52dvh; object-fit:contain; border-radius:12px; border:1px solid var(--sep); background:#fff; }
+.rs-note{ text-align:center; margin-bottom:12px; }
+.rs-btns{ flex-wrap:wrap; justify-content:center; gap:10px; }
+.rs-btns .btn{ flex:1 1 auto; min-width:104px; }
+/* 统一编辑器：三 Tab 切换 + 加高输入框（v1.0 #7，沿用现有弹窗形态） */
+.ed-tabs{ display:flex; gap:6px; margin:0 0 8px; }
+.ed-sub{ display:flex; gap:6px; margin:0 0 8px; }
+.ed-tab{ flex:1; min-height:38px; border:1px solid var(--line); border-radius:10px;
+  background:var(--surf); font-size:13px; color:var(--sub); }
+.ed-tab.on{ background:var(--accent-soft); border-color:var(--accent); color:var(--accent); font-weight:600; }
+.ed-tab.sm{ min-height:32px; font-size:12px; }
+textarea.export-txt.tall{ min-height:min(42vh,300px); font-size:12px; line-height:1.6; }
+/* 标题栏「写法说明」按钮 + 折叠说明区（默认收起） */
+.mh-q{ width:30px; height:30px; margin-left:auto; margin-right:6px; border-radius:50%;
+  display:inline-flex; align-items:center; justify-content:center; color:var(--sub); }
+.mh-q svg{ width:20px; height:20px; }
+.mh-q.on{ background:var(--accent-soft); color:var(--accent); }
+.ed-help{ background:var(--code-bg); border-radius:10px; padding:10px; margin:0 0 8px;
+  font-size:12px; line-height:1.7; color:var(--ink-soft); }
+.ed-help code{ background:var(--surf); padding:1px 5px; border-radius:5px; font-size:12px; }
 
 /* ---------- Toast ---------- */
 #toast{ position:fixed; left:50%; bottom:34dvh; transform:translateX(-50%); z-index:60;
@@ -224,12 +287,8 @@ body.hideui #app{ height:100dvh; }
   width:34px; height:34px; border-radius:50%; background:var(--surf-glass);
   border:1px solid var(--line); font-size:15px; color:var(--ink); box-shadow:0 1px 6px rgba(0,0,0,.2); }
 
-/* 面板全开态「返回画板」钮：左上角、在容器左上角返回键（强制覆盖圆区，约至 88pt 高）下方，
-   与默认 UI 不重叠 —— top 值可按真机微调 */
-#homeBtn{ position:fixed; z-index:35; left:12px; top:calc(124px + env(safe-area-inset-top));
-  width:44px; height:44px; border-radius:50%; background:var(--surf-glass2);
-  border:1px solid var(--line); font-size:17px; color:var(--ink); box-shadow:var(--shadow); }
-#homeBtn:active{ opacity:.7; }
+/* 面板全开态「返回画板」钮：与帮助钮同槽位（顶栏左侧、容器返回箭头旁，星羽 09-08 标注定稿），
+   已移入 #topbar 复用 .top-slot-btn 样式；显隐由 ui.js setPanelFull 切换（旧 fixed(12,124) 定位作废） */
 
 /* 面板三态：收起(panel-collapsed) / 半开(默认 38dvh) / 全开(panel-full 盖满画布) */
 body.panel-full #stage{ display:none; }
@@ -266,3 +325,17 @@ body.panel-full #panel{ flex:1 1 auto; max-height:none; border-top:none; }
 .help-step .code-line{ display:block; margin:3px 0 3px 2px; }
 .help-tab{ padding:2px 0; }
 .help-end{ margin-top:12px; font-size:12px; color:var(--sub); }
+
+/* ---------- 编辑连线弹窗：端点下拉 / 方向开关（v1.0 #9） ---------- */
+.ln-ends{ display:flex; align-items:center; gap:8px; margin:0 0 12px; }
+.ln-ends select.inp{ flex:1; min-height:38px; font-size:14px; }
+.ln-mid{ color:var(--sub); font-size:15px; }
+.ln-row{ display:flex; align-items:center; gap:10px; padding:8px 0 2px; }
+.ln-lab{ font-size:13px; color:var(--sub); }
+.ln-dir{ flex:1; font-size:14px; }
+.swbox{ width:50px; height:30px; border-radius:15px; background:#d8d8dd; position:relative;
+  transition:.2s; flex:0 0 auto; }
+.swbox.on{ background:var(--accent); }
+.swbox i{ position:absolute; top:3px; left:3px; width:24px; height:24px; border-radius:50%;
+  background:#fff; transition:.2s; }
+.swbox.on i{ left:23px; }

@@ -10,10 +10,13 @@
 <div id="app">
   <!-- 顶部全局操作栏（容器占用上方 10rem 点击区：此处只保留只读标题，按钮全部移入画布内悬浮组） -->
   <header id="topbar">
+    <!-- 顶栏左槽（容器返回箭头右侧、星羽 09-08 标注定稿位）：常态=帮助按钮；面板全开=返回画板(homeBtn) -->
+    <button id="btnHelp" class="top-slot-btn" title="帮助" aria-label="帮助">?</button>
+    <button id="homeBtn" class="top-slot-btn hidden" title="返回画板" aria-label="返回画板">&#8592;</button>
     <div id="titleBox" class="tb-title">未命名关系图</div>
   </header>
 
-  <!-- 视图指示条（代理视图）：当前缩放百分比 + 操作提示 -->
+  <!-- 视图指示条（缩放视图）：当前缩放百分比 + 操作提示 -->
   <div id="viewstrip">
     <span id="zoomLabel">100%</span>
     <span id="viewHint">双指缩放 · 拖动空白平移</span>
@@ -41,12 +44,10 @@
       <select id="opsSlotSel" class="hidden"></select>
       <button id="opsCenter" class="mini-btn icon-only" title="设为圆心"><img class="pm-star" src="assets/icons/star-line.svg" alt=""></button>
       <button id="opsDel" class="mini-btn danger icon-only" title="删除" aria-label="删除"><svg class="ic-svg" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M9 10V44H39V10H9Z" fill="none" stroke="currentColor" stroke-width="4" stroke-linejoin="round"/><path d="M20 20V33" stroke="currentColor" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/><path d="M28 20V33" stroke="currentColor" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/><path d="M4 10H44" stroke="currentColor" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/><path d="M16 10L19.289 4H28.7771L32 10H16Z" fill="none" stroke="currentColor" stroke-width="4" stroke-linejoin="round"/></svg></button>
-      <button id="opsClose" class="mini-btn">✕</button>
+      <button id="opsClose" class="mini-btn icon-only" title="关闭" aria-label="关闭"><svg class="ic-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
     </div>
     <!-- 画布右侧悬浮工具组（避开顶部容器占用区；整组可拖动、松手吸附到边） -->
     <div id="floatTools">
-      <button id="btnUndo" class="tb-btn" title="上一步">↩︎</button>
-      <button id="btnRedo" class="tb-btn" title="下一步">↪︎</button>
       <!-- 定位坐标：圆心(第一圈中心)归位到画面正中 + 自动缩放显示全部轨道 -->
       <button id="btnRecenter" class="tb-btn" title="定位坐标：圆心归位，自动缩放">
         <svg width="20" height="20" viewBox="0 0 48 48" fill="none" aria-hidden="true">
@@ -58,7 +59,12 @@
           <circle cx="24" cy="24" r="3" fill="currentColor"/>
         </svg>
       </button>
-      <button id="btnMenu" class="tb-btn menu-fab" title="菜单">☰</button>
+      <!-- 径向主菜单触发钮：点击绽开一圈操作钮，自身旋转成 × -->
+      <button id="btnMenu" class="tb-btn menu-fab" title="菜单" aria-label="菜单">
+        <svg class="fab-plus" width="22" height="22" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+          <path d="M12 5v14M5 12h14" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/>
+        </svg>
+      </button>
     </div>
   </div>
 
@@ -72,11 +78,11 @@
 
   <!-- 底部模式栏 -->
   <nav id="tabs">
-    <button class="tab" data-tab="style">🎨样式</button>
-    <button class="tab" data-tab="person">👤人物</button>
-    <button class="tab" data-tab="link">💑连线</button>
-    <button class="tab" data-tab="layout">🌐布局</button>
-    <button class="tab" data-tab="hand">👋抓手</button>
+    <button class="tab" data-tab="style"><svg class="ic-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3a9 9 0 1 0 0 18c1.5 0 2-1 2-2 0-1.2-1-1.5-1-2.5s1-1.5 2-1.5h1a4 4 0 0 0 4-4c0-4.4-4-6-7-6z"/><circle cx="7.5" cy="11" r="1"/><circle cx="12" cy="7.5" r="1"/><circle cx="16" cy="10.5" r="1"/></svg>样式</button>
+    <button class="tab" data-tab="person"><svg class="ic-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M5 21a7 7 0 0 1 14 0"/></svg>人物</button>
+    <button class="tab" data-tab="link"><svg class="ic-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 12h6M10 8a3 3 0 0 0 0 6M14 8a3 3 0 0 1 0 6"/></svg>连线</button>
+    <button class="tab" data-tab="layout"><svg class="ic-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3c3 3.5 3 14.5 0 18M12 3c-3 3.5-3 14.5 0 18"/></svg>布局</button>
+    <button class="tab" data-tab="hand"><svg class="ic-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M7 11V6a1.5 1.5 0 0 1 3 0v4M10 10V5a1.5 1.5 0 0 1 3 0v5M13 10V6a1.5 1.5 0 0 1 3 0v5M16 9a1.5 1.5 0 0 1 3 0v5a6 6 0 0 1-6 6h-1a6 6 0 0 1-5-2.6L4 16a1.5 1.5 0 0 1 2.5-1.6L7 15"/></svg>抓手</button>
   </nav>
 </div>
 
@@ -86,28 +92,34 @@
   <div id="modalBox"></div>
 </div>
 
-<!-- 菜单 -->
-<div id="menuRoot" class="hidden">
-  <div id="menuMask"></div>
-  <div id="menuBox">
-    <div class="menu-group">帮助</div>
-    <div class="menu-item" data-menu="help">❓ 帮助</div>
-    <div class="menu-sep"></div>
-    <div class="menu-group">工具</div>
-    <div class="menu-item" data-menu="rename">✏️ 改图名 / 填表人</div>
-    <div class="menu-item" data-menu="new">🆕 建立新连线图</div>
-    <div class="menu-sep"></div>
-    <div class="menu-group">导出</div>
-    <div class="menu-item" data-menu="publish">📝 发布笔记</div>
-    <div class="menu-item" data-menu="img">🖼 导出为图片</div>
-    <div class="menu-item" data-menu="expnames">📤 导出人物名单</div>
-    <div class="menu-item" data-menu="expsnap">📦 导出布局·人物·图例</div>
-    <div class="menu-sep"></div>
-    <div class="menu-group">导入</div>
-    <div class="menu-item" data-menu="impnames">📥 导入人物名单</div>
-    <div class="menu-item" data-menu="impsnap">📦 导入布局·人物·图例</div>
-    <div class="menu-sep"></div>
-    <div class="menu-item" data-menu="about">ℹ️ 关于</div>
+<!-- 径向主菜单（点击 + 号绽开一圈操作钮，围绕 + 号中心） -->
+<div id="radialMenu" class="hidden" aria-hidden="true">
+  <div class="radial-mask" id="radialMask"></div>
+  <div class="radial-ring">
+    <button class="radial-btn" data-act="undo" title="撤销" aria-label="撤销">
+      <svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M9 7 4 12l5 5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M4 12h11a5 5 0 0 1 0 10h-3" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+    </button>
+    <button class="radial-btn" data-act="redo" title="重做" aria-label="重做">
+      <svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M15 7l5 5-5 5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M20 12H9a5 5 0 0 0 0 10h3" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+    </button>
+    <button class="radial-btn" data-act="import" title="导入" aria-label="导入">
+      <svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M12 3v12" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><path d="M7 10l5 5 5-5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M4 19h16" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+    </button>
+    <button class="radial-btn" data-act="save" title="保存 / 导出" aria-label="保存 / 导出">
+      <svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M5 4h11l3 3v13H5z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/><path d="M8 4v5h7" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/><path d="M8 14h8v6H8z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/></svg>
+    </button>
+    <button class="radial-btn" data-act="about" title="关于" aria-label="关于">
+      <svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="2"/><path d="M12 11v5" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><circle cx="12" cy="7.5" r="1.1" fill="currentColor"/></svg>
+    </button>
+  </div>
+</div>
+
+<!-- 二级菜单窗口（导入 / 保存，按钮带文字） -->
+<div id="subMenuRoot" class="hidden">
+  <div class="sub-mask" id="subMenuMask"></div>
+  <div class="sub-box">
+    <div class="sub-title" id="subMenuTitle"></div>
+    <div class="sub-list" id="subMenuList"></div>
   </div>
 </div>
 
@@ -115,18 +127,15 @@
 <div id="toast" class="hidden"></div>
 
 <!-- 全屏(隐藏UI)退出按钮 -->
-<button id="fullExit" class="hidden" title="退出全屏">✕</button>
-
-<!-- 面板全开态「返回画板」钮：左上角、位于容器左上角强制覆盖区（返回键圆钮）下方，避免重叠 -->
-<button id="homeBtn" class="hidden" title="返回画板">🏠</button>
+<button id="fullExit" class="hidden" title="退出全屏"><svg class="ic-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
 
 <script src="js/util.js"></script>
 <script src="js/state.js"></script>
 <script src="js/render.js"></script>
+<script src="js/lzstring.js"></script>
 <script src="js/io.js"></script>
 <script src="js/ui.js"></script>
 <script src="js/input.js"></script>
 <script src="js/main.js"></script>
-  <script src="js/iopc.js"></script>
 </body>
 </html>

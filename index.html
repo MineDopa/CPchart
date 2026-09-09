@@ -68,9 +68,11 @@
     </div>
   </div>
 
-  <!-- 底部二级面板折叠把手（面板顶部/画板底部；收起后仅留此细条可再展开） -->
-  <div id="panelHead">
-    <button id="btnPanelFold" class="pf-btn">﹀ 收起</button>
+  <!-- 底部二级面板三态把手（折叠/半开/全开）：药丸+箭头，单击循环、拖动跟手 -->
+  <div id="panelHead" data-state="half" role="button" tabindex="0" aria-label="面板把手（点击切换状态，拖动调整高度）">
+    <svg class="ph-arr ph-up" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 14l6-6 6 6"/></svg>
+    <span class="ph-pill" aria-hidden="true"></span>
+    <svg class="ph-arr ph-down" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 10l6 6 6-6"/></svg>
   </div>
 
   <!-- 二级菜单面板 -->
@@ -137,5 +139,6 @@
 <script src="js/ui.js"></script>
 <script src="js/input.js"></script>
 <script src="js/main.js"></script>
+<script src="js/iopc.js"></script>
 </body>
 </html>

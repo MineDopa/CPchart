@@ -28,25 +28,47 @@
       likeEmpty: "#ececec", nameCol: "#26262a", linkEdge: "#ffffff" };
   }
 
+  // 箭头几何常量（软编码：改这一处，画布三角 / 线端缩回 / 顶层缩放同步生效）
+  const ARROW = {
+    len: 18,        // 三角长（尖到底边）
+    halfWid: 11,    // 三角底边半宽
+    tipPad: 4,      // 尖与角色圆边的间距
+    gap: 9,         // 线与箭头底边之间的留白（真箭头断开感）
+    topScale: 0.75, // 顶层细线箭头缩放
+  };
+  App.ARROW = ARROW;
+
+  // 真箭头：线在箭头底边外再退 gap，让三角与线断开留白（不再是"线穿三角"）
+  // 返回连线两端的线坐标：有箭头的端按（圆边距 + 箭头长 + 留白）从角色圆心缩回
+  function lineEnds(a, b, arrow, nodeR, scale) {
+    const cut = nodeR + ARROW.tipPad + ARROW.len * scale + ARROW.gap;
+    let c1 = 0, c2 = 0;
+    if (arrow === "one") c2 = cut;
+    else if (arrow === "both") { c1 = cut; c2 = cut; }
+    const dx = b.x - a.x, dy = b.y - a.y, len = Math.hypot(dx, dy) || 1;
+    const ux = dx / len, uy = dy / len;
+    return { x1: a.x + ux * c1, y1: a.y + uy * c1, x2: b.x - ux * c2, y2: b.y - uy * c2 };
+  }
+
   function buildArrowsLine(a, b, color, arrow, nodeR, extra) {
     const dx = b.x - a.x, dy = b.y - a.y;
     const len = Math.hypot(dx, dy) || 1;
     const ux = dx / len, uy = dy / len;
     let out = "";
-    const tipR = nodeR + 4;
-    // ③ 箭头放大：底层粗线 18×11，顶层细线按 extra.scale 缩放（默认 0.75）
     const scale = (extra && extra.scale) || 1;
-    const back = 18 * scale, wid = 11 * scale;
-    // ② 顶点在 (tx,ty) 贴目标圆边，底点后退 back —— 箭头尖朝目标角色
+    const back = ARROW.len * scale, wid = ARROW.halfWid * scale;
+    // 顶点在 (tx,ty) 贴目标圆边，底点后退 back —— 箭头尖朝目标角色
     const mkArrow = (tx, ty, dir) => {
       const ex = tx - back * ux * dir, ey = ty - back * uy * dir;
       const px = -uy * wid * dir, py = ux * wid * dir;
       return `<polygon points="${S(tx, ty)} ${S(ex + px, ey + py)} ${S(ex - px, ey - py)}" fill="${color}"></polygon>`;
     };
     if (arrow === "one") {
+      const tipR = nodeR + ARROW.tipPad;
       const tx = b.x - ux * tipR, ty = b.y - uy * tipR;
       out += mkArrow(tx, ty, 1);
     } else if (arrow === "both") {
+      const tipR = nodeR + ARROW.tipPad;
       let t1 = { x: b.x - ux * tipR, y: b.y - uy * tipR };
       let t2 = { x: a.x + ux * tipR, y: a.y + uy * tipR };
       out += mkArrow(t1.x, t1.y, 1) + mkArrow(t2.x, t2.y, -1);
@@ -73,7 +95,8 @@
       if (!a || !b) return;
       const col = colors.bottom(k.ckey) || "#222";
       const pend = App.pendingLinkDel === k.id ? " pending-del" : "";
-      html += `<line class="ln ln-bottom${pend}" data-link="${k.id}" x1="${a.x}" y1="${a.y}" x2="${b.x}" y2="${b.y}"
+      const L = lineEnds(a, b, k.arrow, App.nodeR(), 1);
+      html += `<line class="ln ln-bottom${pend}" data-link="${k.id}" x1="${L.x1}" y1="${L.y1}" x2="${L.x2}" y2="${L.y2}"
         stroke="${col}" stroke-width="12" stroke-linecap="round" opacity="0.88"></line>`;
       html += buildArrowsLine(a, b, col, k.arrow, App.nodeR(), null);
     });
@@ -85,11 +108,12 @@
       if (!a || !b) return;
       const col = colors.top(k.ckey) || "#555";
       const pend = App.pendingLinkDel === k.id ? " pending-del" : "";
-      html += `<line class="ln ln-top${pend}" data-link="${k.id}" x1="${a.x}" y1="${a.y}" x2="${b.x}" y2="${b.y}"
+      const L = lineEnds(a, b, k.arrow, App.nodeR(), ARROW.topScale);
+      html += `<line class="ln ln-top${pend}" data-link="${k.id}" x1="${L.x1}" y1="${L.y1}" x2="${L.x2}" y2="${L.y2}"
         stroke="${th.linkEdge}" stroke-width="6.5" stroke-linecap="round" opacity="0.95"></line>`;
-      html += `<line class="ln ln-top-c${pend}" data-link="${k.id}" x1="${a.x}" y1="${a.y}" x2="${b.x}" y2="${b.y}"
+      html += `<line class="ln ln-top-c${pend}" data-link="${k.id}" x1="${L.x1}" y1="${L.y1}" x2="${L.x2}" y2="${L.y2}"
         stroke="${col}" stroke-width="2.2" stroke-linecap="round"></line>`;
-      html += buildArrowsLine(a, b, col, k.arrow, App.nodeR(), { scale: 0.75 });
+      html += buildArrowsLine(a, b, col, k.arrow, App.nodeR(), { scale: ARROW.topScale });
     });
 
     // 命中区（触屏容易点）
@@ -263,16 +287,16 @@
         parts.push("连线·删线");
         eraser = true;
       } else {
-        const bName = App.brush.bottom ? App.nameOf("bottom", App.brush.bottom) : "—";
-        const tName = App.brush.top ? App.nameOf("top", App.brush.top) : "—";
+        // link：极简状态条——只显示非默认信息（选中的笔刷名 + 非默认箭头名）
+        const b = App.brush.bottom ? App.nameOf("bottom", App.brush.bottom) : "";
+        const t = App.brush.top ? App.nameOf("top", App.brush.top) : "";
         const ar = App.state.tables.arrow.find((a) => a.key === App.brush.arrow);
-        const arType = ar ? ar.type : "none";
-        const arName = ar ? ar.name : "无箭头";
-        const arIcon = arType === "one" ? "➜" : arType === "both" ? "⇄" : "—";
-        parts.push("💑笔刷 ◯" + App.esc(bName) + " ●" + App.esc(tName) + " " + arIcon + App.esc(arName));
-        if (App.linkSource) parts.push("已选起点·拖向终点");
+        if (b) parts.push(App.esc(b));
+        if (t) parts.push(App.esc(t));
+        if (ar && ar.type !== "none") parts.push(App.esc(ar.name));
       }
     }
+    if (!parts.length) { o.brush.classList.add("hidden"); return; } // 没有任何有效信息 → 整条隐藏
     o.brush.innerHTML = parts.join(" · ");
     o.brush.classList.remove("hidden");
     o.brush.classList.toggle("eraser", eraser);

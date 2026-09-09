@@ -1,6 +1,6 @@
 /* iopc.js —— 网页版 IO 覆盖层（仅供 web/ 分流版在页面末尾加载；小红书容器包绝不包含本文件）
    容器版 js/io.js 走官方 JSBridge（writeTempFile/saveImageToPhotosAlbum/postNote）；
-   网页版（浏览器 / GitHub Pages）没有这些 API，本文件在 main.js 之后加载并覆盖：
+   网页版（浏览器环境）没有这些 API，本文件在 main.js 之后加载并覆盖：
      - saveImage   ：浏览器原生下载 PNG（网页环境允许 a[download]）
      - publishNote ：友好提示网页版不可直接发布
    加载后会置 window.__IOPC_ENV = true 供环境识别。 */
@@ -10,9 +10,9 @@
     try { if (App.toast) { App.toast(msg); return; } } catch (e) { /* ignore */ }
     try { window.alert(msg); } catch (e2) { /* ignore */ }
   }
-  // 导出文件名模板（星羽定稿 2026-09-08）：
+  // 导出文件名模板：
   //   CP-Chart 填表人的图名 导出时间.png
-  //   例：CP-Chart 星羽的我的CP图 20260907-162017.png
+  //   例：CP-Chart 用户 的 我的CP图 20260907-162017.png
   // 填表人为空时省略「填表人的」；时间=本地时间 YYYYMMDD-HHMMSS；
   // 名称内若含文件名非法字符（\ / : * ? " < > |）会替换为「-」。
   function sanitizeName(s) {
@@ -79,13 +79,12 @@
     tip("网页版暂不支持直接发布笔记：请先「导出图片」保存图片后，在小红书 App 里手动发布。");
     return Promise.resolve({ ok: false, reason: "web-environment" });
   };
-  // 关于页开源仓库引流（仅网页版；小红书容器包不加载本文件，故红线零残留）
+  // 关于页补充说明（仅网页版；小红书容器包不加载本文件）
   App.renderAboutExtra = function () {
-    var url = "https://github.com/MineDopa/CPchart";
-    return '<div class="about-sec">🌟 开源仓库</div>'
+    return '<div class="about-sec">关于本项目</div>'
       + '<ul class="about-list">'
-      + '<li><a class="about-link" href="' + url + '" target="_blank" rel="noopener">GitHub：MineDopa/CPchart</a></li>'
-      + '<li>欢迎 Star / 提 Issue，一起把小工具做得更好</li>'
+      + '<li>CP Chart 是一个纯本地、离线可用的人物关系连线图工具</li>'
+      + '<li>数据格式 CPC 的完整说明见「CPC 语言说明」</li>'
       + '</ul>';
   };
   window.__IOPC_ENV = true;

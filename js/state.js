@@ -59,7 +59,7 @@
         top: DEFAULT_TOP.map((x) => ({ ...x })),
         arrow: DEFAULT_ARROW.map((x) => ({ ...x })),
       },
-      ui: { avatarMode: "both", showNames: true, slotMode: false, nodeR: NODE_R, night: false, charMode: false, paintMode: "link", thinW: 2.2, thinDash: false },
+      ui: { avatarMode: "both", showNames: true, slotMode: false, nodeR: NODE_R, night: false, charMode: false, paintMode: "link", thinW: 2.2, thinDash: false, layoutHint: false },
       meta: { filler: "", arrowName: "情感指向" }, // arrowName=箭头含义（图例/导出显示，可改）
     };
   }
@@ -176,7 +176,9 @@
           return p.rel - q.rel;
         });
       sorted.forEach((it, i) => {
-        it.c.angle = -Math.PI / 2 + (i * 2 * Math.PI) / n;
+        // v0.14.8：锚点不拽回正上方 -PI/2，原地保持 a0，其余相对它等分——
+        // 开槽位/平均排布时整圈不再旋转（此前硬贴顶导致每次开槽整圈"转圈圈"）
+        it.c.angle = a0 + (i * 2 * Math.PI) / n;
         it.c.slot = null;
       });
       return;
@@ -198,10 +200,12 @@
   };
 
   App.addChar = function (name, ring) {
-    ring = Math.max(0, Math.floor(ring || 1));
+    // 注意：不能写 `ring || 1` —— 圆心的合法值 0 会被吞成 1（历史 bug，2026-09-09 修）
+    const rn = (ring === null || ring === undefined || ring === "") ? 1 : Number(ring);
+    ring = Math.max(0, Math.floor(Number.isFinite(rn) ? rn : 1));
     if (ring === 0) ensureCenterUnique(null);
     const c = {
-      id: App.uid("c"), name: String(name).trim() || "未命名",
+      id: App.uid("c"), name: App.clipName(String(name).trim()) || "未命名", // 角色名上限 20 字
       ring, angle: null, slot: null, like: null, avatar: null,
     };
     App.state.chars.push(c);
@@ -373,6 +377,14 @@
   };
   App.addLink = function (src, dst, layer, ckey, arrow) {
     if (!ckey) return null;
+    // 喜好度唯一真源守卫（v0.14 数据层重构）：
+    // 喜好度 = 角色自身圆圈被涂的颜色（char.like 单值），与圆心无关。
+    // 故「圆心 ↔ 某人」的粗线不再作为一条连线存在，一律就地折算成该角色的涂色。
+    // 放在这里 = 所有入口（手绘 / 文本导入 / 批量编辑）自动归一，不必每处各写一遍。
+    if (layer === "bottom") {
+      const folded = App.foldCenterFav(src, dst, ckey);
+      if (folded) return null;
+    }
     const key = layer === "top" ? dirKey(src, dst) : pairKey(src, dst);
     const exist = App.state.links.find(
       (k) => k.layer === layer && (layer === "top" ? dirKey(k.src, k.dst) === key : pairKey(k.src, k.dst) === key)
@@ -394,6 +406,42 @@
     const k = App.getLink(id); if (!k) return;
     App.act(() => { k.arrow = val; });
   };
+  // 圆心粗线 → 角色涂色 折算（喜好度单一真源的实现核心）
+  // 命中条件：bottom 层 + 一端是圆心（ring===0）。命中则把 ckey 写进另一端角色的 like，返回 true 表示"已消化，不要建线"。
+  // 同轴覆盖语义：喜好度一格单值，重复涂 = 幂等改值，不产生第二条记录。
+  App.foldCenterFav = function (src, dst, ckey) {
+    const chars = App.state.chars || [];
+    const a = chars.find((c) => c.id === src);
+    const b = chars.find((c) => c.id === dst);
+    if (!a || !b) return false;
+    const aIsCenter = a.ring === 0, bIsCenter = b.ring === 0;
+    if (!aIsCenter && !bIsCenter) return false;   // 两个普通角色之间的粗线 = 这对 CP 的喜好度，保留为连线
+    if (aIsCenter && bIsCenter) return true;      // 理论不存在（圆心唯一），保险丢弃
+    const other = aIsCenter ? b : a;
+    other.like = ckey || null;
+    return true;
+  };
+
+  // 旧数据静默折算：打开旧草稿/旧快照时，把历史遗留的「圆心 ↔ 某人」粗线转成该角色涂色并删除该线。
+  // 冲突处理：角色已有涂色时以角色涂色为准（用户显式设定优先），仅删除冗余线。返回折算条数。
+  App.migrateCenterFav = function (st) {
+    const s = st || App.state;
+    if (!s || !Array.isArray(s.links) || !Array.isArray(s.chars)) return 0;
+    const center = s.chars.find((c) => c.ring === 0);
+    if (!center) return 0;
+    let moved = 0;
+    s.links = s.links.filter((k) => {
+      if (!k || k.layer !== "bottom") return true;
+      if (k.src !== center.id && k.dst !== center.id) return true;
+      const otherId = k.src === center.id ? k.dst : k.src;
+      const other = s.chars.find((c) => c.id === otherId);
+      if (other && other.id !== center.id && !other.like) other.like = k.ckey || null;
+      moved++;
+      return false;
+    });
+    return moved;
+  };
+
   // 收敛旧草稿/旧快照：bottom 无向对仅一条、top 同 (src,dst) 仅一条（均保最后画的那条）
   App.normalizeLinks = function (links) {
     const out = [];
@@ -443,9 +491,29 @@
     else purgeArrow(key);
     tb.splice(i, 1);
   };
+  // ---- 命名硬规则（数据格式防歧义，2026-09-09 拍板）----
+  // 上限 20 字：图例名 = 角色名（图例名位有人玩梗故放宽到与角色名齐平）
+  App.NAME_MAX = 20;
+  App.clipName = function (s, max) {
+    return Array.from(String(s == null ? "" : s)).slice(0, max || App.NAME_MAX).join("");
+  };
+  // 图例名禁纯数字：文本格式靠「非纯数字才算图例名」区分圈号/行号，纯数字会打架
+  App.isPureNumberName = function (s) { return /^[0-9\s]+$/.test(String(s == null ? "" : s)); };
+  // 返回 true = 改名成功；false = 被规则拒绝（调用方负责提示并还原输入框）
   App.renameTableRow = (layer, key, name) => {
     const r = App.state.tables[layer].find((x) => x.key === key);
-    if (r) r.name = name;
+    if (!r) return false;
+    const v = App.clipName(name);
+    if (App.isPureNumberName(v)) return false;
+    r.name = v;
+    return true;
+  };
+  // 「新增图例」默认名递增：新关系 1 / 新关系 2…（连点多次不再产出一堆同名，便于事后逐个改名）
+  App.nextTableName = function (layer, base) {
+    const used = new Set((App.state.tables[layer] || []).map((x) => String(x.name || "")));
+    let n = 1;
+    while (used.has(base + " " + n)) n++;
+    return base + " " + n;
   };
   App.recolorTableRow = (layer, key, color) => {
     const r = App.state.tables[layer].find((x) => x.key === key);
@@ -513,6 +581,7 @@
     };
     // 收敛旧快照里同对多条 top/bottom（top 保留 A→B 与 B→A 两个方向各一条）
     App.state.links = App.normalizeLinks(App.state.links);
+    App.migrateCenterFav(App.state); // 旧「圆心→某人」粗线折算为角色涂色（静默、无感）
     ensureCenterUnique(null);
     computeLayout();
   };

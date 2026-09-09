@@ -48,7 +48,7 @@
       parsed.forEach((p) => {
         if (byName[p.name]) return; // 已存在：保留原设置，不覆盖
         fresh.push({
-          id: App.uid("c"), name: p.name, ring: p.ring, angle: null, slot: null,
+          id: App.uid("c"), name: App.clipName(p.name), ring: p.ring, angle: null, slot: null,
           like: likes[p.name] || null, avatar: av[p.name] || null,
         });
       });
@@ -139,17 +139,14 @@
     const st = App.state;
     const nameOf = (id) => { const c = st.chars.find((x) => x.id === id); return c ? c.name : ""; };
     const lines = [];
-    // 喜好度行：按底层图例分组（取每条粗线中非圆心的一端）
+    // 喜好度行：唯一真源 = 角色自身涂色 char.like（与圆心无关）。
+    // 同轴单值 → 一个角色只会出现在一条喜好度行里，导出不会同名重复。名字按字典序排。
     const fav = [];
     (st.tables.bottom || []).forEach((t) => {
-      const names = [];
-      st.links.forEach((k) => {
-        if (k.layer !== "bottom" || k.ckey !== t.key) return;
-        const a = st.chars.find((x) => x.id === k.src), b = st.chars.find((x) => x.id === k.dst);
-        if (!a || !b) return;
-        const other = a.ring === 0 ? b : (b.ring === 0 ? a : b);
-        if (other && other.name) names.push(other.name);
-      });
+      const names = st.chars
+        .filter((c) => c.like === t.key && c.name)
+        .map((c) => c.name)
+        .sort((a, b) => String(a).localeCompare(String(b), "zh"));
       if (names.length) fav.push(t.name + "：" + names.join("，"));
     });
     if (fav.length) lines.push(fav.join("；"));
@@ -185,14 +182,13 @@
     const res = { added: 0, skipped: 0, errs: [] };
     const raw = String(text || "").replace(/\r/g, "");
     const items = raw.split(/[；;\n]+/).map((x) => x.trim()).filter(Boolean);
-    const center = centerChar();
     const pending = [];
     items.forEach((it) => {
       // 先判方向符 → 连线条目；否则含冒号 → 喜好度条目
       let arrow = "none", parts = null;
       if (it.indexOf("<->") >= 0) { arrow = "both"; parts = it.split("<->"); }
-      else if (it.indexOf("->") >= 0 || it.indexOf("》") >= 0 || it.indexOf("➡️") >= 0) {
-        arrow = "one"; parts = it.split(/->|》|➡️/);
+      else if (it.indexOf("->") >= 0 || it.indexOf("→") >= 0 || it.indexOf("》") >= 0 || it.indexOf("➡️") >= 0) {
+        arrow = "one"; parts = it.split(/->|→|》|➡️/);
       } else if (it.indexOf("—") >= 0) { parts = it.split("—"); }
       else if (/[^-]-[^-]/.test(it)) { parts = it.split("-"); }
       if (parts && parts.length >= 2) {
@@ -238,14 +234,10 @@
     });
     pending.forEach((p) => {
       if (p.type === "fav") {
-        if (!center) { res.skipped++; return; } // 无圆心时静默跳过（喜好度需要基准点；不报错不强制设圆心）
+        // 喜好度 = 给这个角色自己涂色（单值覆盖、重复贴同一行幂等），不再依赖圆心、不再建连线
         const bkey = lgKeyOfName("bottom", p.bottomName);
         if (!bkey) return;
-        const other = p.char.id === center.id ? null : p.char;
-        if (!other) return;
-        const exist = App.state.links.find((k) => k.layer === "bottom" &&
-          ((k.src === center.id && k.dst === other.id) || (k.src === other.id && k.dst === center.id)));
-        if (exist) { exist.ckey = bkey; } else { App.addLink(center.id, other.id, "bottom", bkey, "none"); }
+        p.char.like = bkey;
         res.added++;
       } else {
         const bkey = p.bottomName ? lgKeyOfName("bottom", p.bottomName) : null;
@@ -271,6 +263,381 @@
     if (addedNames.length) {
       res.errs.unshift("已自动新增图例：" + addedNames.filter((v, i, arr) => arr.indexOf(v) === i).join("、"));
     }
+    return res;
+  };
+
+  // ---------------- CPC 格式 v2（《数据格式语义定义-v2-cpc.md》§3-§5）----------------
+  // 五段分段：注释头 / #标题# / #布局# / #喜好# / #连线# / #样式#
+  // 核心语义：连线两正交维度（强度档 bottom=多喜欢 / 定义档 top=是什么），方向对两层都开放。
+  var CPC_URL = "解读格式见「CPC 语言说明」";
+  // 内置样式预注入（§4.6）：默认词未声明时走这套，不是未定义样式。样式段只导出偏离默认的部分。
+  var CPC_DEF_BOTTOM = { "本命": "#d32f2f", "很喜欢": "#f57c00", "路好": "#fbc02d", "不吃": "#222222" };
+  var CPC_DEF_TOP = { "爱情": "#ec407a", "友情": "#43a047", "亲情": "#1976d2", "QPR": "#8e24aa" };
+  // 名字含语法字符 → 导出时引号包裹（§4.5）
+  var CPC_NAME_UNSAFE = /[，,、：:；;()（）\-—–－<>＜＞+＋*#"'\u2018\u2019\u201c\u201d]/;
+
+  function cpcName(n) {
+    const s = String(n == null ? "" : n);
+    return CPC_NAME_UNSAFE.test(s) ? "'" + s + "'" : s;
+  }
+  // 引号感知归一化（§5）：引号内内容不动，引号外做通配归一
+  function cpcNormalize(text) {
+    const raw = String(text || "").replace(/\r/g, "");
+    const parts = raw.split(/('[^']*'|‘[^’]*’|“[^”]*”)/g);
+    return parts.map((p) => {
+      if (/^'[^']*'$/.test(p) || /^‘[^’]*’$/.test(p) || /^“[^”]*”$/.test(p)) return p;
+      return p
+        .replace(/\/\*[\s\S]*?\*\//g, "")   // 注释块
+        .replace(/[，、]/g, ",")            // 全角逗号/顿号
+        .replace(/；/g, ";")                // 全角分号
+        .replace(/[—–－]/g, "-")            // 横线族（横线只管连，方向由>/<决定）
+        .replace(/：/g, ":")
+        .replace(/＞/g, ">")
+        .replace(/＜/g, "<")
+        .replace(/[→➔➜➞⇒⟶]/g, "->")          // 漂亮箭头族 → 半角 ->（AI 偏好全角 → 易踩坑）
+        .replace(/[←⇐⟵]/g, "<-")             // 反向漂亮箭头 → 半角 <-
+        .replace(/[↔⇄⇆]/g, "<->");            // 双向漂亮箭头 → 半角 <->
+    }).join("");
+  }
+  function cpcStripQ(s) {
+    const t = String(s == null ? "" : s).trim();
+    const m = t.match(/^['\u2018\u201c]([\s\S]*)['\u2019\u201d]$/);
+    return m ? m[1].trim() : t;
+  }
+  // 引号感知的逗号切分（引号内逗号不切）
+  function cpcSplitList(s) {
+    const out = [];
+    let cur = "", inQ = false, close = "";
+    const str = String(s == null ? "" : s);
+    for (let i = 0; i < str.length; i++) {
+      const ch = str[i];
+      if (inQ) { cur += ch; if (ch === close) inQ = false; continue; }
+      if (ch === "'") { inQ = true; close = "'"; cur += ch; continue; }
+      if (ch === "\u2018") { inQ = true; close = "\u2019"; cur += ch; continue; }
+      if (ch === "\u201c") { inQ = true; close = "\u201d"; cur += ch; continue; }
+      if (ch === ",") { out.push(cur); cur = ""; continue; }
+      cur += ch;
+    }
+    out.push(cur);
+    return out;
+  }
+  // 引号感知的分隔符查找/切分（方向符切分用；只切第一处）
+  function cpcFindSep(str, sep) {
+    let inQ = false, close = "";
+    for (let i = 0; i + sep.length <= str.length; i++) {
+      const ch = str[i];
+      if (inQ) { if (ch === close) inQ = false; continue; }
+      if (ch === "'") { inQ = true; close = "'"; continue; }
+      if (ch === "\u2018") { inQ = true; close = "\u2019"; continue; }
+      if (ch === "\u201c") { inQ = true; close = "\u201d"; continue; }
+      if (str.startsWith(sep, i)) return i;
+    }
+    return -1;
+  }
+  function cpcSplitBy(str, sep) {
+    const i = cpcFindSep(str, sep);
+    if (i < 0) return null;
+    return [str.slice(0, i), str.slice(i + sep.length)];
+  }
+  function cpcLooksLike(text) {
+    return /#\s*(标题|布局|喜好|连线|样式|title|layout|fav|link|style)\s*#/i.test(String(text || ""));
+  }
+  var CPC_SEC = {
+    "标题": "title", "title": "title", "布局": "layout", "layout": "layout",
+    "喜好": "fav", "fav": "fav", "连线": "link", "link": "link", "样式": "style", "style": "style",
+  };
+  function cpcSplitSections(text) {
+    const sec = { title: "", layout: [], fav: [], link: [], style: [] };
+    let cur = null;
+    String(text).split("\n").forEach((ln) => {
+      const t = ln.trim();
+      if (!t) return;
+      const m = t.match(/^#([^#]{1,6})#\s*/);
+      if (m && CPC_SEC[m[1].toLowerCase()] != null) {
+        const key = CPC_SEC[m[1].toLowerCase()];
+        if (key === "title") { sec.title = cpcStripQ(t.slice(m[0].length).trim()); cur = null; }
+        else cur = key;
+        const rest = t.slice(m[0].length).trim();
+        if (cur && rest) sec[cur].push(rest);
+        return;
+      }
+      if (cur) sec[cur].push(t);
+    });
+    return sec;
+  }
+  function cpcHexColor(s) {
+    const t = String(s || "").trim().replace(/^#?/, "#");
+    return /^#[0-9a-fA-F]{3,8}$/.test(t) ? t : null;
+  }
+
+  // 导出 CPC 文本（§3 骨架 + §6 排序：布局按圈号/角度序，连线按类型词分组、组内字典序）
+  App.exportCPC = function () {
+    const st = App.state;
+    function pairText(p) {
+      let s = p.s, d = p.d;
+      if (p.arr === "-" && String(s).localeCompare(String(d), "zh") > 0) { const t = s; s = d; d = t; }
+      return cpcName(s) + p.arr + cpcName(d);
+    }
+    const out = [];
+    out.push("/* 该数据由 CP Chart 导出 | " + CPC_URL + " */");
+    out.push("/* 解读该 CPC 请参考本工具的「CPC 语言说明」 */");
+    out.push("#标题# " + String(st.title || "未命名关系图").replace(/[\r\n]+/g, " ").trim());
+    // 布局：圈号(槽位?)[半径px?]: 名单；圈上按 angle 从 12 点方向顺时针
+    const groups = new Map();
+    st.chars.forEach((c) => {
+      if (!groups.has(c.ring)) groups.set(c.ring, []);
+      groups.get(c.ring).push(c);
+    });
+    const lay = [];
+    [...groups.keys()].sort((a, b) => a - b).forEach((ring) => {
+      const list = groups.get(ring).slice()
+        .sort((a, b) => ((a.angle == null ? -Math.PI / 2 : a.angle) - (b.angle == null ? -Math.PI / 2 : b.angle)));
+      let head = ring === 0 ? "0" : String(ring);
+      if (ring > 0) {
+        const rd = st.rings[ring - 1];
+        const defRad = 150 + (ring - 1) * 120;
+        if (rd && rd.slots && rd.slots >= list.length) head += "(" + rd.slots + ")";
+        if (rd && rd.rad && Math.abs(rd.rad - defRad) > 1) head += "[" + Math.round(rd.rad) + "px]";
+      }
+      lay.push(head + ": " + list.map((c) => cpcName(c.name)).join(",") + ";");
+    });
+    if (lay.length) { out.push("#布局#"); out.push(lay.join("\n")); }
+    // 喜好：唯一真源 = char.like（单角色涂色）
+    const fav = [];
+    (st.tables.bottom || []).forEach((t) => {
+      const names = st.chars
+        .filter((c) => c.like === t.key && c.name)
+        .map((c) => c.name)
+        .sort((a, b) => String(a).localeCompare(String(b), "zh"));
+      if (names.length) fav.push(t.name + ":" + names.map(cpcName).join(",") + ";");
+    });
+    if (fav.length) { out.push("#喜好#"); out.push(fav.join("\n")); }
+    // 连线：一个类型词一行；强度词(bottom)与定义词(top)分组；有向对按存储方向，无向按字典序（往返稳定）
+    const grpB = new Map(), grpT = new Map();
+    st.links.forEach((k) => {
+      const a = st.chars.find((x) => x.id === k.src), b = st.chars.find((x) => x.id === k.dst);
+      if (!a || !b || !a.name || !b.name) return;
+      const w = lgNameOf(k.layer, k.ckey);
+      if (!w) return;
+      const grp = k.layer === "bottom" ? grpB : grpT;
+      if (!grp.has(w)) grp.set(w, []);
+      const arr = k.arrow === "both" ? "<->" : k.arrow === "one" ? "->" : "-";
+      grp.get(w).push({ s: a.name, d: b.name, arr: arr });
+    });
+    const conn = [];
+    grpB.forEach((arrs, w) => conn.push(w + ":" + arrs.map(pairText).join(",") + ";"));
+    grpT.forEach((arrs, w) => conn.push(w + ":" + arrs.map(pairText).join(",") + ";"));
+    if (conn.length) { out.push("#连线#"); out.push(conn.join("\n")); }
+    // 样式：只导出偏离内置预设的词（自建词 / 改色词）；px/Z 按层给内置默认值
+    const sty = [];
+    ["bottom", "top"].forEach((layer) => {
+      const defs = layer === "bottom" ? CPC_DEF_BOTTOM : CPC_DEF_TOP;
+      (st.tables[layer] || []).forEach((r) => {
+        if (!r || !r.name) return;
+        const dc = defs[r.name];
+        if (!dc || (dc && dc.toLowerCase() !== String(r.color || "").toLowerCase())) {
+          sty.push(cpcName(r.name) + ":" + r.color + ", " + (layer === "bottom" ? "4px" : "2px") + ", " + layer + ";");
+        }
+      });
+    });
+    if (sty.length) { out.push("#样式#"); out.push(sty.join("\n")); }
+    return out.join("\n");
+  };
+
+  // 布局段解析：plan = [{ring, slots, radius, items:[名字|null]}]；超员只报错不建（§4.2 容错）
+  function cpcPlanLayout(lines, res) {
+    const plan = [];
+    lines.forEach((ln) => {
+      String(ln).split(";").forEach((seg0) => {
+        const seg = seg0.trim();
+        if (!seg) return;
+        const m = seg.match(/^(圆心|中心|center|\d+)\s*(?:\((\d+)\))?\s*(?:\[([\d.]+)\s*px\])?\s*:?\s*([\s\S]*)$/i);
+        if (!m) { res.errs.push("布局行看不懂：" + seg); return; }
+        if (!m[4].trim()) return; // 圈号后没写名字：宽容跳过
+        const ring = /^(圆心|中心|center)$/i.test(m[1]) ? 0 : Math.max(0, parseInt(m[1], 10));
+        const slots = m[2] ? parseInt(m[2], 10) : null;
+        const radius = m[3] ? Math.max(40, Math.min(800, parseFloat(m[3]))) : null;
+        const rawItems = cpcSplitList(m[4]);
+        while (rawItems.length && !rawItems[rawItems.length - 1].trim()) rawItems.pop(); // 行尾多余逗号
+        const items = rawItems.map((x) => { const v = cpcStripQ(x); return v ? v : null; }); // 空元素=空槽
+        plan.push({ ring: ring, slots: slots, radius: radius, items: items, seg: seg });
+      });
+    });
+    plan.forEach((p) => {
+      if (p.slots != null) {
+        const n = p.items.filter(Boolean).length;
+        if (n > p.slots) {
+          res.errs.push("第 " + p.ring + " 圈声明槽位 (" + p.slots + ") 少于人数 " + n + "，已按人数自动扩容");
+          p.autoSlots = n;
+        }
+      }
+    });
+    return plan;
+  }
+  // 布局应用：新角色按列表序精确落角（顺序=数据）；已有角色保留原位（合并语义）
+  function cpcApplyLayout(plan, res) {
+    if (res.errs.length) return 0;
+    const byName = {};
+    App.state.chars.forEach((c) => { byName[c.name] = c; });
+    const fresh = [];
+    plan.forEach((p) => {
+      if (p.ring > 0) {
+        App.radiusFor(p.ring);
+        if (p.autoSlots) p.slots = p.autoSlots; // 超员自动改正（用户确认路径）
+        if (p.slots != null) App.state.rings[p.ring - 1].slots = p.slots;
+        if (p.radius != null) App.state.rings[p.ring - 1].rad = p.radius;
+      }
+      const denom = p.slots || p.items.filter(Boolean).length || 1;
+      p.items.forEach((name, i) => {
+        if (!name) return;
+        if (byName[name]) return; // 已存在：保留原设置
+        const c = {
+          id: App.uid("c"), name: App.clipName(name), ring: p.ring,
+          angle: p.ring === 0 ? 0 : -Math.PI / 2 + (i * 2 * Math.PI) / denom,
+          slot: null, like: null, avatar: null, x: 0, y: 0,
+        };
+        App.state.chars.push(c);
+        byName[name] = c;
+        fresh.push(c);
+      });
+    });
+    // 圆心唯一：多余的圆心移到第 1 圈
+    const centers = App.state.chars.filter((c) => c.ring === 0);
+    centers.slice(1).forEach((c) => { c.ring = 1; c.angle = null; });
+    // 混合圈（已有+新角色同圈）→ 锚定均分；全新圈保持精确列表序
+    const touched = new Set(fresh.map((c) => c.ring));
+    touched.forEach((r) => {
+      if (r === 0) return;
+      const on = App.charsOnRing(r);
+      const freshN = on.filter((c) => fresh.indexOf(c) >= 0).length;
+      if (freshN > 0 && freshN < on.length) App.distributeRing(r, { anchor: true });
+    });
+    const maxRing = Math.max(1, ...App.state.chars.map((c) => c.ring));
+    App.radiusFor(maxRing);
+    return fresh.length;
+  }
+  // 样式段：词: 颜色[, Npx][, top|bottom] —— 颜色生效；px 暂不生效（数据模型无字段，接受不报错）；z 决定建到哪层
+  function cpcApplyStyle(lines, res) {
+    lines.forEach((ln) => {
+      String(ln).split(";").forEach((seg0) => {
+        const seg = seg0.trim();
+        if (!seg) return;
+        const ci = cpcFindSep(seg, ":");
+        if (ci < 0) { res.errs.push("样式行缺冒号：" + seg); return; }
+        const name = cpcStripQ(seg.slice(0, ci));
+        const parts = cpcSplitList(seg.slice(ci + 1)).map(cpcStripQ).filter(Boolean);
+        if (!name) { res.errs.push("样式行缺词名：" + seg); return; }
+        const colorTok = parts.find((x) => cpcHexColor(x));
+        const zTok = parts.find((x) => /^(top|bottom)$/i.test(x));
+        const layer = zTok ? zTok.toLowerCase() : "bottom";
+        if (!colorTok) { res.errs.push("样式行缺颜色：" + seg); return; }
+        const color = cpcHexColor(colorTok);
+        let row = (App.state.tables[layer] || []).find((x) => x.name === name)
+          || (App.state.tables[layer === "top" ? "bottom" : "top"] || []).find((x) => x.name === name);
+        if (row) { row.color = color; return; }
+        const key = App.addLegendAuto(layer, name);
+        const r = (App.state.tables[layer] || []).find((x) => x.key === key);
+        if (r) r.color = color;
+      });
+    });
+  }
+  // 喜好段：词: 角色, 角色（char.like 单值覆盖，幂等）
+  function cpcApplyFav(lines, res) {
+    lines.forEach((ln) => {
+      String(ln).split(";").forEach((seg0) => {
+        const seg = seg0.trim();
+        if (!seg) return;
+        const ci = cpcFindSep(seg, ":");
+        if (ci < 0) { res.errs.push("喜好行缺冒号：" + seg); return; }
+        const lname = cpcStripQ(seg.slice(0, ci));
+        let bkey = lgKeyOfName("bottom", lname);
+        if (!bkey) bkey = App.addLegendAuto("bottom", lname);
+        cpcSplitList(seg.slice(ci + 1)).forEach((x) => {
+          const nm = cpcStripQ(x);
+          if (!nm) return;
+          const c = charByName(nm);
+          if (!c) { res.errs.push("未知名：" + nm); return; }
+          c.like = bkey;
+          res.added++;
+        });
+      });
+    });
+  }
+  // 连线段：词: A 方向符 B, ...（方向符 <-> / -> / <- / -；横线只管连、箭头才管方向）
+  function cpcApplyLink(lines, res) {
+    lines.forEach((ln) => {
+      String(ln).split(";").forEach((seg0) => {
+        const seg = seg0.trim();
+        if (!seg) return;
+        const ci = cpcFindSep(seg, ":");
+        if (ci < 0) { res.errs.push("连线行缺冒号：" + seg); return; }
+        const lname = cpcStripQ(seg.slice(0, ci));
+        if (!lname) { res.errs.push("连线行缺类型词：" + seg); return; }
+        cpcSplitList(seg.slice(ci + 1)).forEach((item) => {
+          const it = item.trim();
+          if (!it) return;
+          let arrow = "none", parts = null;
+          if ((parts = cpcSplitBy(it, "<->")) != null) arrow = "both";
+          else if ((parts = cpcSplitBy(it, "->")) != null) arrow = "one";
+          else if ((parts = cpcSplitBy(it, "<-")) != null) { arrow = "one"; parts = [parts[1], parts[0]]; }
+          else if ((parts = cpcSplitBy(it, "-")) != null) arrow = "none";
+          else { res.errs.push("连线缺方向符（需 - 或 -> 或 <->）：" + it); return; }
+          const a = cpcStripQ(parts[0]), b = cpcStripQ(parts[1]);
+          if (!a || !b) { res.errs.push("连线格式看不懂：" + it); return; }
+          const ca = charByName(a), cb = charByName(b);
+          if (!ca) { res.errs.push("未知名：" + a); return; }
+          if (!cb) { res.errs.push("未知名：" + b); return; }
+          // 类型词 → 层：bottom 表 = 强度档，top 表 = 定义档；
+          // 两表都没有的未知词兜底 top（用户新建词绝大多数是关系定义，如"敌对/主从"；强度档几乎只有默认四词。写 #样式# 的 z 参数可显式指定层）
+          let layer, key = lgKeyOfName("bottom", lname);
+          if (key) { layer = "bottom"; }
+          else if ((key = lgKeyOfName("top", lname))) { layer = "top"; }
+          else { layer = "top"; key = App.addLegendAuto("top", lname); }
+          if (layer === "bottom") {
+            App.addLink(ca.id, cb.id, "bottom", key, arrow); // 圆心粗线由 foldCenterFav 自动折算为涂色
+          } else {
+            const exist = App.state.links.find((k) => k.layer === "top" &&
+              (k.src === ca.id && k.dst === cb.id || k.src === cb.id && k.dst === ca.id));
+            if (exist && arrow === "none") {
+              // 无向细线：任一方向已存在则覆盖该条（往返稳定），否则新建
+              exist.ckey = key; exist.arrow = arrow;
+            } else {
+              App.addLink(ca.id, cb.id, "top", key, arrow);
+            }
+          }
+          res.added++;
+        });
+      });
+    });
+  }
+
+  // 导入 CPC 文本 → { added, errs, autoFixText }；非 CPC 文本返回 null（调用方回退旧解析）
+  App.importCPC = function (text) {
+    if (!cpcLooksLike(text)) return null;
+    const res = { added: 0, skipped: 0, errs: [], autoFixText: null };
+    const norm = cpcNormalize(text);
+    const sec = cpcSplitSections(norm);
+    // 布局先行：超员等纯解析错误在动数据前报出（§4.2 报错 + 自动改正）
+    const plan = cpcPlanLayout(sec.layout, res);
+    if (res.errs.length) {
+      // 生成自动改正文本：超员行的 (n) 换成实际人数
+      let fixed = String(text);
+      plan.forEach((p) => {
+        if (p.autoSlots) fixed = fixed.replace(p.seg, p.seg.replace(/\((\d+)\)/, "(" + p.autoSlots + ")"));
+      });
+      res.autoFixText = fixed;
+      return res;
+    }
+    App.act(() => {
+      cpcApplyLayout(plan, res);
+      if (!res.errs.length) {
+        cpcApplyStyle(sec.style, res); // 样式先于连线：自建词先建好
+        cpcApplyFav(sec.fav, res);
+        cpcApplyLink(sec.link, res);
+        if (sec.title) App.state.title = App.clipName(sec.title, 18);
+        if (App.fitContent) App.fitContent();
+      }
+    });
     return res;
   };
 
@@ -301,9 +668,6 @@
 
   // ---------------- 成品图导出（E-1 组合版：画布+标题带+署名+图例） ----------------
   const BAND_FONT = "-apple-system,BlinkMacSystemFont,'PingFang SC','Microsoft YaHei',sans-serif";
-  const LEGEND_FONT = "11px " + BAND_FONT;
-  const LEGEND_ICON_FONT = "13px " + BAND_FONT;
-  const TOP_BAND = 78; // 顶部标题带逻辑高度（标题 44 + 署名 34 约）
 
   function roundRectPath(ctx, x, y, w, h, r) {
     const rr = Math.max(0, Math.min(r, w / 2, h / 2));
@@ -314,174 +678,6 @@
     ctx.arcTo(x, y + h, x, y, rr);
     ctx.arcTo(x, y, x + w, y, rr);
     ctx.closePath();
-  }
-
-  // 图例三段数据：bottom(实心圆) → top(白边色条) → arrow(化简为单项 ➡+名称)
-  function legendSegments(st) {
-    const segs = [];
-    const b = st.tables.bottom.filter((r) => r && r.name && !r.hidden);
-    if (b.length) segs.push({ items: b.map((r) => ({ kind: "dot", color: r.color, name: r.name })) });
-    const t = st.tables.top.filter((r) => r && r.name && !r.hidden);
-    if (t.length) segs.push({ items: t.map((r) => ({ kind: "bar", color: r.color, name: r.name })) });
-    const arrowName = (st.meta && st.meta.arrowName) ? String(st.meta.arrowName) : "情感指向";
-    if (arrowName) segs.push({ items: [{ kind: "arrow", type: "one", name: arrowName, icon: "➡" }] });
-    return segs;
-  }
-
-  function legendItemWidth(ctx, it) {
-    let sw;
-    if (it.kind === "arrow") {
-      ctx.font = LEGEND_ICON_FONT;
-      sw = ctx.measureText(it.icon).width;
-      ctx.font = LEGEND_FONT;
-    } else {
-      sw = 13;
-    }
-    const tw = ctx.measureText(it.name).width;
-    return sw + 4 + tw;
-  }
-
-  // 布局图例：段内项可换行；返回 blocks/w/h
-  function layoutLegend(ctx, segs, contentCap) {
-    const padX = 9, padY = 8, rowH = 16, itemGap = 10, segGap = 6;
-    const blocks = [];
-    let maxRowW = 0;
-    segs.forEach((seg) => {
-      const rows = [];
-      let cur = [], curW = 0;
-      seg.items.forEach((it) => {
-        const iw = legendItemWidth(ctx, it);
-        if (cur.length && curW + itemGap + iw > contentCap) {
-          rows.push(cur); cur = []; curW = 0;
-        }
-        curW = curW ? curW + itemGap + iw : iw;
-        cur.push(it);
-      });
-      if (cur.length) rows.push(cur);
-      rows.forEach((row) => {
-        let w = 0;
-        row.forEach((it, i) => { w += legendItemWidth(ctx, it) + (i ? itemGap : 0); });
-        if (w > maxRowW) maxRowW = w;
-      });
-      blocks.push({ rows });
-    });
-    let cardH = padY * 2;
-    blocks.forEach((blk, i) => {
-      if (i > 0) cardH += segGap;
-      cardH += blk.rows.length * rowH;
-    });
-    const cardW = Math.min(contentCap, maxRowW) + padX * 2;
-    return { blocks, w: cardW, h: cardH, rowH, itemGap, padX, padY, segGap };
-  }
-
-  function drawLegendItem(ctx, it, x, cy, textColor) {
-    if (it.kind === "dot") {
-      ctx.fillStyle = it.color;
-      ctx.beginPath();
-      ctx.arc(x + 6, cy, 5, 0, Math.PI * 2);
-      ctx.fill();
-      ctx.strokeStyle = "rgba(0,0,0,.16)";
-      ctx.lineWidth = 1;
-      ctx.stroke();
-    } else if (it.kind === "bar") {
-      // 白描边 + 内部细色条
-      ctx.fillStyle = "#ffffff";
-      roundRectPath(ctx, x + 0.5, cy - 4, 13, 8, 3.5);
-      ctx.fill();
-      ctx.fillStyle = it.color;
-      roundRectPath(ctx, x + 2, cy - 2, 10, 4, 2);
-      ctx.fill();
-    }
-    ctx.textAlign = "left";
-    ctx.textBaseline = "middle";
-    let xName;
-    if (it.kind === "arrow") {
-      ctx.font = LEGEND_ICON_FONT;
-      ctx.fillStyle = textColor;
-      const iconW = ctx.measureText(it.icon).width;
-      ctx.fillText(it.icon, x, cy + 0.5);
-      xName = x + iconW + 4;
-    } else {
-      xName = x + 17;
-    }
-    ctx.font = LEGEND_FONT;
-    ctx.fillStyle = textColor;
-    ctx.fillText(it.name, xName, cy);
-  }
-
-  function drawLegend(ctx, corner, layout, textColor, cardBacking, cardBorder) {
-    const x = corner.x, y = corner.y;
-    roundRectPath(ctx, x, y, layout.w, layout.h, 10);
-    ctx.fillStyle = cardBacking;
-    ctx.fill();
-    ctx.lineWidth = 1;
-    ctx.strokeStyle = cardBorder;
-    ctx.stroke();
-    ctx.save();
-    roundRectPath(ctx, x, y, layout.w, layout.h, 10);
-    ctx.clip();
-    let cy = y + layout.padY + layout.rowH / 2;
-    layout.blocks.forEach((blk, bi) => {
-      if (bi > 0) cy += layout.segGap;
-      blk.rows.forEach((row) => {
-        let cx = x + layout.padX;
-        row.forEach((it) => {
-          const iw = legendItemWidth(ctx, it);
-          drawLegendItem(ctx, it, cx, cy, textColor);
-          cx += iw + layout.itemGap;
-        });
-        cy += layout.rowH;
-      });
-    });
-    ctx.restore();
-  }
-
-  // 用于图例避让的内容采样点（最终画布逻辑坐标）
-  function contentPoints(st, x0, y0, topBand) {
-    const pts = [];
-    st.chars.forEach((c) => {
-      const px = c.x - x0;
-      const py = topBand + c.y - y0;
-      pts.push({ x: px, y: py });
-      if (st.ui.showNames) pts.push({ x: px, y: py + App.nodeR() + 18 });
-    });
-    st.rings.forEach((r) => {
-      const rad = Number(r.rad) || 150;
-      for (let i = 0; i < 24; i++) {
-        const a = (i / 24) * Math.PI * 2;
-        pts.push({ x: rad * Math.cos(a) - x0, y: topBand + rad * Math.sin(a) - y0 });
-      }
-    });
-    return pts;
-  }
-
-  function pickLegendCorner(W, chLog, topBand, layout, pts) {
-    const m = 12;
-    const xL = m, xR = Math.max(m, W - m - layout.w);
-    const yB = topBand + chLog - m - layout.h;
-    const yT = topBand + m;
-    const corners = [
-      { name: "bl", x: xL, y: yB },
-      { name: "br", x: xR, y: yB },
-      { name: "tl", x: xL, y: yT },
-      { name: "tr", x: xR, y: yT },
-    ];
-    const scoreOf = (rect) => {
-      const ex = rect.x - 6, ey = rect.y - 6, ew = rect.w + 12, eh = rect.h + 12;
-      let n = 0;
-      for (let i = 0; i < pts.length; i++) {
-        const p = pts[i];
-        if (p.x >= ex && p.x <= ex + ew && p.y >= ey && p.y <= ey + eh) n++;
-      }
-      return n;
-    };
-    let best = null;
-    for (let i = 0; i < corners.length; i++) {
-      const sc = scoreOf({ x: corners[i].x, y: corners[i].y, w: layout.w, h: layout.h });
-      if (sc === 0) return corners[i];
-      if (!best || sc < best.score) best = { corner: corners[i], score: sc };
-    }
-    return best ? best.corner : corners[0];
   }
 
   // 居中标题/署名 + 半透明底衬（随背景反色）
@@ -497,6 +693,63 @@
     ctx.textBaseline = "middle";
     ctx.fillStyle = fg;
     ctx.fillText(text, cx, cy);
+  }
+
+  // 导出图例（标题下方居中、三行：箭头方向 / 粗线(喜好) / 细线(关系)）
+  function legendRows(st) {
+    const rows = [];
+    const arrowName = (st.meta && st.meta.arrowName) ? String(st.meta.arrowName) : "情感指向";
+    if (arrowName) rows.push([{ kind: "arrow", icon: "➡", name: arrowName }]);
+    const b = st.tables.bottom.filter((r) => r && r.name && !r.hidden);
+    if (b.length) rows.push(b.map((r) => ({ kind: "dot", color: r.color, name: r.name })));
+    const t = st.tables.top.filter((r) => r && r.name && !r.hidden);
+    if (t.length) rows.push(t.map((r) => ({ kind: "bar", color: r.color, name: r.name })));
+    return rows;
+  }
+  function legItemW(ctx, it, font) {
+    let sw;
+    if (it.kind === "arrow") { ctx.font = Math.round(font * 1.15) + "px " + BAND_FONT; sw = ctx.measureText(it.icon).width; }
+    else if (it.kind === "dot") sw = font * 0.84 + 4;
+    else sw = font * 1.15 + 4;
+    ctx.font = font + "px " + BAND_FONT;
+    return sw + ctx.measureText(it.name).width;
+  }
+  function measureLegend(st, ctx, font) {
+    const rows = legendRows(st);
+    const gap = Math.max(6, Math.round(font * 0.5));
+    const rowH = Math.round(font * 1.5);
+    const widths = rows.map((row) => {
+      let w = 0;
+      row.forEach((it, i) => { w += (i ? gap : 0) + legItemW(ctx, it, font); });
+      return w;
+    });
+    return { rows, gap, rowH, widths, totalH: rows.length * rowH };
+  }
+  function drawLegendItemScaled(ctx, it, x, cy, font, textColor) {
+    ctx.textBaseline = "middle"; ctx.textAlign = "left";
+    if (it.kind === "dot") {
+      const r = font * 0.42;
+      ctx.fillStyle = it.color;
+      ctx.beginPath(); ctx.arc(x + r, cy, r, 0, Math.PI * 2); ctx.fill();
+      ctx.strokeStyle = "rgba(0,0,0,.16)"; ctx.lineWidth = Math.max(0.6, font * 0.08); ctx.stroke();
+      x += r * 2 + 4;
+    } else if (it.kind === "bar") {
+      const bw = font * 1.15, bh = font * 0.7, r = bh * 0.4;
+      ctx.fillStyle = "#ffffff";
+      roundRectPath(ctx, x, cy - bh / 2, bw, bh, r); ctx.fill();
+      ctx.fillStyle = it.color;
+      roundRectPath(ctx, x + bw * 0.15, cy - bh * 0.3, bw * 0.7, bh * 0.6, r * 0.6); ctx.fill();
+      x += bw + 4;
+    } else {
+      ctx.font = Math.round(font * 1.15) + "px " + BAND_FONT;
+      ctx.fillStyle = textColor;
+      const iw = ctx.measureText(it.icon).width;
+      ctx.fillText(it.icon, x, cy + 0.5);
+      x += iw + 4;
+      ctx.font = font + "px " + BAND_FONT;
+    }
+    ctx.fillStyle = textColor;
+    ctx.fillText(it.name, x, cy);
   }
 
   App.exportPNG = function (scale) {
@@ -520,6 +773,18 @@
         if (!isFinite(minX)) { reject(new Error("没有可导出的内容")); return; }
         const x0 = minX - pad, y0 = minY - pad;
         const w = maxX - minX + pad * 2, h = maxY - minY + pad * 2;
+
+        // 标题/副标题/图例 比例字号 + 顶部带高（随画布宽 W 缩放，不同导出比例更和谐）
+        const titleFont = Math.max(15, Math.round(w * 0.045));
+        const subFont = Math.max(10, Math.round(w * 0.024));
+        const legFont = Math.max(9, Math.round(w * 0.02));
+        const titleY = Math.round(titleFont * 0.95);
+        const subY = titleY + Math.round(titleFont * 0.75) + Math.round(subFont * 0.55);
+        const legendGap = Math.round(subFont * 0.8);
+        const legTop = subY + Math.round(subFont * 0.7) + legendGap;
+        const _mctx = document.createElement("canvas").getContext("2d");
+        const _leg = measureLegend(st, _mctx, legFont);
+        const topBand = legTop + (_leg.rows.length ? _leg.totalH : 0) + Math.round(legFont * 0.6) + 6;
 
         // ① SVG → chart 层（含 pad，逻辑尺寸 w×h，像素按 scale s）
         const clone = svgEl.cloneNode(true);
@@ -569,7 +834,7 @@
           cctx.fillRect(0, 0, chartCanvas.width, chartCanvas.height);
           cctx.drawImage(img, 0, 0, chartCanvas.width, chartCanvas.height);
           // ② 组合到最终画布
-          const W = w, H = h + TOP_BAND;
+          const W = w, H = h + topBand;
           const cv = document.createElement("canvas");
           cv.width = Math.round(W * s);
           cv.height = Math.round(H * s);
@@ -578,7 +843,7 @@
           const dispBg = App.displayBg(); // 夜间模式下导出图跟随当前模式（深色）
           ctx.fillStyle = dispBg;
           ctx.fillRect(0, 0, W, H);
-          ctx.drawImage(chartCanvas, 0, TOP_BAND, w, h);
+          ctx.drawImage(chartCanvas, 0, topBand, w, h);
 
           const fg = App.readableTextColor(dispBg);
           const backing = fg === "#ffffff" ? "rgba(0,0,0,.35)" : "rgba(255,255,255,.6)";
@@ -587,20 +852,20 @@
           const subtitle = filler
             ? "填表：" + filler + "　制表：小红书小工具@CP-Chart"
             : "制表：小红书小工具@CP-Chart";
-          drawCaption(ctx, title, W / 2, 27, 22, "600 ", fg, backing);
-          drawCaption(ctx, subtitle, W / 2, 61, 12, "400 ", fg, backing);
+          drawCaption(ctx, title, W / 2, titleY, titleFont, "600 ", fg, backing);
+          drawCaption(ctx, subtitle, W / 2, subY, subFont, "400 ", fg, backing);
 
-          // ③ 图例卡：避让采样后放空白角
-          const segs = legendSegments(st);
-          if (segs.length) {
-            ctx.font = LEGEND_FONT;
-            const contentCap = Math.max(80, Math.min(W - 36, Math.floor(W * 0.62)));
-            const layout = layoutLegend(ctx, segs, contentCap);
-            const pts = contentPoints(st, x0, y0, TOP_BAND);
-            const corner = pickLegendCorner(W, h, TOP_BAND, layout, pts);
-            const cardBacking = fg === "#ffffff" ? "rgba(0,0,0,.42)" : "rgba(255,255,255,.8)";
-            const cardBorder = fg === "#ffffff" ? "rgba(255,255,255,.28)" : "rgba(0,0,0,.12)";
-            drawLegend(ctx, corner, layout, fg, cardBacking, cardBorder);
+          // ③ 图例：副标题下方居中、三行（箭头方向 / 粗线喜好 / 细线关系）
+          if (_leg.rows.length) {
+            let ly = legTop + _leg.rowH / 2;
+            _leg.rows.forEach((row, ri) => {
+              let lx = (W - _leg.widths[ri]) / 2;
+              row.forEach((it, i) => {
+                drawLegendItemScaled(ctx, it, lx, ly, legFont, fg);
+                lx += (i ? _leg.gap : 0) + legItemW(ctx, it, legFont);
+              });
+              ly += _leg.rowH;
+            });
           }
           resolve(cv.toDataURL("image/png"));
         };

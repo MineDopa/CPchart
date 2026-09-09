@@ -33,7 +33,7 @@
     len: 18,        // 三角长（尖到底边）
     halfWid: 11,    // 三角底边半宽
     tipPad: 4,      // 尖与角色圆边的间距
-    gap: 9,         // 线与箭头底边之间的留白（真箭头断开感）
+    gap: 2,         // 线与箭头底边之间的微小留白（真箭头呼吸感，不断开）
     topScale: 0.75, // 顶层细线箭头缩放
   };
   App.ARROW = ARROW;
@@ -112,7 +112,7 @@
       html += `<line class="ln ln-top${pend}" data-link="${k.id}" x1="${L.x1}" y1="${L.y1}" x2="${L.x2}" y2="${L.y2}"
         stroke="${th.linkEdge}" stroke-width="6.5" stroke-linecap="round" opacity="0.95"></line>`;
       html += `<line class="ln ln-top-c${pend}" data-link="${k.id}" x1="${L.x1}" y1="${L.y1}" x2="${L.x2}" y2="${L.y2}"
-        stroke="${col}" stroke-width="2.2" stroke-linecap="round"></line>`;
+        stroke="${col}" stroke-width="${(st.ui && st.ui.thinW) ? st.ui.thinW : 2.2}" stroke-linecap="round" stroke-dasharray="${(st.ui && st.ui.thinDash) ? "6 5" : "none"}"></line>`;
       html += buildArrowsLine(a, b, col, k.arrow, App.nodeR(), { scale: ARROW.topScale });
     });
 

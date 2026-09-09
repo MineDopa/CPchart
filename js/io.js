@@ -182,7 +182,7 @@
 
   // 解析连线文本：返回 { added:Number, errs:[String] }（未知人名只报错，不新建角色）
   App.importLinkText = function (text) {
-    const res = { added: 0, errs: [] };
+    const res = { added: 0, skipped: 0, errs: [] };
     const raw = String(text || "").replace(/\r/g, "");
     const items = raw.split(/[；;\n]+/).map((x) => x.trim()).filter(Boolean);
     const center = centerChar();
@@ -223,7 +223,7 @@
         });
         return;
       }
-      if (it) res.errs.push("看不懂：" + it);
+      if (it) res.errs.push("存在无法识别的格式：“" + it + "”。可能原因：连线行需含 — 或 - 或 →；喜好度需用半角冒号「:」而非全角「：」");
     });
     if (!pending.length) return res;
     // 未知图例名：自动新增（底层优先），并提示
@@ -238,7 +238,7 @@
     });
     pending.forEach((p) => {
       if (p.type === "fav") {
-        if (!center) { res.errs.push("没有圆心，无法记喜好度"); return; }
+        if (!center) { res.skipped++; return; } // 无圆心时静默跳过（喜好度需要基准点；不报错不强制设圆心）
         const bkey = lgKeyOfName("bottom", p.bottomName);
         if (!bkey) return;
         const other = p.char.id === center.id ? null : p.char;

@@ -59,7 +59,7 @@
         top: DEFAULT_TOP.map((x) => ({ ...x })),
         arrow: DEFAULT_ARROW.map((x) => ({ ...x })),
       },
-      ui: { avatarMode: "both", showNames: true, slotMode: false, nodeR: NODE_R, night: false, charMode: false, paintMode: "link" },
+      ui: { avatarMode: "both", showNames: true, slotMode: false, nodeR: NODE_R, night: false, charMode: false, paintMode: "link", thinW: 2.2, thinDash: false },
       meta: { filler: "", arrowName: "情感指向" }, // arrowName=箭头含义（图例/导出显示，可改）
     };
   }
@@ -517,16 +517,24 @@
     computeLayout();
   };
 
-  // 填表人（导出图/发布署名用）
+  // 填表人（导出图/发布署名用）；上限 12 字，与改名弹窗 maxlength 一致
   App.getFiller = function () {
-    return (App.state.meta && App.state.meta.filler) || "";
+    return Array.from(String((App.state.meta && App.state.meta.filler) || "")).slice(0, 12).join("");
   };
 
-  // 顶栏合成标题：「填表人 的 图名」；无填表人时仅显示图名
+  // 顶栏合成标题：「填表人 的 图名」；无填表人时仅显示图名（title/filler 各自截断，防超长）
   App.getTitleText = function () {
-    const t = String((App.state && App.state.title) || "未命名关系图");
+    const t = Array.from(String((App.state && App.state.title) || "未命名关系图")).slice(0, 18).join("");
     const f = App.getFiller();
     return f ? f + " 的 " + t : t;
+  };
+  // 顶栏标题写入（只更新标题文本 span，保留 ✏️ 图标；titleBox 现为 <button>）
+  App.setTitleText = function () {
+    const tb = document.getElementById("titleBox");
+    if (!tb) return;
+    const span = tb.querySelector(".tb-txt");
+    if (span) span.textContent = App.getTitleText();
+    else tb.textContent = App.getTitleText(); // 兜底：若结构非预期则整体替换
   };
 
   // ------- 历史（撤销/重做）-------

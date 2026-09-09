@@ -35,7 +35,7 @@
     save:   '<svg class="ic-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 3h12l4 4v14H5z"/><path d="M8 3v6h7V3M8 21v-6h7v6"/></svg>',
     hide:   '<svg class="ic-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5"/></svg>',
     brush:  '<svg class="ic-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.5 4.5l5 5-7 7-5-5z"/><path d="M9.5 9.5L4 21"/></svg>',
-    pen:    '<svg class="ic-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 19l3-1L20 6l-2-2L6 16z"/></svg>',
+    pen:    '<svg class="ic-svg" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M30.9995 8.99902L38.9995 16.999" stroke="currentColor" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/><path d="M7.99953 31.999L35.9994 4L43.9995 11.999L15.9995 39.999L5.99951 41.999L7.99953 31.999Z" stroke="currentColor" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/><path d="M30.9995 8.99902L38.9995 16.999" stroke="currentColor" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/><path d="M8.99951 31.999L15.9995 38.999" stroke="currentColor" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/><path d="M12.9995 34.999L34.9995 12.999" stroke="currentColor" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/></svg>',
     style:  '<svg class="ic-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3a9 9 0 1 0 0 18c1.5 0 2-1 2-2 0-1.2-1-1.5-1-2.5s1-1.5 2-1.5h1a4 4 0 0 0 4-4c0-4.4-4-6-7-6z"/><circle cx="7.5" cy="11" r="1"/><circle cx="12" cy="7.5" r="1"/><circle cx="16" cy="10.5" r="1"/></svg>',
     hand:   '<svg class="ic-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M7 11V6a1.5 1.5 0 0 1 3 0v4M10 10V5a1.5 1.5 0 0 1 3 0v5M13 10V6a1.5 1.5 0 0 1 3 0v5M16 9a1.5 1.5 0 0 1 3 0v5a6 6 0 0 1-6 6h-1a6 6 0 0 1-5-2.6L4 16a1.5 1.5 0 0 1 2.5-1.6L7 15"/></svg>',
     globe:  '<svg class="ic-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3c3 3.5 3 14.5 0 18M12 3c-3 3.5-3 14.5 0 18"/></svg>',
@@ -44,6 +44,11 @@
     dlIn:   '<svg class="ic-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12M7 10l5 5 5-5"/><path d="M4 19h16"/></svg>',
     dlOut:  '<svg class="ic-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 21V9M7 14l5-5 5 5"/><path d="M4 5h16"/></svg>',
     pkg:    '<svg class="ic-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 8l9-5 9 5v8l-9 5-9-5z"/><path d="M3 8l9 5 9-5M12 13v8"/></svg>',
+    plus:   '<svg class="ic-svg" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M24.0605 10L24.0239 38" stroke="currentColor" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/><path d="M10 24L38 24" stroke="currentColor" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/></svg>',
+    arrowR: '<svg class="ic-svg" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M38 33C38 25.7011 33.897 19.4168 28 16.5919C25.8653 15.5693 23.4954 15 21 15C11.6112 15 4 23.0589 4 33" stroke="currentColor" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/><path d="M30 28L38 33L44 25" stroke="currentColor" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/></svg>',
+    ringB:  '<svg class="ic-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="4"><circle cx="12" cy="12" r="7"/></svg>',
+    ringT:  '<svg class="ic-svg" viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="12" r="6.5"/></svg>',
+    swap:   '<svg class="ic-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 8h13M14 4l4 4-4 4M20 16H7M10 20l-4-4 4-4"/></svg>',
   };
 
   const $ = App.byId;
@@ -170,12 +175,19 @@
         <button class="chip ${!night ? "on" : ""}" data-cmd="ui-night" data-val="day">${ICONS.sun} 日间</button>
         <button class="chip ${night ? "on" : ""}" data-cmd="ui-night" data-val="night">${ICONS.moon} 夜间</button>
       </div>
-      <div class="pg-t">◯ 底层色（喜好等级 · 粗线）<button class="mini" data-cmd="tbl-add" data-layer="bottom">＋添加</button></div>
+      <div class="pg-t"><span class="pg-t-l">${ICONS.ringB} 底层色（喜好等级 · 粗线）</span><button class="mini" data-cmd="tbl-add" data-layer="bottom" aria-label="添加底层色">${ICONS.plus}</button></div>
       <div>${tableRows("bottom", false)}</div>
-      <div class="pg-t">● 顶层色（关系类型 · 细线+白描边）<button class="mini" data-cmd="tbl-add" data-layer="top">＋添加</button></div>
+      <div class="pg-t"><span class="pg-t-l">${ICONS.ringT} 顶层色（关系类型 · 细线+白描边）</span><button class="mini" data-cmd="tbl-add" data-layer="top" aria-label="添加顶层色">${ICONS.plus}</button></div>
       <div>${tableRows("top", false)}</div>
-      <div class="pg-t">➡ 箭头含义</div>
-      <div class="trow"><span class="lg-ic" style="font-style:normal;padding:0 2px">➡</span>
+      <div class="pg-t">细线描边样式</div>
+      <div class="ctrl-row">粗细
+        <input type="range" data-set="thinW" min="1" max="6" step="0.2" value="${App.state.ui.thinW || 2.2}" style="flex:1">
+        <span class="thinW-val" style="width:44px;text-align:right">${(App.state.ui.thinW || 2.2)}</span>
+      </div>
+      <div class="ctrl-row"><span class="sw-row"><span class="sw-txt">虚线</span><span class="swbox ${App.state.ui.thinDash ? "on" : ""}" data-cmd="thin-dash" role="switch" aria-checked="${App.state.ui.thinDash}" aria-label="细线虚线描边"><i></i></span></span>
+        <span style="color:var(--sub);font-size:11px">细线（顶层关系线）的线宽与实线/虚线</span></div>
+      <div class="pg-t">${ICONS.arrowR} 箭头含义</div>
+      <div class="trow"><span class="lg-ic">${ICONS.arrowR}</span>
         <span class="tname"><input type="text" data-set="arrowName" value="${App.esc(arrowName)}" placeholder="情感指向"></span>
       </div>
       <div class="hint">箭头在图例/导出图里的标注名（如：情感指向、单恋、攻受…）。箭头类型固定为 无箭头/单箭头/双箭头，在「连线」面板选择。</div>
@@ -220,7 +232,7 @@
         <span>显示名字：</span>
         <button class="chip ${st.ui.showNames ? "on" : ""}" data-cmd="pm-names">${st.ui.showNames ? "开" : "关"}</button>
       </div>
-      <div class="pg-t">角色列表（${st.chars.length}）· 点📷行上传头像</div>
+      <div class="pg-t"><span class="pg-t-l">角色列表（${st.chars.length}）</span><span class="pg-t-r">点击行内 📷 上传头像</span></div>
       ${rows || '<div class="hint">暂无角色，点上方「批量编辑名单」按圈录入</div>'}
     </div>`;
   }
@@ -282,10 +294,10 @@
         </div>
       </div>
       <div class="ctrl-row">
-        <button class="btn" data-cmd="lnk-batch" title="用文字批量编辑喜好度与连线">批量编辑连线</button>
-        <button class="btn" data-cmd="lnk-clear">${ICONS.del} 清空全部连线</button>
+        <button class="btn" data-cmd="lnk-batch" title="用文字批量编辑喜好度与连线">${ICONS.pen} 批量编辑连线</button>
+        <button class="btn danger" data-cmd="lnk-clear" title="删除画板上全部连线">${ICONS.del} 清空全部连线</button>
       </div>
-      <div class="pg-t">🕘 连线记录${App.selCharId ? "（已按人物筛选）" : "（点画布人物可筛选）"}</div>
+      <div class="pg-t"><span class="pg-t-l"><svg class="ic-svg" viewBox="0 0 48 48" fill="none" aria-hidden="true"><path d="M5.81836 6.72729V14H13.0911" stroke="currentColor" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/><path d="M4 24C4 35.0457 12.9543 44 24 44V44C35.0457 44 44 35.0457 44 24C44 12.9543 35.0457 4 24 4C16.598 4 10.1351 8.02111 6.67677 13.9981" stroke="currentColor" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/><path d="M24.005 12L24.0038 24.0088L32.4832 32.4882" stroke="currentColor" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/></svg>连线记录</span><span class="pg-t-r">${App.selCharId ? "已按人物筛选" : "点画布人物可筛选"}</span></div>
       ${recentLinks()}
     </div>`;
   }
@@ -315,7 +327,7 @@
       <div class="ctrl-row" style="flex-wrap:wrap">
         <button class="btn primary" data-cmd="ly-even">⏸ 平均排布</button>
         <button class="btn" data-cmd="ly-addring">⊕ 添加轨道</button>
-        <button class="chip ${st.ui.slotMode ? "on" : ""}" data-cmd="ly-slots">槽位 ${st.ui.slotMode ? "开" : "关"}</button>
+        <span class="sw-row"><span class="sw-txt">槽位</span><span class="swbox ${st.ui.slotMode ? "on" : ""}" data-cmd="ly-slots" role="switch" aria-checked="${st.ui.slotMode}" aria-label="槽位吸附"><i></i></span></span>
       </div>
       <div class="hint">拖拽角色=换圈/沿圈移动；<b>槽位关</b>时可停在轨道任意角度（间距可以不规则，不会自动均分）；<b>槽位开</b>时自动吸附到就近空槽，多余空槽显示成虚线占位圈。想恢复整齐再点「平均排布」。拖动圈顶蓝点=改半径；点角色出现操作条。</div>
       <div class="pg-t">角色圆圈</div>
@@ -332,13 +344,13 @@
   function panelHand() {
     const z = Math.round(App.view.s * 100);
     return `<div class="pg">
-      <div class="ctrl-row" style="justify-content:space-between">
-        <button class="btn" data-cmd="hd-hide">${ICONS.hide} ${App.fullUI ? "退出全屏" : "隐藏UI全屏"}</button>
-        <button class="btn primary" data-cmd="hd-save">${ICONS.save} 保存图片</button>
-      </div>
-      <div class="ctrl-row">缩放
-        <input type="range" id="zoomRange" min="30" max="260" value="${z}" style="flex:1">
-        <span id="zoomVal" style="width:44px;text-align:right">${z}%</span>
+      <div class="ctrl-row hand-row">
+        <button class="btn icon-only" data-cmd="hd-hide" title="${App.fullUI ? "退出全屏" : "隐藏UI全屏"}">${ICONS.hide}</button>
+        <div class="zoom-wrap"><span class="zoom-lab">缩放</span>
+          <input type="range" id="zoomRange" min="30" max="260" value="${z}" style="flex:1">
+          <span id="zoomVal" style="width:44px;text-align:right">${z}%</span>
+        </div>
+        <button class="btn primary icon-only" data-cmd="hd-save" title="保存图片">${ICONS.save}</button>
       </div>
       <div class="hint">抓手模式下点人物不触发操作，仅移动视口 / 双指缩放，方便定位后截图。</div>
     </div>`;
@@ -392,15 +404,14 @@
     if (night) document.body.style.removeProperty("--bg"); // 防 inline 覆盖夜间变量
     else document.body.style.setProperty("--bg", App.state.bg || "#ffffff");
   };
-  // 改名弹窗（原顶栏标题点击 → 现经菜单「改图名 / 填表人」进入）
+  // 改名弹窗（顶栏标题点击 → 改名）
   App.openTitleModal = function (onSaved) {
     App._titleOkCb = onSaved || null;
     App.openModal(`${modalHead("修改图名 / 填表人")}
-      <div class="hint">图名用于导出图与发布笔记；填表人会写入导出图署名。设置后顶栏显示为：填表人 的 图名。</div>
       <div style="font-size:12px;color:var(--sub);margin:2px 0 4px">图名</div>
-      <input type="text" id="promptTitle" class="inp" style="width:100%" value="${App.esc(App.state.title)}">
+      <input type="text" id="promptTitle" class="inp" style="width:100%" maxlength="18" value="${App.esc(App.state.title)}">
       <div style="font-size:12px;color:var(--sub);margin:12px 0 4px">填表人（可选）</div>
-      <input type="text" id="promptFiller" class="inp" style="width:100%" value="${App.esc(App.getFiller())}" placeholder="未填写则不显示“填表：”">
+      <input type="text" id="promptFiller" class="inp" style="width:100%" maxlength="12" value="${App.esc(App.getFiller())}" placeholder="未填写则不显示“填表：”">
       <div class="modal-btns"><button class="btn" data-cmd="m-close">取消</button>
       <button class="btn primary" data-cmd="title-ok">确定</button></div>`);
     modalCloseCb = null;
@@ -467,15 +478,10 @@
       const h = rows.map((r) => `<span class="chip ${r.key === cur ? "on" : ""}" data-cmd="${cmd}" data-id="${k0.id}" data-val="${r.key}"><span class="sw" style="background:${r.color}"></span>${App.esc(r.name)}</span>`).join("");
       return `<div class="chips">${h}<span class="chip ${cur ? "" : "on"}" data-cmd="${cmd}" data-id="${k0.id}" data-val="">无</span></div>`;
     };
-    // 方向：开关表示「箭头是否朝反方向」；无箭头时不分方向
-    const dirHtml = arrow === "none"
-      ? '<div class="hint">没有箭头，不分方向</div>'
-      : `<div class="ln-row"><span class="ln-lab">方向</span><span class="ln-dir">${App.esc(nm(main.src))} → ${App.esc(nm(main.dst))}</span>
-         <span class="swbox ${main.src !== k0.src ? "on" : ""}" data-cmd="link-edit-flip" data-id="${k0.id}" role="switch" aria-label="翻转方向"><i></i></span></div>`;
     const html = `<div class="mh">编辑连线 · ${App.esc(nm(k0.src))} ↔ ${App.esc(nm(k0.dst))}<span class="x" data-cmd="m-close">${ICONS.close}</span></div>
       <div class="ln-ends">
         <select class="inp" data-cmd="link-edit-end" data-end="src" data-id="${k0.id}" aria-label="这一端是谁">${opts(k0.src)}</select>
-        <span class="ln-mid">↔</span>
+        <button class="ln-swap" data-cmd="link-edit-flip" data-id="${k0.id}" aria-label="交换两端" title="交换两端">${ICONS.swap}</button>
         <select class="inp" data-cmd="link-edit-end" data-end="dst" data-id="${k0.id}" aria-label="另一端是谁">${opts(k0.dst)}</select>
       </div>
       <div class="pg-t">粗线（喜好度）</div>
@@ -488,7 +494,6 @@
         <span class="chip ${arrow === "one" ? "on" : ""}" data-cmd="link-edit-type" data-id="${k0.id}" data-val="one">单箭头</span>
         <span class="chip ${arrow === "both" ? "on" : ""}" data-cmd="link-edit-type" data-id="${k0.id}" data-val="both">双箭头</span>
       </div>
-      ${dirHtml}
       <div class="modal-btns">
         <button class="btn danger" data-cmd="link-edit-del" data-id="${k0.id}">删除此连线</button>
         <button class="btn primary" data-cmd="m-close">完成</button>
@@ -646,7 +651,8 @@
     }).join("");
   }
 
-  // 关于页（P12 · 全屏信息卡）：版本号跟随当前上线包 = v0.13.0；纯本地静态内容，无外链与第三方地址
+  // 关于页（P12 · 全屏信息卡）：版本号跟随当前上线包 = v0.13.0；容器版纯本地静态内容、无外链；
+  // 网页分流版会在末尾追加开源仓库入口（App.renderAboutExtra；容器版不加载该覆盖层 → 钩子返回空）
   App.aboutModal = function () {
     App.openModal(`<div class="about-page">
         <div class="about-logo"><svg width="64" height="64" viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -680,6 +686,8 @@
           <li>小红书小工具@CP-Chart</li>
           <li>基于 vibecoding 构建</li>
         </ul>
+
+        ${App.renderAboutExtra ? App.renderAboutExtra() : ""}
 
         <div class="about-btn"><button class="btn primary" data-cmd="m-close">知道了</button></div>
       </div>`, true);
@@ -804,7 +812,9 @@
     // 顶栏帮助钮（常态槽位；面板全开时 CSS 切换为返回画板，见 app.css .top-slot-btn）
     const helpBtn = $("btnHelp");
     if (helpBtn) helpBtn.addEventListener("click", () => App.helpModal());
-    // 顶部只读标题不再可点；改名入口在二级菜单「改图名 / 填表人」
+    // 顶栏标题可点：点击「图名 / 填表人 的 图名」弹改名窗（标题区非容器两角，点击合规）
+    const titleBox = $("titleBox");
+    if (titleBox) titleBox.addEventListener("click", () => App.openTitleModal());
     // 径向主菜单（撤销/重做/导入/保存/关于，围绕 + 号绽开）
     const btnMenuEl = $("btnMenu");
     if (btnMenuEl) btnMenuEl.addEventListener("click", toggleRadial);
@@ -841,8 +851,9 @@
         const f1 = ($("promptFiller") || {}).value;
         App.closeModal();
         App.act(() => {
-          App.state.title = String(t1 == null ? "" : t1).trim() || "未命名关系图";
-          App.state.meta.filler = String(f1 == null ? "" : f1).trim();
+          // 标题上限 18 字、填表人 12 字（与弹窗 maxlength 一致，兜底存量超限数据）
+          App.state.title = Array.from(String(t1 == null ? "" : t1).trim()).slice(0, 18).join("") || "未命名关系图";
+          App.state.meta.filler = Array.from(String(f1 == null ? "" : f1).trim()).slice(0, 12).join("");
         });
         const cb = App._titleOkCb; App._titleOkCb = null; if (cb) cb();
         return;
@@ -962,6 +973,46 @@
     // 面板 input/change（颜色、名称、半径等）
     panel.addEventListener("input", (e) => onInput(e));
     panel.addEventListener("change", (e) => onInput(e));
+    // 可拖动输入（scrubber）：在数值输入框上按住左右拖动即可调数（半径/槽位等）
+    document.addEventListener("pointerdown", function (e) {
+      const el = e.target.closest && e.target.closest('input.inp[type=number][data-set]');
+      if (!el || e.button !== 0) return;
+      const startX = e.clientX;
+      const startVal = parseFloat(el.value) || 0;
+      const min = el.min !== "" ? parseFloat(el.min) : -Infinity;
+      const max = el.max !== "" ? parseFloat(el.max) : Infinity;
+      const step = parseFloat(el.step) || 1;
+      let dragging = false;
+      const move = function (ev) {
+        const dx = ev.clientX - startX;
+        if (!dragging && Math.abs(dx) < 8) return;
+        if (!dragging) {
+          dragging = true;
+          try { el.setPointerCapture(ev.pointerId); } catch (_) {}
+          el.style.userSelect = "none";
+          el.style.cursor = "ew-resize";
+        }
+        let v = startVal + dx * step;
+        v = Math.max(min, Math.min(max, v));
+        v = Math.round(v / step) * step;
+        if (String(v) !== el.value) {
+          el.value = v;
+          el.dispatchEvent(new Event("input", { bubbles: true }));
+        }
+      };
+      const up = function (ev) {
+        document.removeEventListener("pointermove", move);
+        document.removeEventListener("pointerup", up);
+        if (dragging) {
+          el.style.userSelect = "";
+          el.style.cursor = "";
+          el.dispatchEvent(new Event("change", { bubbles: true }));
+          ev.preventDefault();
+        }
+      };
+      document.addEventListener("pointermove", move);
+      document.addEventListener("pointerup", up);
+    });
     // 焦点记录历史
     panel.addEventListener("focusin", (e) => {
       const el = e.target.closest("[data-row-edit]");
@@ -1045,6 +1096,11 @@
           App.act(() => { st.ui.night = want; });
           App.applyNight();
         }
+        break;
+      }
+      case "thin-dash": {
+        App.act(() => { st.ui.thinDash = !st.ui.thinDash; });
+        App.render(); App.notifyChanged();
         break;
       }
       case "tbl-add": {
@@ -1275,6 +1331,17 @@
       if (v > 20) { App.state.rings[ring - 1].rad = v; App.render(); }
       return;
     }
+    const thinWInp = t.closest('[data-set="thinW"]');
+    if (thinWInp) {
+      let v = parseFloat(t.value);
+      if (!v || v < 1) v = 1; if (v > 6) v = 6;
+      if (nodeRBefore == null) { App.commitHist(); }
+      App.state.ui.thinW = v;
+      const tv = document.querySelector(".thinW-val"); if (tv) tv.textContent = String(v);
+      App.render();
+      if (e.type === "change") { App.notifyChanged(); }
+      return;
+    }
     const slotInp = t.closest('[data-set="slots"]');
     if (slotInp) {
       const ring = parseInt(slotInp.getAttribute("data-ring"), 10);
@@ -1350,7 +1417,7 @@
       case "new": {
         App.confirm("新建将清空当前人物/连线/布局（三张表与背景保留）。", "新建", () => {
           App.newDoc();
-          $("titleBox").textContent = App.getTitleText();
+          App.setTitleText();
           App.toast("已新建");
           openImportNames(true);
         });
@@ -1581,7 +1648,7 @@
           if (obj && obj.type === "NRD") { App._importLegacy(obj); return; }
           App.deserialize(txt);
           App.notifyChanged();
-          $("titleBox").textContent = App.getTitleText();
+          App.setTitleText();
           if (App.fitContent) App.fitContent();
           App.toast("快照已导入（头像未包含，需重新设置头像）");
         } catch (err) { App.toast("导入失败：" + err.message, true); }
@@ -1614,7 +1681,7 @@
         if (k.top && tmap[k.top]) App.addLink(s.id, d.id, "top", tmap[k.top], k.oneway ? "one" : "none");
       });
     });
-    $("titleBox").textContent = App.state.title;
+    App.setTitleText();
     if (App.fitContent) App.fitContent();
     App.toast("旧版 NRD 已导入（多圆心部分被忽略）");
   };
@@ -1721,8 +1788,7 @@
   function refreshAll() {
     App.render();
     renderPanel();
-    const tb = $("titleBox");
-    tb.textContent = App.getTitleText();
+    App.setTitleText();
     const zl = $("zoomLabel");
     if (zl) zl.textContent = Math.round(App.view.s * 100) + "%";
     const rUndo = document.querySelector('#radialMenu [data-act="undo"]');
@@ -1745,27 +1811,40 @@
     if (hasDraft && !force) return; // 已有草稿直接继续
     const preset = App.PRESET_TEXT;
     App.openModal(modalHead("欢迎 · 人物关系连线图") +
-      '<div class="hint">先把角色名单粘进来就能开始。一圈写一行：<br><code>圆心: 名字</code><br><code>1: 甲，乙，丙</code><br>不想手敲也行，直接点下面的「载入示例」。</div>' +
-      '<textarea class="export-txt" id="welTxt">' + App.esc(preset) + '</textarea>' +
+      '<div class="hint">三步走完即可开工：一填图名（顶栏显示用），二填表人（导出署名，可留空），三粘角色名单（一行一圈：<code>圆心: 我</code>、<code>1: 甲，乙，丙</code>）。不想手敲直接点「载入示例」。</div>' +
+      '<div style="font-size:12px;color:var(--sub);margin:8px 0 4px">图名</div>' +
+      '<input type="text" id="welTitle" class="inp" style="width:100%" maxlength="18" placeholder="未命名关系图">' +
+      '<div style="font-size:12px;color:var(--sub);margin:12px 0 4px">填表人（可选）</div>' +
+      '<input type="text" id="welFiller" class="inp" style="width:100%" maxlength="12" placeholder="未填写则不显示“填表：”">' +
+      '<div style="font-size:12px;color:var(--sub);margin:12px 0 4px;display:flex;justify-content:space-between;align-items:center">' +
+        '<span>角色名单</span>' +
+        '<button class="mini" data-cmd="wel-load" title="把示例名单塞进上面文本框">载入示例</button>' +
+      '</div>' +
+      '<textarea class="export-txt" id="welTxt" style="min-height:120px" placeholder="圆心: 我&#10;1: 甲，乙，丙&#10;2: 丁，戊，己"></textarea>' +
       '<div class="modal-btns">' +
       '<button class="btn" data-cmd="m-close">跳过</button>' +
-      '<button class="btn" data-cmd="wel-load">载入示例</button>' +
-      '<button class="btn primary" data-cmd="wel-ok">导入名单</button>' +
+      '<button class="btn primary" data-cmd="wel-ok">开始编辑</button>' +
       '</div>');
     modalCloseCb = null;
     const box = $("modalBox");
     const loadBtn = box.querySelector('[data-cmd="wel-load"]');
     const okBtn = box.querySelector('[data-cmd="wel-ok"]');
     if (loadBtn) loadBtn.addEventListener("click", () => {
-      App.closeModal();
-      App.importNameList(App.PRESET_TEXT);
-      if (App.onChanged) App.onChanged();
-      App.switchTab("link");
+      const ta = $("welTxt"); if (ta) ta.value = App.PRESET_TEXT;
+      App.toast("已载入示例名单");
     });
     if (okBtn) okBtn.addEventListener("click", () => {
-      const val = ($("welTxt") || {}).value || "";
+      const t1 = ($("welTitle") || {}).value || "";
+      const f1 = ($("welFiller") || {}).value || "";
+      const txt = ($("welTxt") || {}).value || "";
       App.closeModal();
-      try { App.importNameList(val); } catch (err) { App.toast(err.message || "导入失败", true); }
+      App.act(() => {
+        // 图名/填表人：18/12 字截断，与改名弹窗共用规则
+        App.state.title = (t1 || "").trim().slice(0, 18) || "未命名关系图";
+        App.state.meta.filler = (f1 || "").trim().slice(0, 12);
+        App.setTitleText();
+      });
+      try { if (txt.trim()) App.importNameList(txt); } catch (err) { App.toast(err.message || "导入失败", true); }
       if (App.onChanged) App.onChanged();
       App.switchTab("link");
     });

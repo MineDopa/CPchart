@@ -156,7 +156,8 @@
         if (App.renderPanel) App.renderPanel();
         return;
       }
-      // 点空白处：静默忽略，不弹任何提示
+      // 点空白处：移动画布（与连线/布局模式空白拖动一致，不赋色）
+      beginPan(e);
       return;
     }
 

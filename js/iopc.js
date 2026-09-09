@@ -79,5 +79,14 @@
     tip("网页版暂不支持直接发布笔记：请先「导出图片」保存图片后，在小红书 App 里手动发布。");
     return Promise.resolve({ ok: false, reason: "web-environment" });
   };
+  // 关于页开源仓库引流（仅网页版；小红书容器包不加载本文件，故红线零残留）
+  App.renderAboutExtra = function () {
+    var url = "https://github.com/MineDopa/CPchart";
+    return '<div class="about-sec">🌟 开源仓库</div>'
+      + '<ul class="about-list">'
+      + '<li><a class="about-link" href="' + url + '" target="_blank" rel="noopener">GitHub：MineDopa/CPchart</a></li>'
+      + '<li>欢迎 Star / 提 Issue，一起把小工具做得更好</li>'
+      + '</ul>';
+  };
   window.__IOPC_ENV = true;
 })();

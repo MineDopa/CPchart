@@ -36,10 +36,15 @@ button:active{ opacity:.7; }
 #topbar{ display:flex; align-items:center; justify-content:center; position:relative;
   background:var(--bar); border-bottom:1px solid var(--line); flex:0 0 auto;
   padding-top:calc(2px + env(safe-area-inset-top)); }
-.tb-title{ flex:1; text-align:center; font-size:15px; font-weight:600; padding:5px 8px;
-  border-radius:8px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;
-  cursor:default; -webkit-user-select:none; user-select:none; }
-.tb-title:active{ background:transparent; }
+/* 顶栏标题 = 可点改名钮（星羽 09-09 定：标题区非两角可点，加 ✏️ 标识）
+   限宽 max-width 居中，避让左右两端 help/home 按钮点击热区；超长省略号截断 */
+.tb-title{ display:flex; align-items:center; gap:3px; max-width:min(58vw,16rem);
+  margin:0 auto; padding:4px 10px; border-radius:8px; border:none; background:transparent;
+  font:inherit; font-size:15px; font-weight:600; line-height:1.4;
+  color:var(--ink); cursor:pointer; -webkit-user-select:none; user-select:none; }
+.tb-title .tb-pen{ width:13px; height:13px; flex:0 0 auto; opacity:.55; color:var(--sub); }
+.tb-title .tb-txt{ overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.tb-title:active{ background:var(--accent-soft); }
 /* 顶栏左槽按钮（容器返回箭头右侧、星羽 09-08 标注定稿位）：
    常态 = 帮助(#btnHelp)；面板全开 = 返回画板(#homeBtn)，两钮同槽位按 body.panel-full 切换 */
 .top-slot-btn{ position:absolute; left:54px; top:50%; transform:translateY(-50%);
@@ -152,6 +157,8 @@ body.panel-full #btnHelp{ display:none; }
 .mini .ic-svg{ width:14px; height:14px; }
 .tab .ic-svg{ width:18px; height:18px; margin:0 auto 2px; display:block; }
 .pg-t .ic-svg{ width:14px; height:14px; vertical-align:-2px; margin-right:3px; }
+.lg-ic{ display:inline-flex; }
+.lg-ic .ic-svg{ width:16px; height:16px; vertical-align:-3px; }
 #opsRingSel{ font-size:13px; border:1px solid var(--line); border-radius:8px; padding:4px; background:var(--surf); }
 
 /* ---------- 面板三态把手（折叠/半开/全开）：药丸+箭头，单击循环、拖动跟手 ---------- */
@@ -188,7 +195,9 @@ body.panel-full #tabs{ display:none; }
 /* 拖动中临时设的 inline 高度最高优先级 */
 #panel.dragging{ max-height:none !important; }
 .pg{ margin-bottom:8px; }
-.pg-t{ font-size:11px; color:var(--sub); margin:8px 0 4px; display:flex; align-items:center; gap:6px; }
+.pg-t{ font-size:11px; color:var(--sub); margin:8px 0 4px; display:flex; align-items:center; gap:6px; justify-content:space-between; }
+.pg-t-l{ display:inline-flex; align-items:center; gap:4px; }
+.pg-t-r{ color:var(--sub); font-size:11px; }
 .chips{ display:flex; gap:6px; flex-wrap:wrap; }
 .chip{ display:inline-flex; align-items:center; gap:5px; padding:5px 8px; border-radius:999px;
   background:var(--surf); border:1px solid var(--line); font-size:12px; white-space:nowrap; }
@@ -221,6 +230,8 @@ body.panel-full #tabs{ display:none; }
   padding:6px 8px; background:var(--surf); color:var(--ink); font-family:inherit; }
 input[type=color]{ width:30px; height:30px; border:none; border-radius:8px; padding:0; background:none; }
 input[type=range]{ accent-color:var(--accent); }
+/* 可拖动调数的数值输入框（scrubber）：按住左右拖动即改值 */
+.inp[type=number][data-set]{ cursor:ew-resize; }
 
 /* 人物列表行 */
 .prow{ display:flex; align-items:center; gap:6px; padding:4px 0; border-bottom:1px solid var(--row-line); }
@@ -364,6 +375,8 @@ body.panel-full #panel{ flex:1 1 auto; max-height:none; border-top:none; }
 .about-list li{ font-size:13px; line-height:1.75; color:var(--ink-soft); }
 .about-list.credit li{ color:var(--ink); }
 .about-list .ellipsis{ color:var(--sub); }
+.about-link{ color:var(--accent); text-decoration:none; font-weight:600; }
+.about-link:hover{ text-decoration:underline; }
 .about-btn{ margin-top:16px; }
 .about-btn .btn{ min-width:120px; padding:9px 0; }
 
@@ -382,6 +395,9 @@ body.panel-full #panel{ flex:1 1 auto; max-height:none; border-top:none; }
 .ln-ends{ display:flex; align-items:center; gap:8px; margin:0 0 12px; }
 .ln-ends select.inp{ flex:1; min-height:38px; font-size:14px; }
 .ln-mid{ color:var(--sub); font-size:15px; }
+.ln-swap{ flex:0 0 auto; width:38px; height:38px; border:1px solid var(--line); border-radius:9px; background:var(--surf); color:var(--ink); display:flex; align-items:center; justify-content:center; cursor:pointer; padding:0; }
+.ln-swap:hover{ background:var(--accent-soft); }
+.ln-swap .ic-svg{ width:20px; height:20px; }
 .ln-row{ display:flex; align-items:center; gap:10px; padding:8px 0 2px; }
 .ln-lab{ font-size:13px; color:var(--sub); }
 .ln-dir{ flex:1; font-size:14px; }
@@ -391,6 +407,14 @@ body.panel-full #panel{ flex:1 1 auto; max-height:none; border-top:none; }
 .swbox i{ position:absolute; top:3px; left:3px; width:24px; height:24px; border-radius:50%;
   background:#fff; transition:.2s; }
 .swbox.on i{ left:23px; }
+.swbox{ cursor:pointer; }
+.sw-row{ display:inline-flex; align-items:center; gap:6px; }
+.sw-txt{ font-size:13px; color:var(--ink); }
+.hand-row{ justify-content:space-between; gap:10px; }
+.zoom-wrap{ flex:1; display:flex; align-items:center; gap:8px; min-width:0; }
+.zoom-lab{ font-size:13px; color:var(--sub); flex:0 0 auto; }
+.btn.icon-only{ width:40px; height:40px; padding:0; display:inline-flex; align-items:center; justify-content:center; }
+.btn.icon-only .ic-svg{ width:18px; height:18px; }
 
 /* ---------- 文字颜色显式继承兜底（修复夜间模式漏变白） ---------- */
 #legendChip .lg,
@@ -413,7 +437,7 @@ button.mini,
 .ln-row input,
 .ln-row select,
 .ln-mid,
-.modal-btns .btn,
+.modal-btns .btn:not(.primary),
 .sub-list .sub-item,
 .sub-title,
 .tab,

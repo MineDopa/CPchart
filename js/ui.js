@@ -170,7 +170,6 @@
         <button class="chip ${!night ? "on" : ""}" data-cmd="ui-night" data-val="day">${ICONS.sun} 日间</button>
         <button class="chip ${night ? "on" : ""}" data-cmd="ui-night" data-val="night">${ICONS.moon} 夜间</button>
       </div>
-      <div class="hint">夜间模式只改外壳（面板 / 菜单 / 按钮）配色，画板与导出图保持你设的背景色。</div>
       <div class="pg-t">◯ 底层色（喜好等级 · 粗线）<button class="mini" data-cmd="tbl-add" data-layer="bottom">＋添加</button></div>
       <div>${tableRows("bottom", false)}</div>
       <div class="pg-t">● 顶层色（关系类型 · 细线+白描边）<button class="mini" data-cmd="tbl-add" data-layer="top">＋添加</button></div>
@@ -266,17 +265,6 @@
     }).join("");
   }
 
-  // paint-seg 当前模式对应的提示语（用作面板里激活态旁的 hint）
-  function paintModeHint() {
-    if (App.paintMode === "char") {
-      return App.brush && App.brush.bottom
-        ? "点/划人物 → 赋「" + App.nameOf("bottom", App.brush.bottom) + "」"
-        : "先选一个粗线（喜好度）笔刷";
-    }
-    if (App.paintMode === "erase") return "点连线两段式删除，点人物筛选其相关连线";
-    return "点/划人物批量上色";
-  }
-
   function panelLink() {
     const c = brushChips();
     return `<div class="pg">
@@ -292,7 +280,6 @@
           <button class="paint-seg-btn ${App.paintMode === "char" ? "active" : ""}" data-cmd="paint-set" data-mode="char" title="角色模式：点/划人物批量赋当前粗线笔刷">${ICONS.person}<span class="lbl">角色模式</span></button>
           <button class="paint-seg-btn ${App.paintMode === "erase" ? "active" : ""}" data-cmd="paint-set" data-mode="erase" title="删线模式：点连线两段式删除">${ICONS.eraser}<span class="lbl">删线模式</span></button>
         </div>
-        <span class="hint" style="margin:0">${paintModeHint()}</span>
       </div>
       <div class="ctrl-row">
         <button class="btn" data-cmd="lnk-batch" title="用文字批量编辑喜好度与连线">批量编辑连线</button>
@@ -606,6 +593,59 @@
       <div class="modal-btns"><button class="btn primary" data-cmd="m-close">知道了</button></div>`);
   };
 
+  // 关于页 · 更新日志数据源（发新版时把新版本插到数组最前，展开范围自动重置）
+  // item = { n:功能名, h:如何使用 } ｜ fixes = 修复项，统一写「修复了【功能】的【问题】」
+  // 规则：只展开最近 ABOUT_LOG_OPEN 个版本并显示「功能：如何使用」；更早的收起，且只留「功能」名
+  const ABOUT_LOG_OPEN = 2;
+  const ABOUT_LOG = [
+    { ver: "v0.13.0", date: "2026-09-09", items: [
+      { n: "更新日志折叠", h: "只展开最近两个版本，更早的收起只留功能名" },
+      { n: "真箭头", h: "连线在箭头处断开留白，方向一眼看清" },
+      { n: "色板一行滑动", h: "预制颜色横排滑动选，圆点双层描边" },
+      { n: "统一编辑器", h: "三个 Tab 合一，一处编辑人物、连线、完整数据" },
+      { n: "完整数据压缩", h: "一段 XHS2: 文本备份整张图，旧版快照也能导入" },
+      { n: "导入确认提示", h: "导入前提示会覆盖当前画板，失败单独报错" },
+      { n: "菜单改名", h: "「导出布局·人物·图例」改为「导出完整数据」" },
+      { n: "连线分层直选", h: "编辑一条连线时直接选粗线、细线图例" },
+      { n: "导出结果屏", h: "四个按钮：关闭 / 新建 / 发布 / 存相册" },
+      { n: "角色批量上色", h: "连线模式里从某角色划过，批量赋喜好色" },
+      { n: "旧草稿兼容", h: "旧版本草稿自动读取，导出时转成新格式" },
+    ], fixes: ["面板说明文字挤压按钮的问题", "浏览器小屏上面板布局错位的问题"] },
+    { ver: "v0.12.0", date: "2026-09-08", items: [
+      { n: "径向菜单", h: "点画布右侧 ➕，一圈按钮绕着绽开，单手也好点" },
+      { n: "导入导出二级窗", h: "导入与保存各收进一个小窗，点开再选具体项" },
+      { n: "帮助按钮", h: "点「?」开指南；面板全开时变「←」回画板" },
+    ] },
+    { ver: "v0.11.0", date: "2026-09-08", items: [
+      { n: "槽位布局" }, { n: "自由摆放" }, { n: "批量编辑名单" },
+      { n: "连线记录编辑" }, { n: "角色操作条" }, { n: "定位坐标 ¤" },
+      { n: "面板三态" }, { n: "头像大小" }, { n: "三表显隐" },
+    ], fixes: ["夜间模式的画板染黑问题", "网页版导出的假下载问题"] },
+    { ver: "v0.10.0", date: "2026-09-07", items: [
+      { n: "容器适配" }, { n: "底部菜单" }, { n: "面板折叠" }, { n: "图例分行" },
+      { n: "单箭头共存" }, { n: "箭头含义自定义" }, { n: "导入自动居中" }, { n: "圆心星标" },
+    ] },
+    { ver: "v0.9.0", date: "上线新版", items: [
+      { n: "发布笔记" }, { n: "导出图片" }, { n: "名单与快照" }, { n: "图例直切" },
+      { n: "连线规则" }, { n: "布局拖拽" }, { n: "帮助与关于" },
+    ] },
+  ];
+  // 渲染更新日志：最近 ABOUT_LOG_OPEN 个版本展开 + 完整说明；其余收起 + 只留功能名
+  function renderAboutLog() {
+    return ABOUT_LOG.map(function (v, i) {
+      const full = i < ABOUT_LOG_OPEN;
+      const fx = (v.fixes || []).map(function (t) { return "<li>➖ 修复了" + t + "</li>"; }).join("");
+      const body = full
+        ? '<ul class="about-list">' + v.items.map(function (it) {
+            return "<li>➕ <b>" + it.n + "</b>：" + it.h + "</li>";
+          }).join("") + fx + "</ul>"
+        : '<div class="log-brief">' + v.items.map(function (it) { return it.n; }).join(" · ") + "</div>"
+          + (fx ? '<ul class="about-list">' + fx + "</ul>" : "");
+      return '<details class="log-block"' + (full ? " open" : "") + ">"
+        + '<summary class="log-ver">' + v.ver + " · " + v.date + "</summary>" + body + "</details>";
+    }).join("");
+  }
+
   // 关于页（P12 · 全屏信息卡）：版本号跟随当前上线包 = v0.13.0；纯本地静态内容，无外链与第三方地址
   App.aboutModal = function () {
     App.openModal(`<div class="about-page">
@@ -624,57 +664,7 @@
         <div class="about-date">更新于 2026-09-09</div>
 
         <div class="about-sec">📌 更新日志</div>
-        <div class="log-ver">v0.13.0 · 2026-09-09</div>
-        <ul class="about-list">
-          <li>➕ <b>统一编辑器</b>：人物名单 / 连线 / 完整数据 三 Tab 合一，一处编辑全部内容</li>
-          <li>➕ <b>完整数据压缩导入导出</b>：XHS2: 压缩串，一段文本备份整张图（人物 / 连线 / 布局 / 图例），旧 JSON 快照仍可直接导入</li>
-          <li>➕ <b>导入确认对话框</b>：导入完整数据前提示会覆盖当前画板，失败单独报错不静默</li>
-          <li>➕ <b>菜单改名</b>：「导出布局·人物·图例」→「导出完整数据」、「导入布局·人物·图例」→「导入完整数据」</li>
-          <li>➕ <b>编辑连线 modal</b>：新增喜好度（粗线）与关系（细线）chips 直选</li>
-          <li>➕ <b>导出图片结果屏</b>：成品图下四钮（关闭 / 新建画布 / 发布小红书 / 保存相册）</li>
-          <li>➕ <b>角色批量上色模式</b>：从某角色按下划过途经角色，批量赋当前喜好色</li>
-          <li>➕ 旧 v0.x 草稿自动兼容，导出自动转新格式</li>
-        </ul>
-        <div class="log-ver">v0.12.0 · 2026-09-08</div>
-        <ul class="about-list">
-          <li>➕ <b>菜单改为「+」号径向绽开</b>：点画布右侧 ➕，撤销 / 重做 / 导入 / 保存导出 / 关于 一圈按钮绕 + 弹出，不用再拉底部菜单，单手也好点</li>
-          <li>➕ 导入 / 保存导出 收进二级小窗：导入（名单 / 快照 / 改图名填表人 / 新建图）与保存（发布笔记 / 导出图片 / 名单 / 快照）点开再选具体项</li>
-          <li>＋ 顶栏帮助按钮：点「?」随时打开操作指南；面板全开时同位置变为「←」返回画板（一槽两用，避开容器左上角）</li>
-        </ul>
-        <div class="log-ver">v0.11.0 · 2026-09-08</div>
-        <ul class="about-list">
-          <li>➕ <b>槽位布局真正可用</b>：开槽位后每圈按槽数等分铺位（默认保底 6 槽），多余空槽画成虚线占位圈；可拖到指定空槽、点空槽放人，或用操作条「槽位」下拉单槽指定</li>
-          <li>➕ <b>槽位关 = 自由摆放</b>：关闭槽位后拖动角色可停在轨道任意角度，不再被自动均分，同一圈可以有疏有密</li>
-          <li>➕ <b>批量编辑名单</b>：人物面板新按钮，一个输入框同时当编辑 / 导入 / 导出用，改完点「保存」即生效，头像与喜好度按名字保留</li>
-          <li>➕ 连线记录点行即编辑：改箭头（无 / 单 / 双向）、一键翻转方向、删除，不用先去画布上点</li>
-          <li>➕ 角色操作条改为纯图标：星标（设为 / 取消圆心）与垃圾桶一目了然，少挡画布</li>
-          <li>➕ <b>定位坐标 ¤</b>：画布右侧新按钮，一键把圆心归位到画面正中并自动缩放到全部轨道可见</li>
-          <li>➕ 面板三态：收起 / 半开 / 全开；把手长按或上滑即全开，左上角 🏠 一键回半开</li>
-          <li>➕ 头像圆圈大小滑块（布局面板，12–40）：头像、喜好环、名字、箭头同步缩放，导出同款</li>
-          <li>➕ 三表「显示 / 隐藏」👁：隐藏的类型不进图例与导出图，已画好的连线不受影响</li>
-          <li>➖ 夜间模式不再把画板与导出图染黑：只改外壳（面板 / 菜单 / 按钮）配色，画板与成品图始终是你设的背景色</li>
-          <li>➖ 手机（网页版）导出不再假下载：改为全屏预览，长按图片存相册</li>
-        </ul>
-        <div class="log-ver">v0.10.0 · 2026-09-07</div>
-        <ul class="about-list">
-          <li>➕ 适配小红书容器：顶栏按钮全部移入画布悬浮工具条（撤销 / 重做 / 菜单），避开顶部官方按钮区</li>
-          <li>➕ 菜单改为底部弹出；面板可折叠，画布一键全览</li>
-          <li>➕ 图例排版：喜好粗线 / 关系细线 / 箭头含义 分行展示</li>
-          <li>➕ A→B 与 B→A 单箭头可共存，可分别配不同关系色</li>
-          <li>➕ 箭头含义可自定义（默认"情感指向"）</li>
-          <li>➕ 导入名单 / 快照后自动缩放居中，圆心居于画面中央</li>
-          <li>➕ 顶栏显示「填表人 的 图名」；圆心星标实心 / 空心两态</li>
-        </ul>
-        <div class="log-ver">v0.9.0 · 上线新版</div>
-        <ul class="about-list">
-          <li>➕ 一键发布笔记：当前画作直接唤起小红书发布页</li>
-          <li>➕ 导出图片：标题 / 署名 / 图例 一图成画，一键存入相册</li>
-          <li>➕ 名单 / 快照导入导出，编辑自动存本地草稿</li>
-          <li>➕ 点图例色块直切对应笔刷</li>
-          <li>➕ 连线规则对齐：同一对后画覆盖、箭头方向可设</li>
-          <li>➕ 布局支持平均排布、增删轨道、拖拽换圈</li>
-          <li>➕ 全新帮助页与「关于」，菜单按功能分组</li>
-        </ul>
+        ${renderAboutLog()}
 
         <div class="about-sec">🔮 未来前瞻</div>
         <ul class="about-list">

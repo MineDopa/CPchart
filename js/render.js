@@ -259,8 +259,8 @@
       parts.push("🎨样式");
     } else {
       // link
-      if (App.eraser) {
-        parts.push("🪌 连线·删线");
+      if (App.paintMode === "erase") {
+        parts.push("连线·删线");
         eraser = true;
       } else {
         const bName = App.brush.bottom ? App.nameOf("bottom", App.brush.bottom) : "—";

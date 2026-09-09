@@ -4,7 +4,9 @@
 
   App.activeTab = "link";
   App.fullUI = false;
-  App.panelCollapsed = false; // 底部二级面板折叠态
+  App.panelMode = "half";   // 底部二级面板三态：collapsed / half / full（单源；panelCollapsed/panelFull 为派生 bool 供旧 API 读取）
+  App.panelCollapsed = false; // 派生：== (App.panelMode === "collapsed")
+  App.panelFull = false;      // 派生：== (App.panelMode === "full")
   let modalCloseCb = null;
   let pendingAvatarFor = null;
   let lastColorFocus = null;
@@ -47,26 +49,63 @@
   const $ = App.byId;
 
   // =============== Tab 切换 ===============
-  App.setPanelCollapsed = function (v) {
-    App.panelCollapsed = !!v;
-    if (App.panelCollapsed && App.panelFull) App.setPanelFull(false); // 折叠与全开互斥
+  // 面板三态（折叠/半开/全开）单源：App.panelMode
+  // 旧 API（setPanelCollapsed / setPanelFull）作为兼容壳保留，switchTab、homeBtn 等旧调用方不破
+  App.setPanelMode = function (m, opts) {
+    if (m !== "collapsed" && m !== "half" && m !== "full") return;
+    App.panelMode = m;
+    App.panelCollapsed = (m === "collapsed");
+    App.panelFull = (m === "full");
     document.body.classList.toggle("panel-collapsed", App.panelCollapsed);
-    const b = $("btnPanelFold");
-    if (b) b.textContent = App.panelCollapsed ? "︿ 展开" : (App.panelFull ? "︽ 半开" : "﹀ 收起");
-  };
-  // 面板全开态（盖满画布，全屏浏览列表）：🏠 返回钮出现在左上（避开容器左上角按钮）
-  App.setPanelFull = function (v) {
-    App.panelFull = !!v;
-    if (App.panelFull && App.panelCollapsed) {
-      App.panelCollapsed = false; // 从折叠直接进全开时先展开
-      document.body.classList.remove("panel-collapsed");
-    }
     document.body.classList.toggle("panel-full", App.panelFull);
-    const h = $("homeBtn");
-    if (h) h.classList.toggle("hidden", !App.panelFull);
-    const b = $("btnPanelFold");
-    if (b) b.textContent = App.panelCollapsed ? "︿ 展开" : (App.panelFull ? "︽ 半开" : "﹀ 收起");
+    const head = $("panelHead");
+    if (head) head.setAttribute("data-state", m);
+    const home = $("homeBtn");
+    if (home) home.classList.toggle("hidden", !App.panelFull);
+    // 离开拖动状态：清掉 inline 高度（让 class 重新接管）
+    if (!(opts && opts.keepDragHeight)) {
+      const p = $("panel"); if (p) { p.classList.remove("dragging"); p.style.maxHeight = ""; }
+      if (head) head.classList.remove("dragging");
+    }
   };
+  // 兼容壳
+  App.setPanelCollapsed = function (v) {
+    if (v) App.setPanelMode("collapsed");
+    else if (App.panelMode === "collapsed") App.setPanelMode("half");
+  };
+  // 面板全开态：返回钮出现在左上（避开容器左上角按钮）
+  App.setPanelFull = function (v) {
+    if (v) App.setPanelMode("full");
+    else if (App.panelMode === "full") App.setPanelMode("half");
+  };
+  // =============== 画板模式（连线/角色/删线 三选一 Switch）===============
+  // 单一状态 App.paintMode；App.eraser / state.ui.charMode 作为派生量同步维护，避免三个布尔开关并存导致互斥漏洞
+  App.syncPaintMode = function () {
+    const m = (App.state && App.state.ui && App.state.ui.charMode) ? "char" : "link";
+    App.paintMode = m;
+    App.eraser = false;
+  };
+  App.setPaintMode = function (m) {
+    if (m !== "link" && m !== "char" && m !== "erase") return;
+    if (App.paintMode === m && m !== "link") m = "link"; // 同段再点 = 回到连线模式（保留 toggle 体感）
+    App.paintMode = m;
+    App.eraser = (m === "erase");
+    if (App.state && App.state.ui) App.state.ui.charMode = (m === "char");
+    App.linkSource = null;
+    App.dragGhost = null;
+    App.pendingLinkDel = null;
+    if (m === "char") {
+      App.toast(App.brush && App.brush.bottom
+        ? ("角色模式开：点/划人物赋「" + App.nameOf("bottom", App.brush.bottom) + "」")
+        : "角色模式开：先选一个粗线（喜好度）笔刷");
+    } else if (m === "erase") {
+      App.toast("删线模式开：点连线两段式删除，点人物筛选其相关连线");
+    }
+    if (App.render) App.render();
+    if (App.renderPanel) App.renderPanel();
+  };
+  // 启动时按当前 state.ui.charMode 对齐一次（兼容旧草稿 charMode=true 加载）
+  App.syncPaintMode();
   App.switchTab = function (tab) {
     App.activeTab = tab;
     App.pendingLinkDel = null; // 切 Tab 清除删线待确认态
@@ -161,7 +200,7 @@
       return `<div class="prow" data-pid="${c.id}">
         <div class="ava" data-cmd="pm-avatar" data-id="${c.id}" title="设置头像">${avaInner(c)}</div>
         <div class="pn"><input type="text" data-cmd="pm-rename" data-id="${c.id}" value="${App.esc(c.name)}" placeholder="角色名"></div>
-        <span class="mini" style="color:#888;font-size:11px">${ringTxt}</span>
+        <span class="mini" style="color:var(--sub);font-size:11px">${ringTxt}</span>
         <select data-cmd="pm-like" data-id="${c.id}">${likeOpts}</select>
         <button class="mini" data-cmd="pm-center" data-id="${c.id}" title="${c.ring === 0 ? "取消圆心" : "设为圆心"}"><img class="pm-star" src="assets/icons/${c.ring === 0 ? "star-fill" : "star-line"}.svg" alt=""></button>
         <button class="mini danger" data-cmd="pm-del" data-id="${c.id}" title="删除">${ICONS.del}</button>
@@ -227,6 +266,17 @@
     }).join("");
   }
 
+  // paint-seg 当前模式对应的提示语（用作面板里激活态旁的 hint）
+  function paintModeHint() {
+    if (App.paintMode === "char") {
+      return App.brush && App.brush.bottom
+        ? "点/划人物 → 赋「" + App.nameOf("bottom", App.brush.bottom) + "」"
+        : "先选一个粗线（喜好度）笔刷";
+    }
+    if (App.paintMode === "erase") return "点连线两段式删除，点人物筛选其相关连线";
+    return "点/划人物批量上色";
+  }
+
   function panelLink() {
     const c = brushChips();
     return `<div class="pg">
@@ -237,14 +287,15 @@
       <div class="pg-t">↔️ 箭头</div>
       <div class="chips">${c.arrow}</div>
       <div class="ctrl-row">
-        <button class="btn ${App.state.ui.charMode ? "primary" : ""}" data-cmd="lnk-charmode">角色模式${App.state.ui.charMode ? "：开" : ""}</button>
-        <span class="hint" style="margin:0">${App.state.ui.charMode ? (App.brush.bottom ? "点/划人物 → 赋「" + App.nameOf("bottom", App.brush.bottom) + "」" : "先选一个粗线笔刷") : "点/划人物批量上色"}</span>
+        <div class="paint-seg" role="tablist" aria-label="画板模式">
+          <button class="paint-seg-btn ${App.paintMode === "link" ? "active" : ""}" data-cmd="paint-set" data-mode="link" title="连线模式：点人物起一条线，再点结束">${ICONS.link}<span class="lbl">连线模式</span></button>
+          <button class="paint-seg-btn ${App.paintMode === "char" ? "active" : ""}" data-cmd="paint-set" data-mode="char" title="角色模式：点/划人物批量赋当前粗线笔刷">${ICONS.person}<span class="lbl">角色模式</span></button>
+          <button class="paint-seg-btn ${App.paintMode === "erase" ? "active" : ""}" data-cmd="paint-set" data-mode="erase" title="删线模式：点连线两段式删除">${ICONS.eraser}<span class="lbl">删线模式</span></button>
+        </div>
+        <span class="hint" style="margin:0">${paintModeHint()}</span>
       </div>
       <div class="ctrl-row">
         <button class="btn" data-cmd="lnk-batch" title="用文字批量编辑喜好度与连线">批量编辑连线</button>
-      </div>
-      <div class="ctrl-row">
-        <button class="btn ${App.eraser ? "danger" : ""}" data-cmd="lnk-eraser">${ICONS.eraser} ${App.eraser ? "退出删线" : "删线模式"}</button>
         <button class="btn" data-cmd="lnk-clear">${ICONS.del} 清空全部连线</button>
       </div>
       <div class="pg-t">🕘 连线记录${App.selCharId ? "（已按人物筛选）" : "（点画布人物可筛选）"}</div>
@@ -355,7 +406,8 @@
     else document.body.style.setProperty("--bg", App.state.bg || "#ffffff");
   };
   // 改名弹窗（原顶栏标题点击 → 现经菜单「改图名 / 填表人」进入）
-  App.openTitleModal = function () {
+  App.openTitleModal = function (onSaved) {
+    App._titleOkCb = onSaved || null;
     App.openModal(`${modalHead("修改图名 / 填表人")}
       <div class="hint">图名用于导出图与发布笔记；填表人会写入导出图署名。设置后顶栏显示为：填表人 的 图名。</div>
       <div style="font-size:12px;color:var(--sub);margin:2px 0 4px">图名</div>
@@ -482,18 +534,12 @@
     else if (layer === "top") App.brush.top = key;
     else if (layer === "arrow") App.brush.arrow = key;
     if (App.activeTab !== "link") {
-      App.eraser = false;
-      App.linkSource = null;
+      if (App.paintMode !== "link") App.setPaintMode("link"); // 切 Tab 顺便退出非连线模式
       App.selCharId = null;
-      App.dragGhost = null;
       App.switchTab("link");
       return;
     }
-    if (App.eraser) {
-      App.eraser = false;
-      App.linkSource = null;
-      App.dragGhost = null;
-    }
+    if (App.paintMode === "erase") App.setPaintMode("link"); // 选笔刷时若处于删线模式 → 回连线模式
     if (App.renderPanel) App.renderPanel();
     App.render();
   };
@@ -560,7 +606,7 @@
       <div class="modal-btns"><button class="btn primary" data-cmd="m-close">知道了</button></div>`);
   };
 
-  // 关于页（P12 · 全屏信息卡）：版本号跟随当前上线包 = v0.12.0；纯本地静态内容，无外链与第三方地址
+  // 关于页（P12 · 全屏信息卡）：版本号跟随当前上线包 = v0.13.0；纯本地静态内容，无外链与第三方地址
   App.aboutModal = function () {
     App.openModal(`<div class="about-page">
         <div class="about-logo"><svg width="64" height="64" viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -573,11 +619,22 @@
           <line x1="52" y1="52" x2="40" y2="40" stroke="currentColor" stroke-width="2"></line>
           <text x="32" y="37" font-size="11" text-anchor="middle" fill="currentColor" font-weight="bold">CP</text>
         </svg></div>
-        <div class="about-name">CP Chart <em>v0.12.0</em></div>
+        <div class="about-name">CP Chart <em>v0.13.0</em></div>
         <div class="about-sub">画人物关系连线的小工具 · 小红书离线版</div>
-        <div class="about-date">更新于 2026-09-08</div>
+        <div class="about-date">更新于 2026-09-09</div>
 
         <div class="about-sec">📌 更新日志</div>
+        <div class="log-ver">v0.13.0 · 2026-09-09</div>
+        <ul class="about-list">
+          <li>➕ <b>统一编辑器</b>：人物名单 / 连线 / 完整数据 三 Tab 合一，一处编辑全部内容</li>
+          <li>➕ <b>完整数据压缩导入导出</b>：XHS2: 压缩串，一段文本备份整张图（人物 / 连线 / 布局 / 图例），旧 JSON 快照仍可直接导入</li>
+          <li>➕ <b>导入确认对话框</b>：导入完整数据前提示会覆盖当前画板，失败单独报错不静默</li>
+          <li>➕ <b>菜单改名</b>：「导出布局·人物·图例」→「导出完整数据」、「导入布局·人物·图例」→「导入完整数据」</li>
+          <li>➕ <b>编辑连线 modal</b>：新增喜好度（粗线）与关系（细线）chips 直选</li>
+          <li>➕ <b>导出图片结果屏</b>：成品图下四钮（关闭 / 新建画布 / 发布小红书 / 保存相册）</li>
+          <li>➕ <b>角色批量上色模式</b>：从某角色按下划过途经角色，批量赋当前喜好色</li>
+          <li>➕ 旧 v0.x 草稿自动兼容，导出自动转新格式</li>
+        </ul>
         <div class="log-ver">v0.12.0 · 2026-09-08</div>
         <ul class="about-list">
           <li>➕ <b>菜单改为「+」号径向绽开</b>：点画布右侧 ➕，撤销 / 重做 / 导入 / 保存导出 / 关于 一圈按钮绕 + 弹出，不用再拉底部菜单，单手也好点</li>
@@ -621,8 +678,9 @@
 
         <div class="about-sec">🔮 未来前瞻</div>
         <ul class="about-list">
-          <li>角色模式：手指划过一串人物，批量赋予同一种喜好 / 关系</li>
           <li>视图记忆：导出或切 Tab 后保留当前缩放与平移位置</li>
+          <li>UI 布局重构：界面结构整体重排，操作更顺手</li>
+          <li>手感升级：触控与交互细节打磨（触点放大、反馈更跟手）</li>
           <li class="ellipsis">更多功能期待反馈</li>
         </ul>
 
@@ -676,28 +734,78 @@
     // 定位坐标：圆心归位到画面正中 + 自动缩放全览
     const rcBtn = $("btnRecenter");
     if (rcBtn) rcBtn.addEventListener("click", () => App.recenter());
-    // 面板折叠开关 + 全开手势（长按 450ms 或上滑 ≥48px → 全开）
-    const foldBtn = $("btnPanelFold");
-    if (foldBtn) {
-      let pressTimer = null, startY = 0, wentFull = false;
-      const clearPress = () => { if (pressTimer) { clearTimeout(pressTimer); pressTimer = null; } };
-      foldBtn.addEventListener("pointerdown", (e) => {
-        startY = e.clientY; wentFull = false;
-        if (!App.panelCollapsed && !App.panelFull) {
-          pressTimer = setTimeout(() => { wentFull = true; App.setPanelFull(true); }, 450);
+    // 面板三态把手（折叠/半开/全开）：单击循环 + 拖动跟手
+    //   - 单击（移动 < 8px）：按 collapsed → half → full → collapsed 循环
+    //   - 拖动（移动 ≥ 8px）：面板高度实时跟手；松手吸附到最近档位
+    const head = $("panelHead");
+    if (head) {
+      // 三态档位（占视口比例，留出 panelHead 26 + tabs 49 高度）
+      const STOPS = [
+        { m: "collapsed", r: 0 },
+        { m: "half",      r: 0.4 },
+        { m: "full",      r: 0.92 },
+      ];
+      const ratioToMode = (r) => {
+        let best = STOPS[0], bd = Math.abs(r - STOPS[0].r);
+        for (let i = 1; i < STOPS.length; i++) {
+          const d = Math.abs(r - STOPS[i].r);
+          if (d < bd) { bd = d; best = STOPS[i]; }
         }
+        return best.m;
+      };
+      const currentRatio = () => {
+        const p = $("panel");
+        if (!p) return 0;
+        return p.getBoundingClientRect().height / (window.innerHeight || 800);
+      };
+      const setLiveHeight = (ratio) => {
+        const p = $("panel"); if (!p) return;
+        p.classList.add("dragging");
+        p.style.maxHeight = (ratio * 100).toFixed(1) + "vh";
+        head.classList.add("dragging");
+      };
+      let active = false, moved = false, startY = 0, startRatio = 0, pid = -1;
+      head.addEventListener("pointerdown", (e) => {
+        if (e.button != null && e.button !== 0) return;
+        active = true; moved = false;
+        startY = e.clientY; startRatio = currentRatio(); pid = e.pointerId;
+        try { head.setPointerCapture(pid); } catch (err) {}
       });
-      foldBtn.addEventListener("pointermove", (e) => {
-        if (pressTimer && startY - e.clientY >= 48) { // 上滑到底 → 全开
-          clearPress(); wentFull = true; App.setPanelFull(true);
+      head.addEventListener("pointermove", (e) => {
+        if (!active) return;
+        const dy = e.clientY - startY;
+        if (!moved && Math.abs(dy) < 8) return; // 8px 阈值，避免误触切档
+        moved = true;
+        const vh = window.innerHeight || 800;
+        // 向上拖 dy<0 高度增大，向下拖 dy>0 高度减小
+        const newRatio = Math.max(0, Math.min(0.98, startRatio + (-dy) / vh));
+        setLiveHeight(newRatio);
+      });
+      const endDrag = () => {
+        if (!active) return;
+        active = false;
+        if (!moved) {
+          // 单击：循环切档
+          const seq = ["collapsed", "half", "full"];
+          const i = seq.indexOf(App.panelMode);
+          App.setPanelMode(seq[(i + 1) % seq.length]);
+        } else {
+          // 拖动结束：吸附到最近档位
+          const ratio = currentRatio();
+          App.setPanelMode(ratioToMode(ratio));
         }
-      });
-      foldBtn.addEventListener("pointerup", clearPress);
-      foldBtn.addEventListener("pointercancel", clearPress);
-      foldBtn.addEventListener("click", () => {
-        if (wentFull) { wentFull = false; return; } // 长按/上滑后的同源点击不当作折叠切换
-        if (App.panelFull) App.setPanelFull(false);
-        else App.setPanelCollapsed(!App.panelCollapsed);
+        try { head.releasePointerCapture(pid); } catch (err) {}
+      };
+      head.addEventListener("pointerup", endDrag);
+      head.addEventListener("pointercancel", endDrag);
+      // 键盘可访问性：Space / Enter 循环切档
+      head.addEventListener("keydown", (e) => {
+        if (e.key === " " || e.key === "Enter") {
+          e.preventDefault();
+          const seq = ["collapsed", "half", "full"];
+          const i = seq.indexOf(App.panelMode);
+          App.setPanelMode(seq[(i + 1) % seq.length]);
+        }
       });
     }
     // 全开态左上角「返回画板」钮（与帮助钮同槽位，见 index.html #topbar 注释）
@@ -746,6 +854,7 @@
           App.state.title = String(t1 == null ? "" : t1).trim() || "未命名关系图";
           App.state.meta.filler = String(f1 == null ? "" : f1).trim();
         });
+        const cb = App._titleOkCb; App._titleOkCb = null; if (cb) cb();
         return;
       }
       // 保存相册重试（导出失败/被拒后预览面板内）
@@ -1014,19 +1123,10 @@
       case "br-b": { App.brush.bottom = App.brush.bottom === el.getAttribute("data-key") ? null : el.getAttribute("data-key"); App.render(); App.renderPanel(); break; }
       case "br-t": { App.brush.top = App.brush.top === el.getAttribute("data-key") ? null : el.getAttribute("data-key"); App.render(); App.renderPanel(); break; }
       case "br-a": { App.brush.arrow = el.getAttribute("data-key"); App.render(); App.renderPanel(); break; }
-      case "lnk-charmode": {
-        App.state.ui.charMode = !App.state.ui.charMode;
-        if (App.state.ui.charMode) App.toast(App.brush.bottom ? ("角色模式开：点/划人物赋「" + App.nameOf("bottom", App.brush.bottom) + "」") : "角色模式开：先选一个粗线（喜好度）笔刷");
-        App.renderPanel(); App.render();
-        break;
-      }
       case "lnk-batch": App.editorModal({ tab: "link" }); break;
-      case "lnk-eraser": {
-        App.eraser = !App.eraser;
-        App.linkSource = null;
-        App.dragGhost = null;
-        App.pendingLinkDel = null; // 进出删线模式都清掉待确认态
-        App.render(); renderPanel();
+      case "paint-set": {
+        // 三选一模式：link=连线 / char=角色 / erase=删线（互斥，单源 App.paintMode）
+        App.setPaintMode(el.getAttribute("data-mode"));
         break;
       }
       case "lnk-clear": {
@@ -1283,7 +1383,7 @@
     import: { title: "导入", items: [
       { menu: "impnames", label: "导入人物名单" },
       { menu: "edpeople", label: "编辑人物名单" },
-      { menu: "impsnap",  label: "导入布局·人物·图例" },
+      { menu: "impsnap",  label: "导入完整数据" },
       { menu: "edlink",   label: "编辑 / 导入导出连线" },
       { menu: "rename",   label: "改图名 / 填表人" },
       { menu: "new",      label: "建立新连线图" },
@@ -1292,7 +1392,7 @@
       { menu: "publish",  label: "发布笔记" },
       { menu: "img",      label: "导出为图片" },
       { menu: "expnames", label: "导出人物名单" },
-      { menu: "expsnap",  label: "导出布局·人物·图例" },
+      { menu: "expsnap",  label: "导出完整数据" },
     ]},
   };
 
@@ -1396,7 +1496,7 @@
           App.confirm("导入会覆盖当前画板全部数据（人物、连线、布局、图例）。确认？", "确认", function () {
             try {
               if (obj && obj.type === "NRD") { App._importLegacy(obj); App.toast("完整数据已导入"); return; }
-              App.deserialize(obj && obj.doc ? obj.doc : obj);
+              App.deserialize(JSON.stringify(obj));
               App.toast("完整数据已导入");
             } catch (err2) { App.toast("导入失败：" + (err2.message || ""), true); }
           });
@@ -1536,6 +1636,14 @@
   // 导出图片结果屏（v1.0 #10）：生成后展示成品图 + 极简提示 + 发布/新画布/保存/关闭
   async function exportImageFlow() {
     if (!App.state.chars.length) { App.toast("画布为空，先导入人物", true); return; }
+    // 图名还是默认的「未命名关系图」→ 先弹改图名窗（与菜单「改图名 / 填表人」同一接口），确认后继续导出
+    if (!App.state.title || App.state.title === "未命名关系图") {
+      App.openTitleModal(() => { doExportImage(); });
+      return;
+    }
+    doExportImage();
+  }
+  async function doExportImage() {
     App.toast("正在生成图片…");
     let dataUrl;
     try { dataUrl = await App.exportPNG(2); }
@@ -1642,17 +1750,18 @@
   // 欢迎（开局引导）
   App.welcome = function (force) {
     const raw = localStorage.getItem(App.DRAFT_KEY);
-    const hasDraft = raw && JSON.parse(raw).chars && JSON.parse(raw).chars.length;
+    let hasDraft = false;
+    try { const d = JSON.parse(raw); hasDraft = !!(d && d.chars && d.chars.length); } catch (e) {}
     if (hasDraft && !force) return; // 已有草稿直接继续
     const preset = App.PRESET_TEXT;
-    App.openModal(`${modalHead("欢迎 · 人物关系连线图")}
-      <div class="hint">先把角色名单粘进来就能开始。一圈写一行：<br><code>圆心: 名字</code><br><code>1: 甲，乙，丙</code><br>不想手敲也行，直接点下面的「载入示例」。</div>
-      <textarea class="export-txt" id="welTxt">${App.esc(preset)}</textarea>
-      <div class="modal-btns">
-        <button class="btn" data-cmd="m-close">跳过</button>
-        <button class="btn" data-cmd="wel-load">载入示例</button>
-        <button class="btn primary" data-cmd="wel-ok">导入名单</button>
-      </div>`);
+    App.openModal(modalHead("欢迎 · 人物关系连线图") +
+      '<div class="hint">先把角色名单粘进来就能开始。一圈写一行：<br><code>圆心: 名字</code><br><code>1: 甲，乙，丙</code><br>不想手敲也行，直接点下面的「载入示例」。</div>' +
+      '<textarea class="export-txt" id="welTxt">' + App.esc(preset) + '</textarea>' +
+      '<div class="modal-btns">' +
+      '<button class="btn" data-cmd="m-close">跳过</button>' +
+      '<button class="btn" data-cmd="wel-load">载入示例</button>' +
+      '<button class="btn primary" data-cmd="wel-ok">导入名单</button>' +
+      '</div>');
     modalCloseCb = null;
     const box = $("modalBox");
     const loadBtn = box.querySelector('[data-cmd="wel-load"]');
@@ -1677,7 +1786,7 @@
     bindEvents();
     bindRingSel();
     bindSlotSel();
-    App.setPanelCollapsed(App.panelCollapsed); // 同步折叠按钮初始文案
+    App.setPanelMode(App.panelMode); // 同步把手 data-state 与 body class
     App.onChanged = refreshAll;    // 初始 tab
     document.querySelectorAll("#tabs .tab").forEach((b) => {
       b.classList.toggle("on", b.getAttribute("data-tab") === App.activeTab);

@@ -151,24 +151,39 @@ body.panel-full #btnHelp{ display:none; }
 .pg-t .ic-svg{ width:14px; height:14px; vertical-align:-2px; margin-right:3px; }
 #opsRingSel{ font-size:13px; border:1px solid var(--line); border-radius:8px; padding:4px; background:var(--surf); }
 
-/* ---------- 面板折叠把手（面板顶部/画板底部；折叠后仅留此条） ---------- */
-#panelHead{ flex:0 0 auto; display:flex; align-items:flex-end; justify-content:center;
-  height:20px; background:transparent; position:relative; z-index:3; }
-/* 上窄下宽梯形把手，居中；两侧留白省出视觉空间 */
-.pf-btn{ font-size:11px; color:var(--sub); letter-spacing:2px; text-align:center; line-height:22px;
-  width:120px; height:22px; padding:0; border:none; border-radius:0;
-  background:var(--line); cursor:pointer;
-  -webkit-clip-path:polygon(32% 0, 68% 0, 100% 100%, 0% 100%);
-  clip-path:polygon(32% 0, 68% 0, 100% 100%, 0% 100%); }
-.pf-btn:active{ opacity:.75; }
+/* ---------- 面板三态把手（折叠/半开/全开）：药丸+箭头，单击循环、拖动跟手 ---------- */
+#panelHead{ flex:0 0 auto; display:flex; align-items:center; justify-content:center; gap:10px;
+  height:26px; background:var(--panel); position:relative; z-index:3; cursor:grab;
+  border-top:1px solid var(--line);
+  user-select:none; -webkit-user-select:none; touch-action:none; }
+#panelHead:active{ cursor:grabbing; }
+.ph-arr{ width:14px; height:14px; color:var(--sub); transition:opacity .18s, transform .18s; }
+.ph-up, .ph-down{ opacity:1; }
+/* 三态箭头显示：折叠只显向上（可向上展开），半开双箭头，全开只显向下（可向下收起） */
+#panelHead[data-state="collapsed"] .ph-down{ opacity:0; }
+#panelHead[data-state="full"]      .ph-up{ opacity:0; }
+.ph-pill{ position:absolute; left:50%; top:50%; transform:translate(-50%,-50%);
+  width:48px; height:4px; border-radius:999px; background:var(--line);
+  pointer-events:none; transition:width .15s, background .15s; }
+#panelHead:hover .ph-pill{ width:56px; background:var(--sub); }
+/* 拖动中：药丸拉长+品牌色，作为视觉反馈 */
+#panelHead.dragging .ph-pill{ width:80px; background:var(--accent); }
+#panelHead.dragging{ background:var(--accent-soft); }
+
 body.panel-collapsed #panel{ display:none !important; }
-body.panel-collapsed #panelHead{ height:20px; }
+body.panel-collapsed #panelHead{ /* 仅露把手条即可 */ }
 
 /* ---------- 面板 ---------- */
 .panel{ flex:0 1 auto; max-height:38dvh; overflow-y:auto; background:var(--panel);
   border-top:1px solid var(--line); padding:8px 10px calc(8px + env(safe-area-inset-bottom));
-  -webkit-overflow-scrolling:touch; }
+  -webkit-overflow-scrolling:touch; transition:max-height .15s ease-out; }
 .panel::-webkit-scrollbar{ display:none; }
+
+/* 全开态：面板撑满画布（除 panelHead 高度），底部 Tab 栏隐藏；返回钮由 ui.js setPanelFull 切换显隐 */
+body.panel-full #panel{ max-height:calc(100dvh - 26px); }
+body.panel-full #tabs{ display:none; }
+/* 拖动中临时设的 inline 高度最高优先级 */
+#panel.dragging{ max-height:none !important; }
 .pg{ margin-bottom:8px; }
 .pg-t{ font-size:11px; color:var(--sub); margin:8px 0 4px; display:flex; align-items:center; gap:6px; }
 .chips{ display:flex; gap:6px; flex-wrap:wrap; }
@@ -183,6 +198,21 @@ body.panel-collapsed #panelHead{ height:20px; }
   border:1px solid var(--line); }
 .btn.primary{ background:var(--accent); color:#fff; border-color:var(--accent); }
 .btn.danger{ color:var(--danger); border-color:#ffd1cf; }
+/* 画板模式三选一胶囊（连线/角色/删线）：激活段深色+图标+文字，非激活段只显图标 */
+.paint-seg{ display:inline-flex; align-items:center; gap:0; padding:3px; border:1px solid var(--line);
+  border-radius:999px; background:var(--bg-soft); }
+.paint-seg-btn{
+  display:inline-flex; align-items:center; gap:4px;
+  padding:5px 9px; border-radius:999px; background:transparent; color:var(--ink);
+  border:0; font-size:13px; line-height:1; cursor:pointer;
+  -webkit-tap-highlight-color:transparent;
+  transition:background .15s, color .15s;
+}
+.paint-seg-btn + .paint-seg-btn{ margin-left:2px; }
+.paint-seg-btn .ic-svg{ width:15px; height:15px; display:block; }
+.paint-seg-btn.active{ background:var(--accent); color:#fff; }
+.paint-seg-btn:not(.active) .lbl{ display:none; }
+.paint-seg-btn:focus-visible{ outline:2px solid var(--accent); outline-offset:2px; }
 .inp, select.inp, textarea.inp{ font-size:13px; border:1px solid var(--line); border-radius:8px;
   padding:6px 8px; background:var(--surf); color:var(--ink); font-family:inherit; }
 input[type=color]{ width:30px; height:30px; border:none; border-radius:8px; padding:0; background:none; }
@@ -339,3 +369,37 @@ body.panel-full #panel{ flex:1 1 auto; max-height:none; border-top:none; }
 .swbox i{ position:absolute; top:3px; left:3px; width:24px; height:24px; border-radius:50%;
   background:#fff; transition:.2s; }
 .swbox.on i{ left:23px; }
+
+/* ---------- 文字颜色显式继承兜底（修复夜间模式漏变白） ---------- */
+#legendChip .lg,
+#legendChip .lg b,
+#legendChip .lg .lg-ic{ color:var(--ink); }
+.chip{ color:var(--ink); }
+.chip.on{ color:var(--accent); }
+button.mini,
+.prow button,
+.prow select,
+.prow input,
+.prow .pn input,
+.trow input,
+.trow select,
+.dlrow,
+.dlrow .dl-main,
+.dlrow .dl-main span,
+.dlrow button,
+.ln-row .ln-lab,
+.ln-row input,
+.ln-row select,
+.ln-mid,
+.modal-btns .btn,
+.sub-list .sub-item,
+.sub-title,
+.tab,
+#viewstrip,
+.pg,
+#brushPreview,
+.paint-seg-btn{ color:var(--ink); }
+.prow span.mini,
+.hint,
+.pg-t,
+#viewstrip #viewHint{ color:var(--sub); }

@@ -94,7 +94,6 @@
             c.ring = ringNo; c.slot = slotIdx;
             c.angle = -Math.PI / 2 + (slotIdx * 2 * Math.PI) / sl;
           });
-          App.toast(`已放入 圈${ringNo} 槽${slotIdx + 1}`);
         }
         gesture = null;
         return;
@@ -119,7 +118,6 @@
         if (App.pendingLinkDel === linkId) {
           App.pendingLinkDel = null;
           App.act(() => App.removeLink(linkId));
-          App.toast("已删除一条连线");
           gesture = null;
           return;
         }
@@ -370,7 +368,6 @@
         App.snapChar(c.id, c.x, c.y);
         App.selCharId = c.id;
         App.notifyChanged();
-        App.toast(`已归入圈 ${c.ring === 0 ? "圆心" : c.ring}`);
         hint();
       } else if (c) {
         // tap：选中
@@ -404,12 +401,7 @@
             if (hasBottom) App.addLink(srcId, target, "bottom", brush.bottom, brush.arrow);
             if (hasTop) App.addLink(srcId, target, "top", brush.top, brush.arrow);
           });
-          const nm = (id) => { const c = App.state.chars.find((x) => x.id === id); return c ? c.name : "?"; };
-          App.toast(`已连线：${nm(srcId)} ↔ ${nm(target)}`);
         }
-      } else if (gData.moved) {
-        // 拖到空白：取消
-        App.toast("已取消连线");
       }
       App.linkSource = null;
       App.selCharId = null;

@@ -72,6 +72,7 @@
     d.rings = (obj.rings && obj.rings.length) ? obj.rings : d.rings;
     d.chars = obj.chars || [];
     d.links = App.normalizeLinks(obj.links || []);
+    if (App.migrateCenterFav) App.migrateCenterFav(d); // 旧草稿的圆心粗线 → 角色涂色（静默折算）
     d.tables = obj.tables || d.tables;
     if (d.tables && d.tables.arrow) {
       d.tables.arrow = App.normalizeArrow(d.tables.arrow); // 箭头类型固定，草稿历史改名/增删一律归一
@@ -85,7 +86,20 @@
     return d.chars.length > 0;
   }
 
+  // 环境识别（单一真源）：容器 = 小红书 miniTool JSBridge 存在；浏览器环境不存在该对象
+  // 布局（body.xhs 容器态 CSS）与保存能力判断都读这里，避免多处重复判断口径不一
+  App.detectEnv = function () {
+    let xhs = false;
+    try { xhs = !!(window.xhs && window.xhs.miniTool); } catch (err) { xhs = false; }
+    App.isXhs = xhs;
+    if (xhs && document.body) document.body.classList.add("xhs");
+    return xhs;
+  };
+
   App.start = function () {
+    // 环境识别必须最先：容器态 CSS 依赖 body.xhs，晚于首帧会闪一次错位布局
+    App.detectEnv();
+
     // 设置背景变量（夜间模式则切深色外壳）
     App.applyNight();
 

@@ -59,7 +59,7 @@
         top: DEFAULT_TOP.map((x) => ({ ...x })),
         arrow: DEFAULT_ARROW.map((x) => ({ ...x })),
       },
-      ui: { avatarMode: "both", showNames: true, slotMode: false, nodeR: NODE_R, night: false, charMode: false },
+      ui: { avatarMode: "both", showNames: true, slotMode: false, nodeR: NODE_R, night: false, charMode: false, paintMode: "link" },
       meta: { filler: "", arrowName: "情感指向" }, // arrowName=箭头含义（图例/导出显示，可改）
     };
   }
@@ -544,7 +544,7 @@
     if (!App.hist.u.length) return;
     App.hist.r.push(clone());
     App.state = App.hist.u.pop();
-    if (!App.state.ui) App.state.ui = { avatarMode: "both", showNames: true, slotMode: false, charMode: false };
+    if (!App.state.ui) App.state.ui = { avatarMode: "both", showNames: true, slotMode: false, charMode: false, paintMode: "link" };
     App.selCharId = null; App.linkSource = null; App.dragGhost = null; App.pendingLinkDel = null;
     computeLayout();
     App.notifyChanged();

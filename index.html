@@ -10,7 +10,7 @@
 <div id="app">
   <!-- 顶部全局操作栏（容器占用上方 10rem 点击区：此处只保留只读标题，按钮全部移入画布内悬浮组） -->
   <header id="topbar">
-    <!-- 顶栏左槽（容器返回箭头右侧、星羽 09-08 标注定稿位）：常态=帮助按钮；面板全开=返回画板(homeBtn) -->
+    <!-- 顶栏左槽（容器返回箭头右侧）：常态=帮助按钮；面板全开=返回画板(homeBtn) -->
     <button id="btnHelp" class="top-slot-btn" title="帮助" aria-label="帮助">?</button>
     <button id="homeBtn" class="top-slot-btn hidden" title="返回画板" aria-label="返回画板">&#8592;</button>
     <button id="titleBox" class="tb-title" title="点击修改图名/填表人" aria-label="修改图名或填表人">
@@ -19,10 +19,9 @@
     </button>
   </header>
 
-  <!-- 视图指示条（缩放视图）：当前缩放百分比 + 操作提示 -->
+  <!-- 视图指示条（v0.14.9：右上角悬浮，只显示缩放百分比；操作提示文案已删） -->
   <div id="viewstrip">
     <span id="zoomLabel">100%</span>
-    <span id="viewHint">双指缩放 · 拖动空白平移</span>
   </div>
 
   <!-- 画布区 -->

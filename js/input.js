@@ -113,7 +113,7 @@
     }
 
     // ② 连线删线模式（两段式）：第一次点线 = 选中高亮待删，再点同一条 = 确认删除；点人物 = 筛选其相关连线
-    if (tab === "link" && App.eraser) {
+    if (tab === "link" && App.paintMode === "erase") {
       const linkId = lineAt(p.x, p.y);
       if (linkId) {
         if (App.pendingLinkDel === linkId) {
@@ -141,7 +141,7 @@
     }
 
     // ③ 角色模式：点/划角色圆 → 批量赋当前喜好度（粗线画笔）；与画线互斥
-    if (tab === "link" && App.state.ui.charMode && !App.eraser) {
+    if (tab === "link" && App.paintMode === "char") {
       const cn = nodeAt(p.x, p.y);
       if (cn) {
         App.commitHist();
@@ -162,7 +162,7 @@
 
     // ④ 连线画线：点起点
     const nid = nodeAt(p.x, p.y);
-    if (tab === "link" && !App.eraser && !App.state.ui.charMode) {
+    if (tab === "link" && App.paintMode === "link") {
       if (nid) {
         if (App.linkSource === nid) {
           // 再点一次取消

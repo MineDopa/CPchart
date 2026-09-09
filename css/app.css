@@ -21,6 +21,9 @@ body.night{
   --ink-soft:#d1d1d6; --strong-line:#aeaeb2;
 }
 *{ box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+/* rem 基准（触点铁律：1rem=10pt，触点＞4rem；新代码容器尺寸一律 rem/em，旧 px 待 2.0 迁移） */
+html{ font-size:62.5%; }
+body{ font-size:16px; } /* 正文继承链保持与旧版一致，不受基准影响 */
 html,body{ margin:0; height:100%; overflow:hidden;
   font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Helvetica Neue","Microsoft YaHei",sans-serif;
   color:var(--ink); background:var(--bg); }
@@ -193,7 +196,7 @@ body.panel-full #tabs{ display:none; }
 .sw{ width:14px; height:14px; border-radius:50%; display:inline-block; border:1px solid rgba(0,0,0,.15); flex:0 0 auto; }
 .sw-top{ width:14px; height:5px; border-radius:3px; display:inline-block; box-shadow:0 0 0 1.5px #fff; }
 .chip-row{ display:flex; gap:6px; flex-wrap:wrap; margin-bottom:6px; }
-.ctrl-row{ display:flex; align-items:center; gap:8px; margin:4px 0; font-size:13px; }
+.ctrl-row{ display:flex; align-items:center; gap:8px; margin:4px 0; font-size:13px; flex-wrap:wrap; }
 .btn{ font-size:13px; padding:7px 12px; border-radius:10px; background:var(--surf);
   border:1px solid var(--line); }
 .btn.primary{ background:var(--accent); color:#fff; border-color:var(--accent); }
@@ -211,6 +214,7 @@ body.panel-full #tabs{ display:none; }
 .paint-seg-btn + .paint-seg-btn{ margin-left:2px; }
 .paint-seg-btn .ic-svg{ width:15px; height:15px; display:block; }
 .paint-seg-btn.active{ background:var(--accent); color:#fff; }
+.paint-seg-btn .lbl{ white-space:nowrap; }
 .paint-seg-btn:not(.active) .lbl{ display:none; }
 .paint-seg-btn:focus-visible{ outline:2px solid var(--accent); outline-offset:2px; }
 .inp, select.inp, textarea.inp{ font-size:13px; border:1px solid var(--line); border-radius:8px;
@@ -236,13 +240,18 @@ input[type=range]{ accent-color:var(--accent); }
 /* 样式表编辑器行 */
 .trow{ display:flex; align-items:center; gap:6px; margin:4px 0; background:var(--surf);
   border:1px solid var(--line); border-radius:10px; padding:4px 6px; }
-.trow .tname{ flex:1; }
-.trow .tname input{ width:100%; }
+/* 图例名输入框 = 6 个字符宽（em 锚定自身 13px 字号，字号变则跟着变） */
+.trow .tname{ flex:0 0 auto; }
+.trow .tname input{ width:6em; }
 .trow input[type=text]{ border:1px solid transparent; background:transparent; font-size:13px; }
 .trow input[type=text]:focus{ border-color:var(--accent); background:var(--surf); border-radius:6px; }
 .trow input[type=color]{ width:34px; height:26px; flex:0 0 auto; }
-.pal{ display:flex; gap:3px; flex-wrap:wrap; max-width:90px; }
-.pal i{ width:15px; height:15px; border-radius:50%; border:1px solid rgba(0,0,0,.15); }
+/* 预制色板：一行横向滑动；圆点白+黑双层描环（昼夜背景都清晰） */
+.pal{ display:flex; gap:.4rem; flex-wrap:nowrap; overflow-x:auto; flex:1; min-width:0;
+  padding:.3rem 0; -webkit-overflow-scrolling:touch; scrollbar-width:none; }
+.pal::-webkit-scrollbar{ display:none; }
+.pal i{ width:1.5rem; height:1.5rem; flex:0 0 auto; border-radius:50%;
+  box-shadow: inset 0 0 0 1.5px rgba(255,255,255,.85), 0 0 0 1px rgba(0,0,0,.4); }
 /* 表项显隐：👁=进图例，🚫=已隐藏（整行淡化） */
 .trow .eye{ cursor:pointer; line-height:1; }
 .trow .eye.off{ opacity:.55; }
@@ -338,6 +347,19 @@ body.panel-full #panel{ flex:1 1 auto; max-height:none; border-top:none; }
 .log-ver{ align-self:stretch; text-align:left; font-size:12px; font-weight:700;
   color:var(--accent); margin:10px 0 2px; }
 .log-ver + .about-list{ margin-bottom:2px; }
+/* 关于页 · 更新日志折叠块：只展开最近两个版本，更早的收起且只留功能名 */
+.log-block{ align-self:stretch; text-align:left; margin:4px 0 2px;
+  border-bottom:1px solid var(--line); }
+.log-block:last-of-type{ border-bottom:none; }
+.log-block > summary{ list-style:none; cursor:pointer; display:flex; align-items:center;
+  min-height:40px; font-size:12px; font-weight:700; color:var(--accent);
+  -webkit-tap-highlight-color:transparent; }
+.log-block > summary::-webkit-details-marker{ display:none; }
+.log-block > summary::after{ content:"▸"; margin-left:auto; padding-left:8px;
+  font-size:10px; color:var(--sub); }
+.log-block[open] > summary::after{ content:"▾"; }
+.log-block > .about-list{ margin-bottom:6px; }
+.log-brief{ font-size:12px; line-height:1.7; color:var(--sub); margin:0 0 6px; }
 .about-list{ margin:0; padding:0 0 0 2px; list-style:none; align-self:stretch; text-align:left; }
 .about-list li{ font-size:13px; line-height:1.75; color:var(--ink-soft); }
 .about-list.credit li{ color:var(--ink); }

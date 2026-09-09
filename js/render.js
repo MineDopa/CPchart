@@ -146,16 +146,10 @@
     }
     if (mode === "like") {
       html += `<circle r="${inR}" fill="${likeCol || th.likeEmpty}"></circle>`;
-    } else if (mode === "avatar") {
-      html += `<circle r="${inR}" fill="${th.innerFill}"></circle>`;
-      if (hasImg) html += `<image href="${c.avatar}" x="-${imgR}" y="-${imgR}" width="${imgW}" height="${imgW}" preserveAspectRatio="xMidYMid slice" clip-path="url(#${clipId})"></image>`;
     } else {
-      // both：底白+头像；喜好吗用外圈细环
+      // avatar / both：底白 + 头像；both 的喜好色描边改在 buildNodes 外圈绘制
       html += `<circle r="${inR}" fill="${th.innerFill}"></circle>`;
       if (hasImg) html += `<image href="${c.avatar}" x="-${imgR}" y="-${imgR}" width="${imgW}" height="${imgW}" preserveAspectRatio="xMidYMid slice" clip-path="url(#${clipId})"></image>`;
-    }
-    if (mode === "both") {
-      html += `<circle r="${ringR}" fill="none" stroke="${likeCol || "#8e8e93"}" stroke-width="${ringW}"></circle>`;
     }
     return html;
   }
@@ -163,6 +157,7 @@
   function buildNodes() {
     const st = App.state;
     const th = canvasTheme();
+    const k = App.nodeR() / App.NODE_R;
     let html = "";
     st.chars.forEach((c) => {
       const isSel = App.selCharId === c.id;
@@ -171,12 +166,26 @@
       if (isSrc) { stroke = "#ff9500"; sw = 3.4; }
       else if (isSel) { stroke = "#0a84ff"; sw = 3; }
       const mode = st.ui.avatarMode;
+      const likeCol = c.like ? App.colorOf("bottom", c.like) : null;
       const innerHtml = avatarInner(c);
       const showName = st.ui.showNames;
       const nameX = 0, nameY = App.nodeR() + 16;
       const nameCol = th.nameCol;
+      // 喜好度兼容模式（both + 有喜好色）：白底遮罩 + 背景色细间隔 + 粗喜好色描边（替换原 #333 外圈）
+      let outer;
+      if (mode === "both" && likeCol && !isSrc && !isSel) {
+        const colorW = Math.max(3, 4.5 * k);
+        const spacerW = Math.max(1.5, 2.4 * k);
+        const spacerR = App.nodeR() - colorW / 2 - spacerW / 2;
+        const outerR = App.nodeR() + colorW / 2;
+        outer = `<circle r="${outerR.toFixed(2)}" fill="${th.nodeFill}" stroke="none"></circle>`
+          + `<circle r="${spacerR.toFixed(2)}" fill="none" stroke="${th.bg}" stroke-width="${spacerW.toFixed(2)}"></circle>`
+          + `<circle r="${App.nodeR().toFixed(2)}" fill="none" stroke="${likeCol}" stroke-width="${colorW.toFixed(2)}"></circle>`;
+      } else {
+        outer = `<circle class="outer" r="${App.nodeR()}" fill="${th.nodeFill}" stroke="${stroke}" stroke-width="${sw}"></circle>`;
+      }
       html += `<g class="node" data-node="${c.id}" transform="translate(${c.x},${c.y})">
-        <circle class="outer" r="${App.nodeR()}" fill="${th.nodeFill}" stroke="${stroke}" stroke-width="${sw}"></circle>
+        ${outer}
         ${innerHtml}
         ${showName ? `<text class="nm" x="${nameX}" y="${nameY}" text-anchor="middle" font-size="14" stroke="${th.bg}" stroke-width="5"
           paint-order="stroke" fill="${nameCol}">${App.esc(c.name)}</text>` : ""}
@@ -251,7 +260,7 @@
     const bottomHtml = st.tables.bottom.filter((r) => !r.hidden).map((r) =>
       `<span class="lg" data-layer="bottom" data-key="${App.esc(r.key)}"><i style="background:${r.color}"></i><b>${App.esc(r.name)}</b></span>`).join("");
     const topHtml = st.tables.top.filter((r) => !r.hidden).map((r) =>
-      `<span class="lg" data-layer="top" data-key="${App.esc(r.key)}"><i style="background:${r.color};box-shadow:0 0 0 1.5px #fff"></i><b>${App.esc(r.name)}</b></span>`).join("");
+      `<span class="lg" data-layer="top" data-key="${App.esc(r.key)}"><i style="background:${r.color};box-shadow:0 0 0 1.5px var(--legend-edge)"></i><b>${App.esc(r.name)}</b></span>`).join("");
     const arrowName = (st.meta && st.meta.arrowName) ? String(st.meta.arrowName) : "情感指向";
     const arrowHtml = arrowName
       ? `<span class="lg" data-layer="arrow" data-key="one"><b class="lg-ic">➡</b><b>${App.esc(arrowName)}</b></span>`
@@ -268,23 +277,25 @@
     o.vp.setAttribute("transform", `translate(${App.view.tx},${App.view.ty}) scale(${App.view.s})`);
   };
 
-  // 全模式常驻「当前模式」指示（写入左下角 #brushPreview）
+  // 全模式常驻「当前模式」指示（写入右上角 #brushPreview，currentColor 跟昼夜走）
   function renderModeBadge(o) {
     const t = App.activeTab || "link";
     let parts = [];
     let eraser = false;
+    let iconKey = null;
+    let label = "";
     if (t === "hand") {
-      parts.push("👋抓手");
+      iconKey = "hand"; label = "抓手";
     } else if (t === "layout") {
-      parts.push("🌐布局");
+      iconKey = "layout"; label = "布局";
     } else if (t === "person") {
-      parts.push("👤人物");
+      iconKey = "person"; label = "人物";
     } else if (t === "style") {
-      parts.push("🎨样式");
+      iconKey = "style"; label = "样式";
     } else {
       // link
       if (App.paintMode === "erase") {
-        parts.push("连线·删线");
+        label = "连线·删线";
         eraser = true;
       } else {
         // link：极简状态条——只显示非默认信息（选中的笔刷名 + 非默认箭头名）
@@ -296,8 +307,14 @@
         if (ar && ar.type !== "none") parts.push(App.esc(ar.name));
       }
     }
+    if (iconKey && typeof App.ICONS === "object" && App.ICONS[iconKey]) {
+      o.brush.innerHTML = App.ICONS[iconKey] + "<span>" + App.esc(label) + "</span>";
+      o.brush.classList.remove("hidden");
+      o.brush.classList.toggle("eraser", eraser);
+      return;
+    }
     if (!parts.length) { o.brush.classList.add("hidden"); return; } // 没有任何有效信息 → 整条隐藏
-    o.brush.innerHTML = parts.join(" · ");
+    o.brush.innerHTML = (label ? "<span>" + App.esc(label) + "</span>" : "") + parts.join(" · ");
     o.brush.classList.remove("hidden");
     o.brush.classList.toggle("eraser", eraser);
   }

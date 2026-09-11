@@ -26,12 +26,12 @@
     starLine: '<svg class="ic-svg" viewBox="0 0 48 48" fill="none" stroke="currentColor" stroke-width="4" stroke-linejoin="round"><path d="M23.9986 5L17.8856 17.4776L4 19.4911L14.0589 29.3251L11.6544 43L23.9986 36.4192L36.3454 43L33.9586 29.3251L44 19.4911L30.1913 17.4776L23.9986 5Z"/></svg>',
     starFill: '<svg class="ic-svg" viewBox="0 0 48 48" fill="none" stroke-linejoin="round"><path d="M23.9986 5L17.8856 17.4776L4 19.4911L14.0589 29.3251L11.6544 43L23.9986 36.4192L36.3454 43L33.9586 29.3251L44 19.4911L30.1913 17.4776L23.9986 5Z" fill="#f5a623" stroke="#f5a623" stroke-width="4"/></svg>',
     person: '<svg class="ic-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M5 21a7 7 0 0 1 14 0"/></svg>',
-    like:   '<svg class="ic-svg" viewBox="0 0 24 24" fill="currentColor" stroke="none"><path d="M12 21s-7-4.6-9.3-9C1.2 9 2.5 5.5 6 5.5c2 0 3.2 1.2 4 2.3.8-1.1 2-2.3 4-2.3 3.5 0 4.8 3.5 3.3 6.5C19 16.4 12 21 12 21z"/></svg>',
+    like:   '<svg class="ic-svg" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M15 8C8.92487 8 4 12.9249 4 19C4 30 17 40 24 42.3262C31 40 44 30 44 19C44 12.9249 39.0751 8 33 8C29.2797 8 25.9907 9.8469 24 12.6738C22.0093 9.8469 18.7203 8 15 8Z" fill="currentColor" stroke="currentColor" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/></svg>',
     compat: '<svg class="ic-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 8h12l-3-3M20 16H8l3 3"/></svg>',
     eye:    '<svg class="ic-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12s4-7 10-7 10 7 10 7-4 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/></svg>',
     eyeOff: '<svg class="ic-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12s4-7 10-7c2 0 3.7.7 5 1.8M22 12s-4 7-10 7c-2 0-3.7-.7-5-1.8"/><path d="M3 3l18 18"/></svg>',
     search: '<svg class="ic-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg>',
-    eraser: '<svg class="ic-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 15l6-6 6 6-3 3H8z"/><path d="M9 21h11"/></svg>',
+    eraser: '<svg class="ic-svg" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M4 42H44" stroke="currentColor" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/><path d="M31 4L7 28L13 34H21L41 14L31 4Z" fill="none" stroke="currentColor" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/></svg>',
     sun:    '<svg class="ic-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4.5"/><path d="M12 2v2.5M12 19.5V22M2 12h2.5M19.5 12H22M4.6 4.6l1.8 1.8M17.6 17.6l1.8 1.8M19.4 4.6l-1.8 1.8M6.4 17.6l-1.8 1.8"/></svg>',
     moon:   '<svg class="ic-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 13A9 9 0 1 1 11 3a7 7 0 0 0 10 10z"/></svg>',
     save:   '<svg class="ic-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 3h12l4 4v14H5z"/><path d="M8 3v6h7V3M8 21v-6h7v6"/></svg>',
@@ -42,19 +42,27 @@
     hand:   '<svg class="ic-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M7 11V6a1.5 1.5 0 0 1 3 0v4M10 10V5a1.5 1.5 0 0 1 3 0v5M13 10V6a1.5 1.5 0 0 1 3 0v5M16 9a1.5 1.5 0 0 1 3 0v5a6 6 0 0 1-6 6h-1a6 6 0 0 1-5-2.6L4 16a1.5 1.5 0 0 1 2.5-1.6L7 15"/></svg>',
     layout: '<svg class="ic-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><circle cx="12" cy="12" r="7"/><circle cx="12" cy="12" r="10.5"/></svg>',
     globe:  '<svg class="ic-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3c3 3.5 3 14.5 0 18M12 3c-3 3.5-3 14.5 0 18"/></svg>',
-    link:   '<svg class="ic-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 12h6M10 8a3 3 0 0 0 0 6M14 8a3 3 0 0 1 0 6"/></svg>',
+    link:   '<svg class="ic-svg" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M13.5 39.3706C16.3908 41.6439 20.0371 42.9999 24 42.9999C27.9629 42.9999 31.6092 41.6439 34.5 39.3706" stroke="currentColor" stroke-width="4"/><path d="M19 9.74707C12.0513 11.8822 7 18.3511 7 25.9999C7 27.9247 7.31989 29.7748 7.9094 31.4999" stroke="currentColor" stroke-width="4"/><path d="M29 9.74707C35.9487 11.8822 41 18.3511 41 25.9999C41 27.9247 40.6801 29.7748 40.0906 31.4999" stroke="currentColor" stroke-width="4"/><path d="M43 36C43 37.3416 42.4716 38.5597 41.6117 39.4577C40.7015 40.4082 39.4199 41 38 41C35.2386 41 33 38.7614 33 36C33 33.9899 34.1861 32.2569 35.8967 31.4626C36.536 31.1657 37.2487 31 38 31C40.7614 31 43 33.2386 43 36Z" fill="none" stroke="currentColor" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/><path d="M15 36C15 37.3416 14.4716 38.5597 13.6117 39.4577C12.7015 40.4082 11.4199 41 10 41C7.23858 41 5 38.7614 5 36C5 33.9899 6.18614 32.2569 7.89667 31.4626C8.53604 31.1657 9.24867 31 10 31C12.7614 31 15 33.2386 15 36Z" fill="none" stroke="currentColor" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/><path d="M29 9C29 10.3416 28.4716 11.5597 27.6117 12.4577C26.7015 13.4082 25.4199 14 24 14C21.2386 14 19 11.7614 19 9C19 6.98991 20.1861 5.25686 21.8967 4.4626C22.536 4.16572 23.2487 4 24 4C26.7614 4 29 6.23858 29 9Z" fill="none" stroke="currentColor" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/></svg>',
     close:  '<svg class="ic-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 6l12 12M18 6L6 18"/></svg>',
     dlIn:   '<svg class="ic-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12M7 10l5 5 5-5"/><path d="M4 19h16"/></svg>',
     dlOut:  '<svg class="ic-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 21V9M7 14l5-5 5 5"/><path d="M4 5h16"/></svg>',
     pkg:    '<svg class="ic-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 8l9-5 9 5v8l-9 5-9-5z"/><path d="M3 8l9 5 9-5M12 13v8"/></svg>',
     plus:   '<svg class="ic-svg" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M24.0605 10L24.0239 38" stroke="currentColor" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/><path d="M10 24L38 24" stroke="currentColor" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/></svg>',
     distributeH: '<svg class="ic-svg" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M8 43L8 5" stroke="currentColor" stroke-width="4" stroke-linecap="round"/><path d="M40 43L40 5" stroke="currentColor" stroke-width="4" stroke-linecap="round"/><rect x="20" y="14" width="8" height="20" fill="none" stroke="currentColor" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/></svg>',
-    help:   '<svg class="ic-svg" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M24 44C29.5228 44 34.5228 41.7614 38.1421 38.1421C41.7614 34.5228 44 29.5228 44 24C44 18.4772 41.7614 13.4772 38.1421 9.85786C34.5228 6.23858 29.5228 4 24 4C18.4772 4 13.4772 6.23858 9.85786 9.85786C6.23858 13.4772 4 18.4772 4 24C4 29.5228 6.23858 34.5228 9.85786 38.1421C13.4772 41.7614 18.4772 44 24 44Z" fill="none" stroke="currentColor" stroke-width="4" stroke-linejoin="round"/><path d="M24 28.6248V24.6248C27.3137 24.6248 30 21.9385 30 18.6248C30 15.3111 27.3137 12.6248 24 12.6248C20.6863 12.6248 18 15.3111 18 18.6248" stroke="currentColor" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/><path fill-rule="evenodd" clip-rule="evenodd" d="M24 37.6248C25.3807 37.6248 26.5 36.5055 26.5 35.1248C26.5 33.7441 25.3807 32.6248 24 32.6248C22.6193 32.6248 21.5 33.7441 21.5 35.1248C21.5 36.5055 22.6193 37.6248 24 37.6248Z" fill="currentColor"/></svg>',
+    help:   '<svg class="ic-svg" viewBox="0 0 24 24" fill="none" aria-hidden="true"><circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="2"/><path d="M9.6 9.2a2.5 2.5 0 1 1 3.4 2.3c-.6.3-1 .9-1 1.6v.4" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><circle cx="12" cy="17.2" r="1.1" fill="currentColor"/></svg>',
     // 箭头：单箭头向右（取自素材库的「箭头上」svg，旋转 90°）
     arrowR: '<svg class="ic-svg" viewBox="0 0 48 48" fill="none"><g transform="rotate(90 24 24)"><path d="M24 6V42" stroke="currentColor" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/><path d="M12 18L24 6L36 18" stroke="currentColor" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/></g></svg>',
     ringB:  '<svg class="ic-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="4"><circle cx="12" cy="12" r="7"/></svg>',
     ringT:  '<svg class="ic-svg" viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="12" r="6.5"/></svg>',
     swap:   '<svg class="ic-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 8h13M14 4l4 4-4 4M20 16H7M10 20l-4-4 4-4"/></svg>',
+    // 以下 7 个：二级菜单项图标（素材库矢量，currentColor 跟随主题）
+    newDoc: '<svg class="ic-svg" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M19 10V7C19 5.89543 19.8954 5 21 5H41C42.1046 5 43 5.89543 43 7V29C43 30.1046 42.1046 31 41 31H37" stroke="currentColor" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/><rect x="5" y="18" width="24" height="24" rx="2" fill="none" stroke="currentColor" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/><path d="M17 25V35" stroke="currentColor" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/><path d="M12 30H22" stroke="currentColor" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/></svg>',
+    send:   '<svg class="ic-svg" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M43 5L29.7 43L22.1 25.9L5 18.3L43 5Z" stroke="currentColor" stroke-width="4" stroke-linejoin="round"/><path d="M43.0001 5L22.1001 25.9" stroke="currentColor" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/></svg>',
+    copyOne:'<svg class="ic-svg" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M13 38H41V16H30V4H13V38Z" fill="none" stroke="currentColor" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/><path d="M30 4L41 16" stroke="currentColor" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/><path d="M7 20V44H28" stroke="currentColor" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/><path d="M19 20H23" stroke="currentColor" stroke-width="4" stroke-linecap="round"/><path d="M19 28H31" stroke="currentColor" stroke-width="4" stroke-linecap="round"/></svg>',
+    filePlus:'<svg class="ic-svg" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M40 23V14L31 4H10C8.89543 4 8 4.89543 8 6V42C8 43.1046 8.89543 44 10 44H22" stroke="currentColor" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/><path d="M33 29V43" stroke="currentColor" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/><path d="M26 36H33H40" stroke="currentColor" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/><path d="M30 4V14H40" stroke="currentColor" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/></svg>',
+    filePen:'<svg class="ic-svg" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M40 23V14L31 4H10C8.89543 4 8 4.89543 8 6V42C8 43.1046 8.89543 44 10 44H22" stroke="currentColor" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/><path d="M32 44L42 34L38 30L28 40V44H32Z" fill="none" stroke="currentColor" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/><path d="M30 4V14H40" stroke="currentColor" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/></svg>',
+    peopleGr:'<svg class="ic-svg" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg"><circle cx="14" cy="29" r="5" fill="none" stroke="currentColor" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/><circle cx="34" cy="29" r="5" fill="none" stroke="currentColor" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/><circle cx="24" cy="9" r="5" fill="none" stroke="currentColor" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/><path d="M24 44C24 38.4772 19.5228 34 14 34C8.47715 34 4 38.4772 4 44" stroke="currentColor" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/><path d="M44 44C44 38.4772 39.5228 34 34 34C28.4772 34 24 38.4772 24 44" stroke="currentColor" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/><path d="M34 24C34 18.4772 29.5228 14 24 14C18.4772 14 14 18.4772 14 24" stroke="currentColor" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/></svg>',
+    imgOut: '<svg class="ic-svg" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M44 24C44 22.8954 43.1046 22 42 22C40.8954 22 40 22.8954 40 24H44ZM24 8C25.1046 8 26 7.10457 26 6C26 4.89543 25.1046 4 24 4V8ZM39 40H9V44H39V40ZM8 39V9H4V39H8ZM40 24V39H44V24H40ZM9 8H24V4H9V8ZM9 40C8.44772 40 8 39.5523 8 39H4C4 41.7614 6.23857 44 9 44V40ZM39 44C41.7614 44 44 41.7614 44 39H40C40 39.5523 39.5523 40 39 40V44ZM8 9C8 8.44772 8.44771 8 9 8V4C6.23858 4 4 6.23857 4 9H8Z" fill="currentColor"/><path d="M6 35L16.6931 25.198C17.4389 24.5143 18.5779 24.4953 19.3461 25.1538L32 36" stroke="currentColor" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/><path d="M28 31L32.7735 26.2265C33.4772 25.5228 34.5914 25.4436 35.3877 26.0408L42 31" stroke="currentColor" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/><path d="M32 13L37 18L42 13" stroke="currentColor" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/><path d="M37 6L37 18" stroke="currentColor" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/></svg>',
   };
   App.ICONS = ICONS; // 暴露给 render.js 用（抓手 chip 内嵌 SVG）
 
@@ -76,7 +84,14 @@
     if (home) home.classList.toggle("hidden", !App.panelFull);
     // 离开拖动状态：清掉 inline 高度（让 class 重新接管）
     if (!(opts && opts.keepDragHeight)) {
-      const p = $("panel"); if (p) { p.classList.remove("dragging"); p.style.maxHeight = ""; }
+      const p = $("panel");
+      if (p) {
+        p.classList.remove("dragging");
+        // 强制回流：让 transition 在同帧内立即恢复，否则浏览器会把「去过渡 + 改高度」
+        // 合并成一次跳变，松手吸附就没有动画了（v0.14.17）
+        void p.offsetHeight;
+        p.style.maxHeight = "";
+      }
       if (head) head.classList.remove("dragging");
     }
   };
@@ -108,10 +123,10 @@
     App.pendingLinkDel = null;
     if (m === "char") {
       App.toast(App.brush && App.brush.bottom
-        ? ("角色模式开：点/划人物赋「" + App.nameOf("bottom", App.brush.bottom) + "」")
-        : "角色模式开：先选一个粗线（喜好度）笔刷");
+        ? I18N.t("toast_char_brush").replace("{{brush}}", App.nameOf("bottom", App.brush.bottom))
+        : I18N.t("toast_char_nobrush"));
     } else if (m === "erase") {
-      App.toast("删线模式开：点连线两段式删除，点人物筛选其相关连线");
+      App.toast(I18N.t("toast_erase"));
     }
     if (App.render) App.render();
     if (App.renderPanel) App.renderPanel();
@@ -179,13 +194,21 @@
     const night = !!(App.state.ui && App.state.ui.night);
     return `<div class="pg">
       <div class="ctrl-row">外观：
-        <button class="chip ${!night ? "on" : ""}" data-cmd="ui-night" data-val="day">${ICONS.sun} 日间</button>
-        <button class="chip ${night ? "on" : ""}" data-cmd="ui-night" data-val="night">${ICONS.moon} 夜间</button>
+        <div class="paint-seg" role="tablist" aria-label="外观模式">
+          <button class="paint-seg-btn ${!night ? "active" : ""}" data-cmd="ui-night" data-val="day" title="日间模式：浅色外壳">${ICONS.sun}<span class="lbl">日间</span></button>
+          <button class="paint-seg-btn ${night ? "active" : ""}" data-cmd="ui-night" data-val="night" title="夜间模式：深色外壳">${ICONS.moon}<span class="lbl">夜间</span></button>
+        </div>
+        <span class="seg-spacer"></span>
+        <span class="sw-txt">背景色：</span><input type="color" data-set="bg" value="${App.state.bg}">
       </div>
       <div class="pg-t"><span class="pg-t-l">${ICONS.ringB} 底层色（喜好等级 · 粗线）</span><button class="mini" data-cmd="tbl-add" data-layer="bottom" aria-label="添加底层色">${ICONS.plus}</button></div>
       <div>${tableRows("bottom", false)}</div>
       <div class="pg-t"><span class="pg-t-l">${ICONS.ringT} 顶层色（关系类型 · 细线+白描边）</span><button class="mini" data-cmd="tbl-add" data-layer="top" aria-label="添加顶层色">${ICONS.plus}</button></div>
       <div>${tableRows("top", false)}</div>
+      <div class="pg-t">${ICONS.arrowR} 箭头含义</div>
+      <div class="trow"><span class="lg-ic">${ICONS.arrowR}</span>
+        <span class="tname"><input type="text" data-set="arrowName" value="${App.esc(arrowName)}" placeholder="情感指向"></span>
+      </div>
       <div class="pg-t">细线描边样式</div>
       <div class="ctrl-row">粗细
         <input type="range" data-set="thinW" min="1" max="6" step="0.2" value="${App.state.ui.thinW || 2.2}" style="flex:1">
@@ -193,11 +216,6 @@
       </div>
       <div class="ctrl-row"><span class="sw-row"><span class="sw-txt">虚线</span><span class="swbox ${App.state.ui.thinDash ? "on" : ""}" data-cmd="thin-dash" role="switch" aria-checked="${App.state.ui.thinDash}" aria-label="细线虚线描边"><i></i></span></span>
         <span style="color:var(--sub);font-size:11px">细线（顶层关系线）的线宽与实线/虚线</span></div>
-      <div class="pg-t">${ICONS.arrowR} 箭头含义</div>
-      <div class="trow"><span class="lg-ic">${ICONS.arrowR}</span>
-        <span class="tname"><input type="text" data-set="arrowName" value="${App.esc(arrowName)}" placeholder="情感指向"></span>
-      </div>
-      <div class="ctrl-row">背景色：<input type="color" data-set="bg" value="${App.state.bg}"></div>
     </div>`;
   }
 
@@ -232,11 +250,8 @@
           <button class="paint-seg-btn ${st.ui.avatarMode === "both" ? "active" : ""}" data-cmd="pm-mode" data-val="both" title="头像+喜好度一起显示">${ICONS.compat}<span class="lbl">兼容</span></button>
         </div>
         <span class="seg-spacer"></span>
+        <span class="sw-row"><span class="sw-txt">名字</span><span class="swbox ${st.ui.showNames ? "on" : ""}" data-cmd="pm-names" role="switch" aria-checked="${st.ui.showNames}" aria-label="显示名字"><i></i></span></span>
         <button class="circ-fab" data-cmd="pm-batch" title="按圈批量编辑角色名单" aria-label="批量编辑名单">${IC_PEOPLE_PLUS}</button>
-      </div>
-      <div class="ctrl-row">
-        <span>显示名字：</span>
-        <button class="chip ${st.ui.showNames ? "on" : ""}" data-cmd="pm-names">${st.ui.showNames ? "开" : "关"}</button>
       </div>
       <div class="pg-t"><span class="pg-t-l">角色列表（${st.chars.length}）</span><span class="pg-t-r">点击行内 📷 上传头像</span></div>
       ${rows || '<div class="hint">暂无角色，点上方圆形按钮按圈录入</div>'}
@@ -251,7 +266,7 @@
     const top = st.tables.top.map((r) => `<button class="chip ${b.top === r.key ? "on" : ""}" data-cmd="br-t" data-key="${r.key}"><span class="sw sw-top" style="background:${r.color}"></span>${App.esc(r.name)}</button>`).join("");
     const arrow = st.tables.arrow.map((r) => {
       const icon = r.type === "one" ? "➜" : r.type === "both" ? "⇄" : "—";
-      return `<button class="chip ${b.arrow === r.key ? "on" : ""}" data-cmd="br-a" data-key="${r.key}">${icon}${App.esc(r.name)}</button>`;
+      return `<button class="chip ${b.arrow === r.key ? "on" : ""}" data-cmd="br-a" data-key="${r.key}"><span class="chip-ic">${icon}</span>${App.esc(r.name)}</button>`;
     }).join("");
     return { bottom, top, arrow };
   }
@@ -266,7 +281,7 @@
       const sel = App.selCharId;
       list = list.filter((k) => k.src === sel || k.dst === sel);
     }
-    if (!list.length) return `<div class="hint">${selName ? `「${App.esc(selName)}」暂无连线` : "暂无连线。先在下方选笔刷，再点角色拖向另一个角色。"}</div>`;
+    if (!list.length) return `<div class="hint">${selName ? I18N.t("link_empty_filtered").replace("{{name}}", App.esc(selName)) : I18N.t("link_empty_none")}</div>`;
     return list.map((k) => {
       const a = byId[k.src], b = byId[k.dst];
       if (!a || !b) return "";
@@ -317,7 +332,7 @@
       const delPart = ringNo > 1
         ? `<button class="mini danger" data-cmd="ly-delring" data-ring="${ringNo}" title="删除该轨道">${ICONS.del}</button>`
         : "";
-      return `<div class="ctrl-row"><span style="width:44px">圈${ringNo}</span>
+      return `<div class="ctrl-row ring-row"><span style="width:44px">圈${ringNo}</span>
         半径<input type="number" class="inp" style="width:76px" data-set="rad" data-ring="${ringNo}" value="${Math.round(r.rad)}" min="40">
         ${slotPart}<span style="color:#999;font-size:11px">${n}人</span>${delPart}</div>`;
     }).join("");
@@ -333,7 +348,7 @@
         <span class="seg-spacer"></span>
         <button class="hint-toggle" data-cmd="ly-hint" aria-expanded="${st.ui.layoutHint ? "true" : "false"}" aria-controls="layoutHint" title="${st.ui.layoutHint ? "收起说明" : "展开说明"}">${ICONS.help}</button>
       </div>
-      <div id="layoutHint" class="hint ${st.ui.layoutHint ? "" : "hint-collapsed"}">拖拽角色=换圈/沿圈移动；<b>槽位关</b>时可停在轨道任意角度（间距可以不规则，不会自动均分）；<b>槽位开</b>时自动吸附到就近空槽，多余空槽显示成虚线占位圈。想恢复整齐再点「平均排布」。拖动圈顶蓝点=改半径；点角色出现操作条。</div>
+      <div id="layoutHint" class="hint ${st.ui.layoutHint ? "" : "hint-collapsed"}">${I18N.t("layout_hint")}</div>
       <div class="pg-t">角色圆圈</div>
       <div class="ctrl-row">大小
         <input type="range" data-set="nodeR" min="${App.NODE_R_MIN}" max="${App.NODE_R_MAX}" step="1" value="${App.nodeR()}" style="flex:1">
@@ -558,48 +573,9 @@
     App._okCb = onOk;
   };
   App.helpModal = function () {
-    App.openModal(`${modalHead("CP Chart 使用指南")}
-      <div class="help-card">
-        <div class="help-intro">一个小工具，专门用来画人物之间的关系连线图。数据都存在你自己的设备上，不会上传到任何服务器。</div>
-
-        <div class="help-h">三步上手</div>
-        <div class="help-step"><b>第一步 · 录入人物</b>：点底部「人物」→「批量编辑名单」，按圈写，一圈一行：<br>
-          <code>1: 甲，乙，丙</code><br><code>2: 丁，戊，己，庚</code><br>
-          中英文逗号、空格都能分隔。<code>圆心: 某人</code> 或 <code>0: 某人</code> 把某人放最中间；直接写 <code>1:</code> 也可以，圆心就先空着。</div>
-        <div class="help-step"><b>第二步 · 画连线</b>：点底部「连线」，先选好三样：<br>
-          ◯ 粗线 = 喜好度（本命 / 很喜欢 / 路好 / 不吃）<br>
-          ● 细线 = 关系类型（爱情 / 友情 / 亲情 / QPR）<br>
-          ➜ 箭头 = 方向（无 / 单箭头 / 双箭头）<br>
-          然后在角色圆上按住，拖到另一个角色上松手，线就画好了。同一对人后画的会盖掉先画的；A→B 和 B→A 的单箭头可以各画各的，用不同颜色区分。</div>
-        <div class="help-step"><b>第三步 · 导出</b>：点画布右侧的「菜单」→ 可以导出图片存相册、复制名单文本、备份完整快照，或直接发布笔记。</div>
-
-        <div class="help-h">各 Tab 是干嘛的</div>
-        <div class="help-tab"><b>样式</b>：调颜色、改图例名字、决定哪些类型显示/隐藏、换背景色</div>
-        <div class="help-tab"><b>人物</b>：导入或编辑名单、传头像、设喜好度、定圆心</div>
-        <div class="help-tab"><b>连线</b>：选笔刷、画线/删线、批量整理、看连线记录</div>
-        <div class="help-tab"><b>布局</b>：拖动换圈、调圈大小、加/减轨道、一键均匀排布</div>
-        <div class="help-tab"><b>抓手</b>：纯看图、隐藏界面截图、存图片</div>
-
-        <div class="help-h">常用操作小贴士</div>
-        <div class="help-tip">
-          • <b>拖角色换圈</b>：布局模式按住角色，拖到目标圈附近松手<br>
-          • <b>调圈半径</b>：拖圈顶 12 点方向的蓝色小圆点，或在布局面板输入数值<br>
-          • <b>删线</b>：连线 →「${ICONS.eraser} 删线模式」，点哪条删哪条<br>
-          • <b>撤销/重做</b>：画布右侧悬浮 ↩︎ / ↪︎ 可回退几乎所有操作<br>
-          • <b>改图名 / 填表人</b>：菜单 → 工具 → 改图名 / 填表人<br>
-          • <b>缩放/平移</b>：双指缩放，单指拖空白区域平移<br>
-          • <b>找不着图了？</b>点画布右侧悬浮 <b>¤ 定位坐标</b>，圆心立刻回到画面正中，并自动缩放到全部轨道可见<br>
-          • <b>图例直切</b>：点画布左上角图例色块可直接切换对应笔刷</div>
-
-        <div class="help-h">关于数据安全</div>
-        <div class="help-tip">
-          • 数据只存在你这台设备的本地草稿里，不会上传、不会外泄<br>
-          • 编辑会自动存草稿；想长期保存就点「导出完整快照」，把那段文本发到别的设备再「导入快照」就能恢复<br>
-          • 快照不含头像，导入后头像要重新传一下</div>
-
-        <div class="help-end">还有问题？点「菜单 → 关于」能看到版本和作者信息。祝你用得顺手！</div>
-      </div>
-      <div class="modal-btns"><button class="btn primary" data-cmd="m-close">知道了</button></div>`);
+    App.openModal(modalHead(I18N.t("help_title")) + I18N.t("help_body")
+      .replace("{{eraser}}", ICONS.eraser)
+      .replace("{{ok}}", I18N.t("btn_ok")));
   };
 
   // 关于页 · 更新日志数据源（发新版时把新版本插到数组最前，展开范围自动重置）
@@ -607,6 +583,61 @@
   // 规则：只展开最近 ABOUT_LOG_OPEN 个版本并显示「功能：如何使用」；更早的收起，且只留「功能」名
   const ABOUT_LOG_OPEN = 2;
   const ABOUT_LOG = [
+    { ver: "v0.15.0", date: "2026-09-11 18:30", items: [
+      { n: "填写格式换代", h: "文本改成一块一块写，标题、布局、关系各占一块，更好读" },
+      { n: "样式只写改动", h: "内置一份默认样式表，只想换颜色就只写颜色，其余自动继承" },
+      { n: "喜好分成两类", h: "既能标「喜欢这个角色」，也能单独标「喜欢这对关系」" },
+    ], fixes: [] },
+    { ver: "v0.14.20", date: "2026-09-11 06:30", items: [
+      { n: "镜像同步 GitHub", h: "整理记忆并把 web/ 镜像推到 GitHub，公开版与开发版一致" },
+    ], fixes: [] },
+    { ver: "v0.14.19", date: "2026-09-10 23:40", items: [
+      { n: "菜单图标换新", h: "导入/保存菜单七项都加了矢量图标，一眼对上功能" },
+      { n: "模式图标换新", h: "连线用环形连接、删线用橡皮擦，返回键换家图标" },
+    ], fixes: [] },
+    { ver: "v0.14.18", date: "2026-09-10 22:45", items: [
+      { n: "导入图标改成上传", h: "菜单里导入钮的方向正过来了，不再是下载箭头" },
+      { n: "导入菜单精简三项", h: "只留建立新图、增量导入、全量编辑三件事" },
+      { n: "发布钮变红", h: "「发布小红书笔记」做了正负形处理，红底反白更醒目" },
+    ], fixes: [ "修复【导入按钮】的【图标配反了（用成下载箭头）】问题" ] },
+    { ver: "v0.14.17", date: "2026-09-10 22:15", items: [
+      { n: "面板拖动跟手了", h: "上下拖面板能实时跟手指变高，松手有动画" },
+      { n: "强制声明清干净", h: "全站只剩一处必须的最高级声明，其余改回正常" },
+    ], fixes: [ "修复【面板拖动】的【最高级声明压掉实时高度，拖动不跟手】问题" ] },
+    { ver: "v0.14.16", date: "2026-09-10 22:00", items: [
+      { n: "问号真正统一", h: "三处「?」共用同一条样式规则，与写法说明钮一致" },
+      { n: "旧文档清出根目录", h: "已完结文档和老安装包移进 _rubbish，不再干扰" },
+    ], fixes: [ "修复【三个「?」】的【各写各的尺寸、没共用同一条规则】问题" ] },
+    { ver: "v0.14.15", date: "2026-09-10 21:40", items: [
+      { n: "三个问号全统一", h: "顶栏/面板/弹窗的「?」同「写法说明」钮同款同大，共用一条样式" },
+      { n: "图例描边统一", h: "本命圆点和爱情短横条都用 border 描边，视感一致" },
+      { n: "名字开关改滑块", h: "「显示名字」变成滑块开关，和批量编辑按钮同一行" },
+      { n: "心形换成新画法", h: "喜好度的心形图标重画，不再画歪" },
+    ], fixes: [ "修复【弹窗右上角】的【问号和关闭×没上下居中】问题" ] },
+    { ver: "v0.14.14", date: "2026-09-10 20:45", items: [
+      { n: "夜间按钮全变白", h: "添加轨道等按钮夜间黑字改纯白，看得清了" },
+      { n: "圈行图标放大右置", h: "布局页圈行的删除钮放大到20并靠右对齐" },
+      { n: "问号钮去掉外框", h: "面板的「?」帮助钮去边框，图标放大到28" },
+    ], fixes: [ "修复【人物列表按钮对齐】的【上版本一条样式被坏字符写坏不生效】问题" ] },
+    { ver: "v0.14.13", date: "2026-09-10 19:45", items: [
+      { n: "控件尺寸统一对齐", h: "图例圆点 1.4rem、帮助钮 2rem、取色器 1.5rem，按 rem 对齐" },
+      { n: "箭头 chip 留间隔", h: "双箭头等 chip 的图标和文字之间加 gap，像 QPR 一样" },
+      { n: "人物列表去白底", h: "下拉框背景改跟面板走、星标与垃圾桶垂直对齐" },
+      { n: "日间描边改浅灰蓝", h: "日间模式色块描边从深黑改浅灰蓝 #c9d1d9" },
+    ], fixes: [] },
+    { ver: "v0.14.12", items: [
+      { n: "行高统一对齐", h: "面板每行等高、内容垂直居中，行与行不再里出外进" },
+      { n: "图标文字对齐", h: "图标与文字走同一条垂直中线（模式徽章、底栏、按钮）" },
+      { n: "日间夜间并成胶囊", h: "「日间/夜间」复用连线模式的胶囊控件，去掉两个圆片" },
+    ], fixes: [] },
+    { ver: "v0.14.11", date: "2026-09-10", items: [
+      { n: "背景色并进外观行", h: "「背景色」挪进「外观：日间/夜间」同一行，配色集中一处" },
+      { n: "色块描边改实色", h: "色点外描边去掉透明度，昼夜都看得清；取色框加同款描边" },
+      { n: "面板把手去箭头", h: "把手上/下箭头删掉，只留中间那根短杠" },
+    ], fixes: [] },
+    { ver: "v0.14.10", date: "2026-09-10", items: [
+      { n: "文案软代码化", h: "文案集中到 i18n.js，改字不动 ui.js" },
+    ], fixes: [] },
     { ver: "v0.14.9", date: "2026-09-10 02:29", items: [
       { n: "面板行内收纳", h: "批量编辑钮进头像行、ⓘ进排布行、笔刷行并排" },
       { n: "缩放条只留数字", h: "右上角只剩「41%」，提示文案删掉" },
@@ -694,8 +725,9 @@
     }).join("");
   }
 
-  // 关于页（P12 · 全屏信息卡）：版本号跟随当前开发包 = v0.14.0（线上过审包仍为 v0.12.0）；容器版纯本地静态内容、无外链；
+  // 关于页（P12 · 全屏信息卡）：版本号跟随当前开发包；容器版纯本地静态内容、无外链；
   // 网页分流版会在末尾追加开源仓库入口（App.renderAboutExtra；容器版不加载该覆盖层 → 钩子返回空）
+  // 固定文案已软代码化至 js/i18n.js（about_* / btn_ok），改文案不必动此处
   App.aboutModal = function () {
     App.openModal(`<div class="about-page">
         <div class="about-logo"><svg width="64" height="64" viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -708,31 +740,26 @@
           <line x1="52" y1="52" x2="40" y2="40" stroke="currentColor" stroke-width="2"></line>
           <text x="32" y="37" font-size="11" text-anchor="middle" fill="currentColor" font-weight="bold">CP</text>
         </svg></div>
-        <div class="about-name">CP Chart <em>v0.14.0</em></div>
-        <div class="about-sub">画人物关系连线的小工具 · 小红书离线版</div>
-        <div class="about-date">更新于 2026-09-09</div>
+        <div class="about-name">CP Chart <em>v0.14.20</em></div>
+        <div class="about-sub">${I18N.t("about_sub")}</div>
+        <div class="about-date">${I18N.t("about_date")}</div>
 
-        <div class="about-sec">📌 更新日志</div>
+        <div class="about-sec">${I18N.t("about_sec_log")}</div>
         ${renderAboutLog()}
 
-        <div class="about-sec">🔮 未来前瞻</div>
+        <div class="about-sec">${I18N.t("about_sec_future")}</div>
         <ul class="about-list">
-          <li>视图记忆：导出或切 Tab 后保留当前缩放与平移位置</li>
-          <li>UI 布局重构：界面结构整体重排，操作更顺手</li>
-          <li>手感升级：触控与交互细节打磨（触点放大、反馈更跟手）</li>
-          <li class="ellipsis">更多功能期待反馈</li>
+          ${I18N.txt.about_future.map(function (s) { return "<li>" + s + "</li>"; }).join("")}
         </ul>
 
-        <div class="about-sec">👤 制作</div>
+        <div class="about-sec">${I18N.t("about_sec_credit")}</div>
         <ul class="about-list credit">
-          <li>小红书号：6357261896</li>
-          <li>小红书小工具@CP-Chart</li>
-          <li>基于 vibecoding 构建</li>
+          ${I18N.txt.about_credit.map(function (s) { return "<li>" + s + "</li>"; }).join("")}
         </ul>
 
         ${App.renderAboutExtra ? App.renderAboutExtra() : ""}
 
-        <div class="about-btn"><button class="btn primary" data-cmd="m-close">知道了</button></div>
+        <div class="about-btn"><button class="btn primary" data-cmd="m-close">${I18N.t("btn_ok")}</button></div>
       </div>`, true);
   };
 
@@ -801,11 +828,12 @@
       };
       const setLiveHeight = (ratio) => {
         const p = $("panel"); if (!p) return;
-        p.classList.add("dragging");
         p.style.maxHeight = (ratio * 100).toFixed(1) + "vh";
-        head.classList.add("dragging");
       };
       let active = false, moved = false, startY = 0, startRatio = 0, pid = -1;
+      let rafId = 0, pendingRatio = 0;
+      // rAF 节流：高刷屏（120Hz）下 pointermove 每帧多次触发，合并成一次写样式，避免掉帧
+      const flushHeight = () => { rafId = 0; setLiveHeight(pendingRatio); };
       head.addEventListener("pointerdown", (e) => {
         if (e.button != null && e.button !== 0) return;
         active = true; moved = false;
@@ -814,17 +842,28 @@
       });
       head.addEventListener("pointermove", (e) => {
         if (!active) return;
-        const dy = e.clientY - startY;
-        if (!moved && Math.abs(dy) < 8) return; // 8px 阈值，避免误触切档
-        moved = true;
+        let dy = e.clientY - startY;
+        if (!moved) {
+          if (Math.abs(dy) < 8) return; // 8px 阈值，避免误触切档
+          moved = true;
+          // 阈值补偿：把起点的 8px 让掉，手指一过阈值就立刻跟手，不会先顿一下
+          startY += dy > 0 ? 8 : -8;
+          dy = e.clientY - startY;
+          // 折叠态 #panel 是 display:none，不先放出来拖动全程看不见面板（v0.14.17）
+          if (App.panelMode === "collapsed") App.setPanelMode("half", { keepDragHeight: true });
+          const p0 = $("panel");
+          if (p0) p0.classList.add("dragging"); // 关过渡 + 视觉反馈，只加一次
+          head.classList.add("dragging");
+        }
         const vh = window.innerHeight || 800;
         // 向上拖 dy<0 高度增大，向下拖 dy>0 高度减小
-        const newRatio = Math.max(0, Math.min(0.98, startRatio + (-dy) / vh));
-        setLiveHeight(newRatio);
+        pendingRatio = Math.max(0, Math.min(0.98, startRatio + (-dy) / vh));
+        if (!rafId) rafId = requestAnimationFrame(flushHeight);
       });
       const endDrag = () => {
         if (!active) return;
         active = false;
+        if (rafId) { cancelAnimationFrame(rafId); rafId = 0; setLiveHeight(pendingRatio); }
         if (!moved) {
           // 单击：循环切档
           const seq = ["collapsed", "half", "full"];
@@ -1498,19 +1537,18 @@
 
   // ===== 径向主菜单 + 二级窗口 =====
   const SUBMENU = {
+    // 导入菜单精简为三项（v0.14.18）：建立新图 / 增量导入（批量录入 Tab，只增不删）
+    // / 全量编辑（完整数据 Tab，可全量查看与覆盖导入）
     import: { title: "导入", items: [
-      { menu: "impnames", label: "导入人物名单" },
-      { menu: "edpeople", label: "编辑人物名单" },
-      { menu: "impsnap",  label: "导入完整数据" },
-      { menu: "edlink",   label: "编辑 / 导入导出连线" },
-      { menu: "rename",   label: "改图名 / 填表人" },
-      { menu: "new",      label: "建立新连线图" },
+      { menu: "new",      label: "建立新连线图",  icon: "newDoc" },
+      { menu: "edpeople", label: "增量导入数据",  icon: "filePlus" },
+      { menu: "expsnap",  label: "全量编辑数据",  icon: "filePen" },
     ]},
     save: { title: "保存 / 导出", items: [
-      { menu: "publish",  label: "发布笔记" },
-      { menu: "img",      label: "导出为图片" },
-      { menu: "expnames", label: "导出人物名单" },
-      { menu: "expsnap",  label: "导出完整数据" },
+      { menu: "publish",  label: "发布小红书笔记", cls: "hl-danger", icon: "send" },
+      { menu: "img",      label: "导出图片",     icon: "imgOut" },
+      { menu: "expsnap",  label: "导出完整数据",  icon: "copyOne" },
+      { menu: "expnames", label: "导出人物名单",  icon: "peopleGr" },
     ]},
   };
 
@@ -1555,7 +1593,7 @@
     if (!cfg) return;
     $("subMenuTitle").textContent = cfg.title;
     $("subMenuList").innerHTML = cfg.items.map((it) =>
-      `<button class="sub-item" data-menu="${it.menu}">${it.label}</button>`).join("");
+      `<button class="sub-item${it.cls ? " " + it.cls : ""}" data-menu="${it.menu}">${it.icon ? ICONS[it.icon] : ""}<span class="sub-label">${it.label}</span></button>`).join("");
     root.classList.remove("hidden");
     root.querySelectorAll(".sub-item").forEach((it) => {
       it.addEventListener("click", () => { closeSubMenu(); onMenu(it.getAttribute("data-menu")); });
@@ -1568,17 +1606,20 @@
 
   // ---- 统一编辑器（v1.0 #7）：人物 / 连线 / 完整数据 三 Tab，共用现有弹窗形态 ----
   var ED_TABS = [["people", "批量录入"], ["link", "逐条同步"], ["data", "生成数据包"]];
-  var ED_PH = {
-    people: "0：我\n1：甲，乙，丙\n2：丁，戊",
-    link: "/* 该数据由 CP Chart 导出 | 解读格式见「CPC 语言说明」 */\n#标题# 示例关系图\n#布局#\n0: 我\n1: 甲,乙,丙\n#喜好#\n本命: 甲,乙; 路好: 丙;\n#连线#\n爱情: 甲->乙, 乙->甲;\n友情: 甲-丙;",
-  };
+
+  // 导入提示：把软校验（引用了不存在的角色 / 图例词未定义等）带出来，别让用户白写
+  function edWarnNote(r) {
+    if (!r || !r.warns || !r.warns.length) return "";
+    const w = r.warns.slice(0, 2).join("；");
+    return "；提示：" + w + (r.warns.length > 2 ? " 等 " + r.warns.length + " 条" : "");
+  }
   function edConf(tab) {
     if (tab === "people") {
       return {
-        title: "批量录入",
-        hint: "粘贴名单（按圈号）或完整 CPC 文本——自动识别类型。增量合并，不覆盖已有内容。",
-        ph: ED_PH.people,
-        help: "<b>两种内容都收</b>，背后按类型自动路由：<br>· <b>纯名单</b>：<code>0：我</code>（圆心）、<code>1：甲，乙，丙</code>（第 1 圈）、<code>2：丁，戊</code>（第 2 圈）。分号「；」等同换行。<br>· <b>CPC 全文</b>：含 <code>#布局#</code> 段头即可；自动解析布局/喜好/连线/样式，同名合并。<br>改名 / 删人 / 加人，直接改文字后点「保存」。",
+        title: I18N.t("ed_people_title"),
+        hint: I18N.t("ed_people_hint"),
+        ph: I18N.t("ed_people_ph"),
+        help: I18N.t("ed_people_help"),
         text: function () { return App.exportNameListText(); },
         okText: "保存",
         apply: function (v) {
@@ -1594,7 +1635,7 @@
               App.toast(cpc.errs.join("；"), true);
               return false;
             }
-            App.toast("已批量录入 " + cpc.added + " 条（CPC 全文）");
+            App.toast("已批量录入 " + cpc.added + " 条（CPC 全文）" + edWarnNote(cpc));
             return;
           }
           // 回退：纯名单增量（合并语义，不破坏已有连线/喜好）
@@ -1605,10 +1646,10 @@
     }
     if (tab === "link") {
       return {
-        title: "逐条同步",
-        hint: "CPC 分段写法：布局 / 喜好 / 连线 / 样式。全角半角、长短横、各种箭头都认。",
-        ph: ED_PH.link,
-        help: "五段语法（段头用 <code>#…#</code>，可只写需要的段）：<br><code>#布局#</code> <code>1: 甲,乙,丙</code>（<code>0:</code>=圆心；圈上按书写顺序顺时针摆放；<code>1(8):</code>=声明 8 槽；<code>1[150px]:</code>=指定半径）<br><code>#喜好#</code> <code>本命: 甲,乙</code>（涂角色圆圈，一个角色一档）<br><code>#连线#</code> <code>爱情: 甲-&gt;乙</code>（类型词: 人物对；<code>-</code>无向 / <code>-&gt;</code>单向 / <code>&lt;-&gt;</code>双向）<br>粗线词（本命/很喜欢/路好/不吃）＝有多喜欢；细线词（爱情/友情/亲情/QPR）＝是什么关系；同一对可叠加（既粗又细）。<br><code>#样式#</code> <code>敌对: #7B2FBE, 2px, top</code>（自定义颜色或新增类型词）<br>名字含逗号、冒号、横线等符号时用引号包住：<code>'Emet-Selch'</code>。<br>旧的夹行写法（甲—本命+爱情—乙）也兼容。<br><b>纯名单</b>请到「批量录入」Tab。",
+        title: I18N.t("ed_link_title"),
+        hint: I18N.t("ed_link_hint"),
+        ph: I18N.t("ed_link_ph"),
+        help: I18N.t("ed_link_help"),
         text: function () { return App.exportCPC(); },
         okText: "应用",
         apply: function (v) {
@@ -1623,16 +1664,16 @@
             App.toast(r.errs.join("；"), true);
             return false;
           }
-          App.toast("已更新 " + r.added + " 条");
+          App.toast("已更新 " + r.added + " 条" + edWarnNote(r));
         },
       };
     }
     if (App._ed.dataMode === "import") {
       return {
-        title: "导入数据包",
-        hint: "粘贴整份数据串（新版压缩串带头像、旧版 JSON 也认）。",
-        ph: "在这里粘贴数据串",
-        help: "把别人给你的整串数据粘进来，点「上传」。<br>新版以 <code>XHS2:</code> 开头，旧版是 JSON，两种都能读。<br>导入会覆盖当前画板全部内容。",
+        title: I18N.t("ed_data_import_title"),
+        hint: I18N.t("ed_data_import_hint"),
+        ph: I18N.t("ed_data_import_ph"),
+        help: I18N.t("ed_data_import_help"),
         text: function () { return ""; },
         okText: "上传",
         apply: function (v) {
@@ -1650,9 +1691,9 @@
       };
     }
     return {
-      title: "导出数据包",
-      hint: "长按输入框手动全选复制。带头像（新版压缩串）。",
-      help: "这串文字包含人物、连线、布局、图例、头像的全部信息。<br>复制后发给别人，对方在「导入数据包」粘贴即可还原。<br>新版以 <code>XHS2:</code> 开头（带头像），旧版是 JSON（不带头像）。",
+      title: I18N.t("ed_data_export_title"),
+      hint: I18N.t("ed_data_export_hint"),
+      help: I18N.t("ed_data_export_help"),
       text: function () { return App.exportFullData(); },
       readonly: true,
     };
@@ -1671,10 +1712,7 @@
         }).join("") + "</div>"
       : "";
     const helpBtn = c.help
-      ? '<button class="mh-q' + (ed.helpOpen ? " on" : "") + '" data-cmd="ed-help" title="写法说明" aria-label="写法说明">' +
-        '<svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="2"/>' +
-        '<path d="M9.6 9.2a2.5 2.5 0 1 1 3.4 2.3c-.6.3-1 .9-1 1.6v.4" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>' +
-        '<circle cx="12" cy="17.2" r="1.1" fill="currentColor"/></svg></button>'
+      ? '<button class="mh-q' + (ed.helpOpen ? " on" : "") + '" data-cmd="ed-help" title="写法说明" aria-label="写法说明">' + ICONS.help + "</button>"
       : "";
     const helpBox = c.help && ed.helpOpen ? '<div class="ed-help">' + c.help + "</div>" : "";
     const btns = ro
@@ -1901,20 +1939,20 @@
     try { const d = JSON.parse(raw); hasDraft = !!(d && d.chars && d.chars.length); } catch (e) {}
     if (hasDraft && !force) return; // 已有草稿直接继续
     const preset = App.PRESET_TEXT;
-    App.openModal(modalHead("欢迎 · 人物关系连线图") +
-      '<div class="hint">三步走完即可开工：一填图名（顶栏显示用），二填表人（导出署名，可留空），三粘角色名单（一行一圈：<code>圆心: 我</code>、<code>1: 甲，乙，丙</code>）。不想手敲直接点「载入示例」。</div>' +
-      '<div style="font-size:12px;color:var(--sub);margin:8px 0 4px">图名</div>' +
-      '<input type="text" id="welTitle" class="inp" style="width:100%" maxlength="18" placeholder="未命名关系图">' +
-      '<div style="font-size:12px;color:var(--sub);margin:12px 0 4px">填表人（可选）</div>' +
-      '<input type="text" id="welFiller" class="inp" style="width:100%" maxlength="12" placeholder="未填写则不显示“填表：”">' +
+    App.openModal(modalHead(I18N.t("welcome_title")) +
+      '<div class="hint">' + I18N.t("welcome_guide") + '</div>' +
+      '<div style="font-size:12px;color:var(--sub);margin:8px 0 4px">' + I18N.t("welcome_lbl_title") + '</div>' +
+      '<input type="text" id="welTitle" class="inp" style="width:100%" maxlength="18" placeholder="' + I18N.t("welcome_ph_title") + '">' +
+      '<div style="font-size:12px;color:var(--sub);margin:12px 0 4px">' + I18N.t("welcome_lbl_filler") + '</div>' +
+      '<input type="text" id="welFiller" class="inp" style="width:100%" maxlength="12" placeholder="' + I18N.t("welcome_ph_filler") + '">' +
       '<div style="font-size:12px;color:var(--sub);margin:12px 0 4px;display:flex;justify-content:space-between;align-items:center">' +
-        '<span>角色名单</span>' +
-        '<button class="mini" data-cmd="wel-load" title="把示例名单塞进上面文本框">载入示例</button>' +
+        '<span>' + I18N.t("welcome_lbl_list") + '</span>' +
+        '<button class="mini" data-cmd="wel-load" title="' + I18N.t("welcome_btn_load_title") + '">' + I18N.t("welcome_btn_load") + '</button>' +
       '</div>' +
-      '<textarea class="export-txt" id="welTxt" style="min-height:120px" placeholder="圆心: 我&#10;1: 甲，乙，丙&#10;2: 丁，戊，己"></textarea>' +
+      '<textarea class="export-txt" id="welTxt" style="min-height:120px" placeholder="' + I18N.t("welcome_ph_list") + '"></textarea>' +
       '<div class="modal-btns">' +
-      '<button class="btn" data-cmd="m-close">跳过</button>' +
-      '<button class="btn primary" data-cmd="wel-ok">开始编辑</button>' +
+      '<button class="btn" data-cmd="m-close">' + I18N.t("welcome_btn_skip") + '</button>' +
+      '<button class="btn primary" data-cmd="wel-ok">' + I18N.t("welcome_btn_start") + '</button>' +
       '</div>');
     modalCloseCb = null;
     const box = $("modalBox");
@@ -1922,7 +1960,7 @@
     const okBtn = box.querySelector('[data-cmd="wel-ok"]');
     if (loadBtn) loadBtn.addEventListener("click", () => {
       const ta = $("welTxt"); if (ta) ta.value = App.PRESET_TEXT;
-      App.toast("已载入示例名单");
+      App.toast(I18N.t("welcome_toast_load"));
     });
     if (okBtn) okBtn.addEventListener("click", () => {
       const t1 = ($("welTitle") || {}).value || "";

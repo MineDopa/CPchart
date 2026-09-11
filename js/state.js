@@ -59,7 +59,7 @@
         top: DEFAULT_TOP.map((x) => ({ ...x })),
         arrow: DEFAULT_ARROW.map((x) => ({ ...x })),
       },
-      ui: { avatarMode: "both", showNames: true, slotMode: false, nodeR: NODE_R, night: false, charMode: false, paintMode: "link", thinW: 2.2, thinDash: false, layoutHint: false },
+      ui: { avatarMode: "both", showNames: true, slotMode: false, nodeR: NODE_R, night: false, charMode: false, paintMode: "link", thinW: 6.5, thinDash: false, layoutHint: false },
       meta: { filler: "", arrowName: "情感指向" }, // arrowName=箭头含义（图例/导出显示，可改）
     };
   }
@@ -584,6 +584,10 @@
     App.migrateCenterFav(App.state); // 旧「圆心→某人」粗线折算为角色涂色（静默、无感）
     ensureCenterUnique(null);
     computeLayout();
+    // 导入后必须通知 UI 重绘（与 newDoc 对齐）。
+    // 完整数据导入走「确认」弹窗 → 回调发生在弹窗关闭、本函数返回之后，
+    // 不在这里主动刷新，画布会继续显示导入前的内容，看起来像"没覆盖"（v0.15.1 修复）
+    App.notifyChanged();
   };
 
   // 填表人（导出图/发布署名用）；上限 12 字，与改名弹窗 maxlength 一致

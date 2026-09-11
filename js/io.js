@@ -370,8 +370,8 @@
     return /^#[0-9a-fA-F]{3,8}$/.test(t) ? t : null;
   }
 
-  // 导出 CPC 文本（§3 骨架 + §6 排序：布局按圈号/角度序，连线按类型词分组、组内字典序）
-  App.exportCPC = function () {
+  // 旧分段制导出（#标题# / #布局# …）。当前导出已换块语法，此函数仅作历史参照保留。
+  App.exportCPCLegacy = function () {
     const st = App.state;
     function pairText(p) {
       let s = p.s, d = p.d;
@@ -611,8 +611,8 @@
     });
   }
 
-  // 导入 CPC 文本 → { added, errs, autoFixText }；非 CPC 文本返回 null（调用方回退旧解析）
-  App.importCPC = function (text) {
+  // 旧分段制导入（#标题# / #布局# …）：保留只读兼容，存量文本仍可导入
+  App.importCPCLegacy = function (text) {
     if (!cpcLooksLike(text)) return null;
     const res = { added: 0, skipped: 0, errs: [], autoFixText: null };
     const norm = cpcNormalize(text);
@@ -639,6 +639,86 @@
       }
     });
     return res;
+  };
+
+  // ---------------- 块语法收发（v5.1）----------------
+  // 数据层与解析层在 cpc-core.js / cpc-dsl.js；本段只做「应用状态 ←→ 语义文档」的桥接。
+  var CPC_OK = !!(window.CPC && window.CPC.dsl);
+
+  // 应用状态 → 语义文档（补齐旧状态里没有的字段：填表人 / 作品 / 时间 / 图例三组 / 线型 / 逻辑）
+  function cpcToDoc(st) {
+    var doc = CPC.normalizeDoc({
+      title: st.title, bg: st.bg, rings: st.rings, chars: st.chars, links: st.links,
+      tables: st.tables, ui: st.ui, meta: st.meta,
+      filler: (st.meta && st.meta.filler) || "",
+      work: st.work || null, created: st.created || "",
+      legend: st.legend || null
+    });
+    if (!doc.legend.relation.length) {
+      doc.legend.relation = doc.tables.top.filter(function (r) { return !r.hidden; }).map(function (r) { return r.name; });
+    }
+    if (!doc.legend.favor.length) {
+      doc.legend.favor = doc.tables.bottom.filter(function (r) { return !r.hidden; }).map(function (r) { return r.name; });
+    }
+    if (!doc.legend.pointing.length) doc.legend.pointing = ["情感主体->情感对象"];
+    return doc;
+  }
+
+  // 语义文档 → 应用状态（只覆盖语义字段；背景 / 界面偏好等保持不动）
+  function cpcFromDoc(st, doc) {
+    st.title = doc.title;
+    st.rings = doc.rings;
+    st.chars = (doc.chars || []).map(function (c) {
+      return {
+        id: c.id, name: c.name, ring: c.ring, angle: c.angle, slot: c.slot,
+        like: c.like || null, avatar: c.avatar || null, x: 0, y: 0
+      };
+    });
+    st.links = doc.links;
+    st.tables = doc.tables;
+    st.meta = st.meta || {};
+    st.meta.filler = doc.filler || "";
+    st.work = doc.work;
+    st.created = doc.created;
+    st.legend = doc.legend;
+  }
+
+  // 文本是否块语法（形如 `@关系{`）；否则按旧分段制处理
+  function cpcIsBlockSyntax(text) {
+    return /(^|\n)\s*[#.@!][^\n{]{0,24}\{/.test(String(text || ""));
+  }
+
+  App.exportCPC = function () {
+    if (!CPC_OK) return "";
+    return CPC.dsl.export(cpcToDoc(App.state));
+  };
+
+  App.importCPC = function (text) {
+    var src = String(text == null ? "" : text);
+    if (!CPC_OK || !cpcIsBlockSyntax(src)) return App.importCPCLegacy(src);
+    var r = CPC.dsl.parse(src);
+    if (r.errs.length) {
+      return {
+        added: 0,
+        errs: r.errs.map(function (e) { return (e.code ? e.code + " " : "") + e.msg; }),
+        warns: [],
+        autoFixText: null
+      };
+    }
+    var empty = !r.doc.chars.length && !r.doc.links.length && !r.doc.filler &&
+      r.doc.title === "未命名关系图";
+    if (empty) return null;
+    var merged = CPC.dsl.merge(cpcToDoc(App.state), r.doc);
+    App.act(function () {
+      cpcFromDoc(App.state, merged.doc);
+      if (App.fitContent) App.fitContent();
+    });
+    return {
+      added: merged.res.addedChars + merged.res.addedLinks,
+      errs: [],
+      warns: r.warns.map(function (w) { return w.msg; }),
+      autoFixText: null
+    };
   };
 
   // ---------------- 头像处理 ----------------

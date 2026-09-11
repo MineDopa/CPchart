@@ -48,6 +48,7 @@
     ghostEl.setAttribute("stroke-width", "2.5");
     ghostEl.setAttribute("stroke-dasharray", "7 6");
     ghostEl.setAttribute("opacity", "0.85");
+    ghostEl.setAttribute("pointer-events", "none"); // ghost 仅视觉辅助，不参与命中判定
     const g = App.byId("ghostG");
     if (g) g.appendChild(ghostEl);
     return ghostEl;
@@ -167,6 +168,23 @@
           // 再点一次取消
           App.linkSource = null; App.selCharId = null; hideGhost();
           App.render();
+          return;
+        }
+        if (App.linkSource) {
+          // ★两段式收线：已有起点，再点第二个节点即连线（不必按住拖拽）
+          const from = App.linkSource;
+          const brush0 = App.brush;
+          if (!brush0.bottom && !brush0.top) {
+            App.toast("请先选择粗线/细线笔刷", true);
+          } else {
+            App.act(function () {
+              if (brush0.bottom) App.addLink(from, nid, "bottom", brush0.bottom, brush0.arrow);
+              if (brush0.top) App.addLink(from, nid, "top", brush0.top, brush0.arrow);
+            });
+          }
+          App.linkSource = null; App.selCharId = null; hideGhost();
+          App.render();
+          if (App.renderPanel) App.renderPanel();
           return;
         }
         App.linkSource = nid;
@@ -388,6 +406,9 @@
     }
 
     if (g === "linkDrag") {
+      // tap（未拖动）= 两段式起线：保留起点，等用户点第二个节点
+      // drag（拖动过）= 拖拽落线：在终点节点上连线后收尾
+      if (!gData.moved) { gData = null; return; }
       const target = nodeAt(p.x, p.y);
       const srcId = App.linkSource;
       const brush = App.brush;

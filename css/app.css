@@ -10,8 +10,11 @@
   --bar:rgba(249,249,249,.98);  /* 顶部栏/底栏 */
   --sep:#f0f0f2; --hover:#f3f3f5; --row-line:#efeff1; --code-bg:#f1f1f4;
   --ink-soft:#3a3a3c; --strong-line:#333;
-  /* 图例/面板圆点外描边（白底用浅黑边，深底用浅白边，跟着昼夜走） */
-  --legend-edge:rgba(0,0,0,.18);
+  /* 色块/描边统一色：不透明实色，跟着昼夜走（日间近黑、夜间近白）——v0.14.11 起不再用半透明 */
+  --legend-edge:#c9d1d9;
+  /* 行高统一令牌（v0.14.12）：面板内每一「行」取同一高度、内容垂直居中——
+     表格思维，行与行互相对齐，内容不再里出外进。 */
+  --row-h:36px;
 }
 /* 夜间模式：只改 UI 外壳配色（画布主题在 render.js 内处理，不改用户背景数据） */
 body.night{
@@ -21,8 +24,8 @@ body.night{
   --surf:#2c2c2e; --surf-glass:rgba(44,44,46,.88); --surf-glass2:rgba(44,44,46,.96);
   --bar:rgba(28,28,30,.98); --sep:#3a3a3c; --hover:#3a3a3c; --row-line:#2c2c2e; --code-bg:#3a3a3c;
   --ink-soft:#d1d1d6; --strong-line:#aeaeb2;
-  /* 夜间：圆点外描边变浅白，让 #不吃 这类近黑色也能跟深底区分开 */
-  --legend-edge:rgba(255,255,255,.42);
+  /* 夜间：描边换近白实色，让 #不吃 这类近黑色也能跟深底区分开 */
+  --legend-edge:#f2f2f7;
 }
 *{ box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
 /* rem 基准（触点铁律：1rem=10pt，触点＞4rem；新代码容器尺寸一律 rem/em，旧 px 待 2.0 迁移） */
@@ -34,6 +37,8 @@ html,body{ margin:0; height:100%; overflow:hidden;
 #app{ display:flex; flex-direction:column; height:100dvh; position:relative; }
 button{ font-family:inherit; border:none; background:transparent; cursor:pointer; }
 button:active{ opacity:.7; }
+/* 全站唯一的强制优先级声明：.hidden 是全局工具类，必须能压过组件自身的 display:flex/inline-flex
+   （同特异性下它定义在组件规则之前，靠顺序赢不了）。除此之外一律不许再加 —— v0.14.17 熵减 */
 .hidden{ display:none !important; }
 
 /* ---------- 顶部栏（容器占用上方点击区 → 只读标题，无可点按钮） ---------- */
@@ -52,11 +57,12 @@ button:active{ opacity:.7; }
 /* 顶栏左槽按钮（容器返回箭头右侧）：
    常态 = 帮助(#btnHelp)；面板全开 = 返回画板(#homeBtn)，两钮同槽位按 body.panel-full 切换 */
 .top-slot-btn{ position:absolute; left:54px; top:50%; transform:translateY(-50%);
-  width:26px; height:26px; border-radius:50%; background:transparent;
+  width:2rem; height:2rem; border-radius:50%; background:transparent;
   border:1.5px solid var(--sub); box-shadow:none;
   display:flex; align-items:center; justify-content:center;
   font-size:15px; line-height:1; color:var(--ink); padding:0; cursor:pointer; }
 .top-slot-btn:active{ opacity:.7; }
+.top-slot-btn .ic-svg{ width:20px; height:20px; }
 body.panel-full #btnHelp{ display:none; }
 
 /* ---------- 画布右侧悬浮工具组（定位坐标 + 菜单触发；可拖动吸附） ---------- */
@@ -106,9 +112,14 @@ body.panel-full #btnHelp{ display:none; }
   background:var(--surf); border:1px solid var(--line); border-radius:16px; box-shadow:var(--shadow); padding:14px; }
 .sub-title{ font-size:13px; font-weight:600; color:var(--sub); padding:2px 4px 10px; }
 .sub-list{ display:flex; flex-direction:column; gap:8px; }
-.sub-item{ text-align:left; font-size:15px; color:var(--ink); padding:13px 14px; border-radius:12px;
+.sub-item{ display:flex; align-items:center; gap:10px; text-align:left; font-size:15px; color:var(--ink); padding:13px 14px; border-radius:12px;
   background:var(--surf-glass); border:1px solid var(--line); }
+.sub-item .ic-svg{ width:18px; height:18px; flex:0 0 auto; }
 .sub-item:active{ background:var(--accent-soft); }
+/* 「发布小红书笔记」正负形：实心红底 + 反白文字（其余菜单项是浅底深字的"正形"）。
+   用 .sub-list 前缀提特异性，压过下方 .sub-list .sub-item 的 color:var(--ink)，无需强制优先级 */
+.sub-list .sub-item.hl-danger{ background:var(--danger); border-color:var(--danger); color:#fff; }
+.sub-list .sub-item.hl-danger:active{ background:#e02d2a; }
 
 /* ---------- 视图指示条（v0.14.8：从画布上方独立行改为右上角悬浮胶囊，位置仅移动） ---------- */
 #viewstrip{ position:absolute; z-index:6; right:10px; top:calc(40px + env(safe-area-inset-top));
@@ -126,16 +137,21 @@ body.panel-full #btnHelp{ display:none; }
 #svg{ display:block; width:100%; height:100%; }
 #bg{ pointer-events:none; }
 /* 删线两段式：已选中待二次确认的连线整段标红 */
-.ln.pending-del{ stroke:#ff3b30 !important; opacity:1 !important; }
+/* 待删除连线标红：stroke/opacity 由 SVG 属性写在标签上，CSS 普通规则本就高于呈现属性，无需提权 */
+.ln.pending-del{ stroke:#ff3b30; opacity:1; }
 
 /* 抓手模式指示条：左下角（v0.14.8 回归原位）；内嵌 SVG 用 ic-svg 描边 */
 #brushPreview{ position:absolute; left:12px; bottom:10px; max-width:78%;
   background:var(--surf-glass); border:1px solid var(--line); border-radius:999px;
-  padding:5px 12px 5px 10px; font-size:12px; line-height:1.4; color:var(--ink);
+  padding:5px 12px 5px 10px; font-size:12px; line-height:1; color:var(--ink);
   pointer-events:none; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
   display:inline-flex; align-items:center; gap:6px; }
 #brushPreview.eraser{ color:var(--danger); font-weight:600; border-color:#ffd1cf; }
-#brushPreview .ic-svg{ width:14px; height:14px; flex:0 0 auto; }
+/* 图标与「样式」二字必须落在同一条垂直中线上：SVG 转 block 去掉行内基线余量，
+   容器 line-height:1 让中文行盒贴住字形（旧 1.4 会把文字顶高约 2px） */
+#brushPreview .ic-svg{ display:block; width:14px; height:14px; flex:0 0 auto; }
+/* 夜间徽章图标纯白（v0.14.14）；擦除徽章保持红色 */
+body.night #brushPreview:not(.eraser){ color:#fff; }
 
 #legendChip{ position:absolute; left:10px; top:8px; display:flex; flex-direction:column; align-items:flex-start;
   max-width:82%; background:var(--surf-glass); border:1px solid var(--line); border-radius:10px;
@@ -146,10 +162,13 @@ body.panel-full #btnHelp{ display:none; }
 #legendChip .lg{ display:inline-flex; align-items:center; gap:3px; white-space:nowrap;
   padding:2px 5px; border-radius:8px; cursor:pointer; }
 #legendChip .lg:active{ opacity:.6; background:rgba(0,0,0,.06); }
-#legendChip .lg i{ width:10px; height:10px; border-radius:50%; display:inline-block;
+#legendChip .lg i{ width:1.2rem; height:1.2rem; border-radius:50%; display:inline-block;
   border:1px solid var(--legend-edge); box-sizing:border-box; }
+/* 图例第二行=顶层(关系类型)是「细线」：色块换成短横条（同笔刷条 .sw-top），跟底层圆点区分开。
+   v0.14.15：描边统一用 border（原 box-shadow 外扩导致两行视感不一致） */
+#legendChip .lg[data-layer="top"] i{ width:14px; height:5px; border-radius:3px;
+  border:1px solid var(--legend-edge); }
 #legendChip .lg .lg-ic{ font-style:normal; }
-#legendChip .lg .sw-l{ border:1.5px solid rgba(0,0,0,.25); }
 #legendChip .lg b{ display:inline-block; }
 #legendChip .sep{ opacity:.35; }
 
@@ -162,11 +181,15 @@ body.panel-full #btnHelp{ display:none; }
 /* 纯 icon 按钮：无文字，只留图标（星标/删除），宽度收紧 */
 .mini-btn.icon-only{ padding:5px 6px; display:inline-flex; align-items:center; justify-content:center; }
 .mini-btn .ic-svg{ width:16px; height:16px; display:block; }
-.btn .ic-svg{ width:16px; height:16px; vertical-align:-3px; margin-right:2px; }
+.btn .ic-svg{ width:16px; height:16px; flex:0 0 auto; }
 .ic-svg{ width:16px; height:16px; flex:none; }
 .chip .ic-svg{ width:14px; height:14px; }
 .mini .ic-svg{ width:14px; height:14px; }
-.tab .ic-svg{ width:18px; height:18px; margin:0 auto 2px; display:block; }
+/* 布局圈行（v0.14.14）：操作图标放大到 20px，分散对齐靠右 */
+.ring-row .mini{ margin-left:auto; }
+.ring-row .mini ~ .mini{ margin-left:12px; }
+.ring-row .mini .ic-svg{ width:20px; height:20px; }
+.tab .ic-svg{ width:18px; height:18px; margin:0; display:block; }
 .pg-t .ic-svg{ width:14px; height:14px; vertical-align:-2px; margin-right:3px; }
 /* 人物 Tab：「批量编辑名单」圆形按钮装进「头像显示」行右端（两端对齐，不再浮动遮内容） */
 .pg.pg-person .circ-fab{ flex:0 0 auto; width:32px; height:32px;
@@ -189,11 +212,7 @@ body.panel-full #btnHelp{ display:none; }
   border-top:1px solid var(--line);
   user-select:none; -webkit-user-select:none; touch-action:none; }
 #panelHead:active{ cursor:grabbing; }
-.ph-arr{ width:14px; height:14px; color:var(--sub); transition:opacity .18s, transform .18s; }
-.ph-up, .ph-down{ opacity:1; }
-/* 三态箭头显示：折叠只显向上（可向上展开），半开双箭头，全开只显向下（可向下收起） */
-#panelHead[data-state="collapsed"] .ph-down{ opacity:0; }
-#panelHead[data-state="full"]      .ph-up{ opacity:0; }
+/* 上/下箭头 SVG 已删（v0.14.11）：把手只留中间那根短杠，避免用透明度藏图标 */
 .ph-pill{ position:absolute; left:50%; top:50%; transform:translate(-50%,-50%);
   width:48px; height:4px; border-radius:999px; background:var(--line);
   pointer-events:none; transition:width .15s, background .15s; }
@@ -202,7 +221,7 @@ body.panel-full #btnHelp{ display:none; }
 #panelHead.dragging .ph-pill{ width:80px; background:var(--accent); }
 #panelHead.dragging{ background:var(--accent-soft); }
 
-body.panel-collapsed #panel{ display:none !important; }
+body.panel-collapsed #panel{ display:none; }
 body.panel-collapsed #panelHead{ /* 仅露把手条即可 */ }
 
 /* ---------- 面板 ---------- */
@@ -214,8 +233,10 @@ body.panel-collapsed #panelHead{ /* 仅露把手条即可 */ }
 /* 全开态：面板撑满画布（除 panelHead 高度），底部 Tab 栏隐藏；返回钮由 ui.js setPanelFull 切换显隐 */
 body.panel-full #panel{ max-height:calc(100dvh - 26px); }
 body.panel-full #tabs{ display:none; }
-/* 拖动中临时设的 inline 高度最高优先级 */
-#panel.dragging{ max-height:none !important; }
+/* 拖动中：跟手（关掉过渡，避免每帧追赶产生橡皮筋感）。
+   ⚠️ 勿再加强制优先级声明 —— 它高于行内样式，会把 JS 设的 p.style.maxHeight
+   （实时高度）直接压掉，导致拖动不跟手（v0.14.17 修复） */
+#panel.dragging{ transition:none; }
 .pg{ margin-bottom:8px; }
 .pg-t{ font-size:11px; color:var(--sub); margin:8px 0 4px; display:flex; align-items:center; gap:6px; justify-content:space-between; }
 /* 笔刷行：图标 + chips 同一行（v0.14.9：三行「底层粗线笔刷/顶层细线笔刷/箭头」文字标题删除） */
@@ -232,12 +253,15 @@ body.panel-full #tabs{ display:none; }
 .chip{ display:inline-flex; align-items:center; gap:5px; padding:5px 8px; border-radius:999px;
   background:var(--surf); border:1px solid var(--line); font-size:12px; white-space:nowrap; }
 .chip.on{ background:var(--accent-soft); border-color:var(--accent); color:var(--accent); font-weight:600; }
-.sw{ width:14px; height:14px; border-radius:50%; display:inline-block; border:1px solid var(--legend-edge); flex:0 0 auto; }
+.sw{ width:14px; height:14px; border-radius:50%; display:inline-block;
+  border:1.5px solid var(--legend-edge); flex:0 0 auto; }
 .sw-top{ width:14px; height:5px; border-radius:3px; display:inline-block; box-shadow:0 0 0 1.5px var(--legend-edge); }
 .chip-row{ display:flex; gap:6px; flex-wrap:wrap; margin-bottom:6px; }
-.ctrl-row{ display:flex; align-items:center; gap:8px; margin:4px 0; font-size:13px; flex-wrap:wrap; }
+.ctrl-row{ display:flex; align-items:center; gap:8px; margin:4px 0; font-size:13px; flex-wrap:wrap;
+  min-height:var(--row-h); }
 .btn{ font-size:13px; padding:7px 12px; border-radius:10px; background:var(--surf);
-  border:1px solid var(--line); }
+  border:1px solid var(--line); display:inline-flex; align-items:center; justify-content:center;
+  gap:4px; line-height:1.25; color:var(--ink); }
 .btn.primary{ background:var(--accent); color:#fff; border-color:var(--accent); }
 .btn.danger{ color:var(--danger); border-color:#ffd1cf; }
 /* 画板模式三选一胶囊（连线/角色/删线）：激活段深色+图标+文字，非激活段只显图标 */
@@ -258,7 +282,8 @@ body.panel-full #tabs{ display:none; }
 .paint-seg-btn:focus-visible{ outline:2px solid var(--accent); outline-offset:2px; }
 /* 连线 Tab：胶囊 switch 与（批量编辑/清空）按钮同行——胶囊左、按钮右、不折行 */
 .seg-row{ flex-wrap:nowrap; }
-.seg-row .seg-spacer{ flex:1 1 auto; }
+.seg-row .seg-spacer,
+.ctrl-row .seg-spacer{ flex:1 1 auto; }
 .seg-row .btn.icon-only{ width:34px; height:34px; flex:0 0 auto; }
 .seg-row .btn.icon-only .ic-svg{ width:16px; height:16px; }
 .seg-row .paint-seg{ flex:0 1 auto; min-width:0; }
@@ -270,7 +295,8 @@ input[type=range]{ accent-color:var(--accent); }
 .inp[type=number][data-set]{ cursor:ew-resize; }
 
 /* 人物列表行 */
-.prow{ display:flex; align-items:center; gap:6px; padding:4px 0; border-bottom:1px solid var(--row-line); }
+.prow{ display:flex; align-items:center; gap:6px; padding:4px 0; border-bottom:1px solid var(--row-line);
+  min-height:var(--row-h); }
 .prow:last-child{ border-bottom:none; }
 .ava{ width:26px; height:26px; border-radius:50%; flex:0 0 auto; overflow:hidden;
   display:flex; align-items:center; justify-content:center; font-size:16px;
@@ -282,18 +308,26 @@ input[type=range]{ accent-color:var(--accent); }
 .prow select{ max-width:82px; font-size:12px; }
 .mini{ font-size:14px; padding:4px 6px; border-radius:8px; }
 /* ⑦ 圆心星标（实心=已是圆心 / 空心=可设圆心） */
-.pm-star{ display:inline-block; width:16px; height:16px; vertical-align:-3px; }
+.pm-star{ display:inline-flex; align-items:center; justify-content:center; width:16px; height:16px; }
 .pm-star .ic-svg{ width:16px; height:16px; display:block; }
 
 /* 样式表编辑器行 */
 .trow{ display:flex; align-items:center; gap:6px; margin:4px 0; background:var(--surf);
-  border:1px solid var(--line); border-radius:10px; padding:4px 6px; }
+  border:1px solid var(--line); border-radius:10px; padding:4px 6px;
+  min-height:var(--row-h); }
 /* 图例名输入框 = 6 个字符宽（em 锚定自身 13px 字号，字号变则跟着变） */
 .trow .tname{ flex:0 0 auto; }
 .trow .tname input{ width:6em; }
 .trow input[type=text]{ border:1px solid transparent; background:transparent; font-size:13px; }
 .trow input[type=text]:focus{ border-color:var(--accent); background:var(--surf); border-radius:6px; }
-.trow input[type=color]{ width:34px; height:26px; flex:0 0 auto; }
+/* 取色器（样式行 / 样式面板背景色）：跟色块同款「跟随主题的不透明描边」，外观统一 */
+.trow input[type=color],
+.ctrl-row input[type=color]{ width:1.5rem; height:1.5rem; flex:0 0 auto; padding:0; cursor:pointer;
+  border:1.5px solid var(--legend-edge); border-radius:6px; background:transparent; }
+.trow input[type=color]::-webkit-color-swatch-wrapper,
+.ctrl-row input[type=color]::-webkit-color-swatch-wrapper{ padding:0; }
+.trow input[type=color]::-webkit-color-swatch,
+.ctrl-row input[type=color]::-webkit-color-swatch{ border:none; border-radius:4px; }
 /* 预制色板：一行横向滑动；圆点白+黑双层描环（昼夜背景都清晰） */
 .pal{ display:flex; gap:.4rem; flex-wrap:nowrap; overflow-x:auto; flex:1; min-width:0;
   padding:.3rem 0; -webkit-overflow-scrolling:touch; scrollbar-width:none; }
@@ -306,7 +340,8 @@ input[type=range]{ accent-color:var(--accent); }
 .trow.off input[type=text]{ opacity:.5; text-decoration:line-through; }
 
 /* 删线列表 */
-.dlrow{ display:flex; align-items:center; gap:6px; padding:4px 0; border-bottom:1px solid var(--row-line); font-size:12px; }
+.dlrow{ display:flex; align-items:center; gap:6px; padding:4px 0; border-bottom:1px solid var(--row-line); font-size:12px;
+  min-height:var(--row-h); }
 .dlrow .dl-main{ flex:1; display:flex; align-items:center; gap:4px; min-width:0; }
 .dlrow .dl-main span{ overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
 .ln-dot{ width:10px; height:10px; border-radius:50%; flex:0 0 auto; }
@@ -316,7 +351,9 @@ input[type=range]{ accent-color:var(--accent); }
 #tabs{ flex:0 0 auto; display:flex; border-top:1px solid var(--line); background:var(--bar);
   padding-bottom:env(safe-area-inset-bottom); }
 .tab{ flex:1; font-size:12px; padding:8px 2px 9px; color:var(--sub); background:transparent;
-  border-bottom:2px solid transparent; }
+  border-bottom:2px solid transparent;
+  display:flex; flex-direction:column; align-items:center; justify-content:center;
+  gap:2px; line-height:1; }
 .tab.on{ color:var(--accent); border-bottom-color:var(--accent); font-weight:600; }
 
 /* ---------- 通用弹窗（菜单/文本/输入/确认共用 #modalRoot） ---------- */
@@ -328,17 +365,21 @@ input[type=range]{ accent-color:var(--accent); }
 .mh{ font-size:16px; font-weight:700; margin-bottom:10px; display:flex; justify-content:space-between; align-items:center; gap:8px; }
 .mh .mh-title{ flex:0 0 auto; }
 .mh .mh-right{ flex:0 0 auto; display:flex; align-items:center; gap:4px; }
-.mh .x{ font-size:18px; color:var(--sub); }
+.mh .x{ font-size:18px; color:var(--sub); display:inline-flex; align-items:center; }
 .hint{ font-size:12px; color:var(--sub); margin-bottom:8px; line-height:1.5; }
 .hint-collapsed{ display:none; }
 .layout-hint-wrap{ display:flex; align-items:flex-start; gap:6px; margin-bottom:8px; }
 .layout-hint-wrap .hint{ flex:1; margin-bottom:0; }
-.hint-toggle{ flex:none; width:28px; height:28px; border:1px solid var(--line); border-radius:8px;
-  background:var(--surf); color:var(--sub); display:inline-flex; align-items:center; justify-content:center;
-  cursor:pointer; padding:0; transition:color .15s, border-color .15s, background .15s; }
-.hint-toggle:hover{ color:var(--accent); border-color:var(--accent); }
-.hint-toggle[aria-expanded="true"]{ background:var(--accent-soft); color:var(--accent); border-color:var(--accent); }
-.hint-toggle .ic-svg{ width:16px; height:16px; }
+/* v0.14.14：? 帮助钮去掉外框容器，只留图标本体，放大到 28px。
+   padding6+margin-6 保住约 40px 触点热区，视觉上无容器 */
+.hint-toggle{ flex:none; border:none; background:transparent; color:var(--sub);
+  display:inline-flex; align-items:center; justify-content:center;
+  cursor:pointer; padding:6px; margin:-6px; transition:color .15s; }
+.hint-toggle:hover{ color:var(--accent); }
+.hint-toggle[aria-expanded="true"]{ color:var(--accent); }
+/* 三个「?」统一（v0.14.15）：与「写法说明」钮(.mh-q)同一款 svg，共用同一条尺寸规则（CSS 级一致，20px） */
+#btnHelp{ border:none; }
+.mh-q svg, .hint-toggle .ic-svg, #btnHelp .ic-svg{ width:20px; height:20px; display:block; }
 textarea.export-txt{ width:100%; min-height:180px; font-family:ui-monospace,Menlo,Consolas,monospace;
   font-size:11px; border:1px solid var(--line); border-radius:10px; padding:8px; background:var(--panel); color:var(--ink); }
 .modal-btns{ display:flex; gap:8px; justify-content:flex-end; margin-top:12px; }
@@ -358,7 +399,6 @@ textarea.export-txt.tall{ min-height:min(42vh,300px); font-size:12px; line-heigh
 /* 标题栏「写法说明」按钮 + 折叠说明区（默认收起） */
 .mh-q{ width:30px; height:30px; border-radius:50%;
   display:inline-flex; align-items:center; justify-content:center; color:var(--sub); }
-.mh-q svg{ width:20px; height:20px; }
 .mh-q.on{ background:var(--accent-soft); color:var(--accent); }
 .ed-help{ background:var(--code-bg); border-radius:10px; padding:10px; margin:0 0 8px;
   font-size:12px; line-height:1.7; color:var(--ink-soft); }
@@ -378,7 +418,7 @@ textarea.export-txt.tall{ min-height:min(42vh,300px); font-size:12px; line-heigh
 body.hideui #topbar, body.hideui #viewstrip, body.hideui #panel,
 body.hideui #tabs, body.hideui #legendChip, body.hideui #brushPreview,
 body.hideui #nodeOps, body.hideui #floatTools, body.hideui #panelHead, body.hideui #toast,
-body.hideui #homeBtn{ display:none !important; }
+body.hideui #homeBtn{ display:none; }
 body.hideui #app{ height:100dvh; }
 /* 全屏退出钮：避开容器顶部占用区 → 移到屏幕右下 */
 #fullExit{ position:fixed; z-index:70; right:16px; bottom:calc(18px + env(safe-area-inset-bottom));
@@ -463,6 +503,8 @@ body.panel-full #panel{ flex:1 1 auto; max-height:none; border-top:none; }
 .zoom-lab{ font-size:13px; color:var(--sub); flex:0 0 auto; }
 .btn.icon-only{ width:40px; height:40px; padding:0; display:inline-flex; align-items:center; justify-content:center; }
 .btn.icon-only .ic-svg{ width:18px; height:18px; }
+/* 「添加轨道」的 + 号与全站「?」同用 1.2rem 小尺寸（v0.14.15） */
+.btn[data-cmd="ly-addring"] .ic-svg{ width:1.2rem; height:1.2rem; }
 
 /* ---------- 文字颜色显式继承兜底（修复夜间模式漏变白） ---------- */
 #legendChip .lg,
@@ -493,10 +535,17 @@ button.mini,
 .pg,
 #brushPreview,
 .paint-seg-btn{ color:var(--ink); }
+.prow select{ background:var(--surf); color:var(--ink); border:1px solid var(--line); border-radius:6px; padding:2px 4px; }
+.prow button.mini{ display:inline-flex; align-items:center; justify-content:center; }
 .prow span.mini,
 .hint,
 .pg-t,
 #viewstrip #viewHint{ color:var(--sub); }
+/* v0.14.14 根因修复：button 的 UA 默认色不继承（buttontext=黑），兜底清单漏了普通 .btn，
+   夜间深底上「添加轨道 / 隐藏UI / 批量编辑」的黑字黑图标全部看不见 → 日间继承 --ink，夜间纯白 */
+.btn{ color:var(--ink); }
+body.night .btn{ color:#fff; }
+body.night .btn.danger{ color:var(--danger); }
 /* 夜间下面板底色更深，提示文本（.hint）从 `--sub` 升级到 `--ink-soft` 提升对比度，
    避免「暂无连线」这类 12px 小字在 `body.night` 下读糊（v0.14.2） */
 body.night .hint{ color:var(--ink-soft); }

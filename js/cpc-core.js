@@ -221,7 +221,7 @@
   Core.DEFAULT_UI = {
     avatarMode: "both", showNames: true, slotMode: false, nodeR: 18,
     night: false, charMode: false, paintMode: "link",
-    thinW: 2.2, thinDash: false, layoutHint: false
+    thinW: 6.5, thinDash: false, layoutHint: false
   };
 
   Core.blank = function () {

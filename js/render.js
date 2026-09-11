@@ -110,9 +110,9 @@
       const pend = App.pendingLinkDel === k.id ? " pending-del" : "";
       const L = lineEnds(a, b, k.arrow, App.nodeR(), ARROW.topScale);
       html += `<line class="ln ln-top${pend}" data-link="${k.id}" x1="${L.x1}" y1="${L.y1}" x2="${L.x2}" y2="${L.y2}"
-        stroke="${th.linkEdge}" stroke-width="6.5" stroke-linecap="round" opacity="0.95"></line>`;
+        stroke="${th.linkEdge}" stroke-width="${(st.ui && st.ui.thinW) ? st.ui.thinW : 6.5}" stroke-linecap="round" opacity="0.95"></line>`;
       html += `<line class="ln ln-top-c${pend}" data-link="${k.id}" x1="${L.x1}" y1="${L.y1}" x2="${L.x2}" y2="${L.y2}"
-        stroke="${col}" stroke-width="${(st.ui && st.ui.thinW) ? st.ui.thinW : 2.2}" stroke-linecap="round" stroke-dasharray="${(st.ui && st.ui.thinDash) ? "6 5" : "none"}"></line>`;
+        stroke="${col}" stroke-width="2.2" stroke-linecap="round" stroke-dasharray="${(st.ui && st.ui.thinDash) ? "6 5" : "none"}"></line>`;
       html += buildArrowsLine(a, b, col, k.arrow, App.nodeR(), { scale: ARROW.topScale });
     });
 
@@ -263,7 +263,7 @@
       `<span class="lg" data-layer="top" data-key="${App.esc(r.key)}"><i style="background:${r.color}"></i><b>${App.esc(r.name)}</b></span>`).join("");
     const arrowName = (st.meta && st.meta.arrowName) ? String(st.meta.arrowName) : "情感指向";
     const arrowHtml = arrowName
-      ? `<span class="lg" data-layer="arrow" data-key="one"><b class="lg-ic">➡</b><b>${App.esc(arrowName)}</b></span>`
+      ? `<span class="lg" data-layer="arrow" data-key="one"><b class="lg-ic"><svg class="ic-svg" viewBox="0 0 48 48" fill="none"><path d="M14 24H40M28 12L40 24L28 36" stroke="currentColor" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/></svg></b><b>${App.esc(arrowName)}</b></span>`
       : "";
     let out = "";
     if (bottomHtml) out += seg([bottomHtml]);

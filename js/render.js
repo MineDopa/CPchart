@@ -260,7 +260,7 @@
     const bottomHtml = st.tables.bottom.filter((r) => !r.hidden).map((r) =>
       `<span class="lg" data-layer="bottom" data-key="${App.esc(r.key)}"><i style="background:${r.color}"></i><b>${App.esc(r.name)}</b></span>`).join("");
     const topHtml = st.tables.top.filter((r) => !r.hidden).map((r) =>
-      `<span class="lg" data-layer="top" data-key="${App.esc(r.key)}"><i style="background:${r.color};box-shadow:0 0 0 1.5px var(--legend-edge)"></i><b>${App.esc(r.name)}</b></span>`).join("");
+      `<span class="lg" data-layer="top" data-key="${App.esc(r.key)}"><i style="background:${r.color}"></i><b>${App.esc(r.name)}</b></span>`).join("");
     const arrowName = (st.meta && st.meta.arrowName) ? String(st.meta.arrowName) : "情感指向";
     const arrowHtml = arrowName
       ? `<span class="lg" data-layer="arrow" data-key="one"><b class="lg-ic">➡</b><b>${App.esc(arrowName)}</b></span>`

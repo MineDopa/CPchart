@@ -199,7 +199,8 @@
     computeLayout();
   };
 
-  App.addChar = function (name, ring) {
+  App.addChar = function (name, ring, atTop) {
+    // atTop=true → 插入名单顶端（「添加角色」按钮用，反馈一眼可见）；默认追加到末尾
     // 注意：不能写 `ring || 1` —— 圆心的合法值 0 会被吞成 1（历史 bug，2026-09-09 修）
     const rn = (ring === null || ring === undefined || ring === "") ? 1 : Number(ring);
     ring = Math.max(0, Math.floor(Number.isFinite(rn) ? rn : 1));
@@ -208,7 +209,7 @@
       id: App.uid("c"), name: App.clipName(String(name).trim()) || "未命名", // 角色名上限 20 字
       ring, angle: null, slot: null, like: null, avatar: null,
     };
-    App.state.chars.push(c);
+    if (atTop) App.state.chars.unshift(c); else App.state.chars.push(c);
     if (ring > 0) App.distributeRing(ring);
     computeLayout();
     return c;

@@ -693,7 +693,8 @@
     return CPC.dsl.export(cpcToDoc(App.state));
   };
 
-  App.importCPC = function (text) {
+  // mode: 省略或 "merge" = 增量合并；"replace" = 整份覆盖（文本里没写的人物/连线会被删除）
+  App.importCPC = function (text, mode) {
     var src = String(text == null ? "" : text);
     if (!CPC_OK || !cpcIsBlockSyntax(src)) return App.importCPCLegacy(src);
     var r = CPC.dsl.parse(src);
@@ -708,6 +709,20 @@
     var empty = !r.doc.chars.length && !r.doc.links.length && !r.doc.filler &&
       r.doc.title === "未命名关系图";
     if (empty) return null;
+    // ★全量覆盖：整份文本直接替换画板（含删除文本里没有的人物/连线）
+    if (mode === "replace") {
+      App.act(function () {
+        cpcFromDoc(App.state, r.doc);
+        if (App.fitContent) App.fitContent();
+      });
+      return {
+        added: (r.doc.chars ? r.doc.chars.length : 0) + (r.doc.links ? r.doc.links.length : 0),
+        errs: [],
+        warns: r.warns.map(function (w) { return w.msg; }),
+        autoFixText: null,
+        replaced: true
+      };
+    }
     var merged = CPC.dsl.merge(cpcToDoc(App.state), r.doc);
     App.act(function () {
       cpcFromDoc(App.state, merged.doc);
@@ -779,7 +794,7 @@
   function legendRows(st) {
     const rows = [];
     const arrowName = (st.meta && st.meta.arrowName) ? String(st.meta.arrowName) : "情感指向";
-    if (arrowName) rows.push([{ kind: "arrow", icon: "➡", name: arrowName }]);
+    if (arrowName) rows.push([{ kind: "arrow", name: arrowName }]);
     const b = st.tables.bottom.filter((r) => r && r.name && !r.hidden);
     if (b.length) rows.push(b.map((r) => ({ kind: "dot", color: r.color, name: r.name })));
     const t = st.tables.top.filter((r) => r && r.name && !r.hidden);
@@ -788,7 +803,7 @@
   }
   function legItemW(ctx, it, font) {
     let sw;
-    if (it.kind === "arrow") { ctx.font = Math.round(font * 1.15) + "px " + BAND_FONT; sw = ctx.measureText(it.icon).width; }
+    if (it.kind === "arrow") { sw = font * 1.15 + 4; }
     else if (it.kind === "dot") sw = font * 0.84 + 4;
     else sw = font * 1.15 + 4;
     ctx.font = font + "px " + BAND_FONT;
@@ -820,6 +835,17 @@
       ctx.fillStyle = it.color;
       roundRectPath(ctx, x + bw * 0.15, cy - bh * 0.3, bw * 0.7, bh * 0.6, r * 0.6); ctx.fill();
       x += bw + 4;
+    } else if (it.kind === "arrow") {
+      const aw = font * 1.15, ah = font * 0.8, ay = cy - ah / 2;
+      ctx.strokeStyle = textColor; ctx.lineWidth = Math.max(1.2, font * 0.1); ctx.lineCap = "round"; ctx.lineJoin = "round";
+      ctx.beginPath();
+      ctx.moveTo(x + ah * 0.2, cy);
+      ctx.lineTo(x + aw - ah * 0.4, cy);
+      ctx.moveTo(x + aw - ah * 0.7, cy - ah * 0.3);
+      ctx.lineTo(x + aw - ah * 0.15, cy);
+      ctx.lineTo(x + aw - ah * 0.7, cy + ah * 0.3);
+      ctx.stroke();
+      x += aw + 4;
     } else {
       ctx.font = Math.round(font * 1.15) + "px " + BAND_FONT;
       ctx.fillStyle = textColor;

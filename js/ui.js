@@ -49,6 +49,8 @@
     pkg:    '<svg class="ic-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 8l9-5 9 5v8l-9 5-9-5z"/><path d="M3 8l9 5 9-5M12 13v8"/></svg>',
     plus:   '<svg class="ic-svg" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M24.0605 10L24.0239 38" stroke="currentColor" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/><path d="M10 24L38 24" stroke="currentColor" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/></svg>',
     distributeH: '<svg class="ic-svg" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M8 43L8 5" stroke="currentColor" stroke-width="4" stroke-linecap="round"/><path d="M40 43L40 5" stroke="currentColor" stroke-width="4" stroke-linecap="round"/><rect x="20" y="14" width="8" height="20" fill="none" stroke="currentColor" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/></svg>',
+    // 「添加角色」：素材库的「添加_add-three」svg（currentColor 跟随主题）
+    addBox: '<svg class="ic-svg" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M24 32V16M42 27V21M6 27V21M14 6H8C6.89543 6 6 6.89543 6 8V14M34 6H40C41.1046 6 42 6.89543 42 8V14M34 42H40C41.1046 42 42 41.1046 42 40V34M14 42H8C6.89543 42 6 41.1046 6 40V34M27 6H21M32 24H16M27 42H21" stroke="currentColor" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/></svg>',
     help:   '<svg class="ic-svg" viewBox="0 0 24 24" fill="none" aria-hidden="true"><circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="2"/><path d="M9.6 9.2a2.5 2.5 0 1 1 3.4 2.3c-.6.3-1 .9-1 1.6v.4" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><circle cx="12" cy="17.2" r="1.1" fill="currentColor"/></svg>',
     // 箭头：单箭头向右（取自素材库的「箭头上」svg，旋转 90°）
     arrowR: '<svg class="ic-svg" viewBox="0 0 48 48" fill="none"><g transform="rotate(90 24 24)"><path d="M24 6V42" stroke="currentColor" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/><path d="M12 18L24 6L36 18" stroke="currentColor" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/></g></svg>',
@@ -224,6 +226,14 @@
     if (c.avatar) return `<img src="${c.avatar}" alt="">`;
     return "👤";
   }
+  // 「添加角色」：取最小未占用的「新角色N」（如已存在新角色1，则下一个是新角色2）
+  function nextNewCharName() {
+    const used = {};
+    App.state.chars.forEach(function (c) { used[c.name] = 1; });
+    let i = 1;
+    while (used["新角色" + i]) i++;
+    return "新角色" + i;
+  }
   function panelPerson() {
     const st = App.state;
     const rows = st.chars.map((c) => {
@@ -253,7 +263,7 @@
         <span class="sw-row"><span class="sw-txt">名字</span><span class="swbox ${st.ui.showNames ? "on" : ""}" data-cmd="pm-names" role="switch" aria-checked="${st.ui.showNames}" aria-label="显示名字"><i></i></span></span>
         <button class="circ-fab" data-cmd="pm-batch" title="按圈批量编辑角色名单" aria-label="批量编辑名单">${IC_PEOPLE_PLUS}</button>
       </div>
-      <div class="pg-t"><span class="pg-t-l">角色列表（${st.chars.length}）</span><span class="pg-t-r">点击行内 📷 上传头像</span></div>
+      <div class="pg-t"><span class="pg-t-l">角色列表（${st.chars.length}）</span><span class="pg-t-r">点击行内 📷 上传头像<button class="mini" data-cmd="pm-add" title="添加一个角色" aria-label="添加角色">${ICONS.addBox}</button></span></div>
       ${rows || '<div class="hint">暂无角色，点上方圆形按钮按圈录入</div>'}
     </div>`;
   }
@@ -585,6 +595,10 @@
   const ABOUT_LOG_OPEN = 2;
   const ABOUT_TYPE = { feat: "新增", perf: "优化", style: "调整", refactor: "调整", fix: "修复", docs: "文档", chore: "整理" };
   const ABOUT_LOG = [
+    { ver: "v0.15.5", date: "2026-09-12 07:30", changes: [
+      { t: "feat", n: "一键添加角色", h: "人物页新增「＋」按钮，点一下生成「新角色1」，直接排在名单最上方" },
+      { t: "style", n: "更新日志更清爽", h: "早期小版本收进 v0.14.0 折叠块，只留和你有关的改动" },
+    ] },
     { ver: "v0.15.4", date: "2026-09-12 06:35", changes: [
       { t: "style", n: "连线页顺序更顺手", h: "连线/角色/删线 模式按钮移到笔刷选择之上，先定模式再选笔" },
       { t: "docs", n: "布局说明更清楚", h: "展开说明改成分行完整句，槽位规则讲得更明白" },
@@ -614,9 +628,6 @@
       { t: "feat", n: "文本更宽容", h: "全角半角、引号自动识别，怎么顺手怎么输" },
       { t: "refactor", n: "底层分三层", h: "界面没变化，但为以后加时间轴、超点预留了位置" },
     ] },
-    { ver: "v0.14.20", date: "2026-09-11 06:30", changes: [
-      { t: "chore", n: "镜像同步 GitHub", h: "整理记忆并把 web/ 镜像推到 GitHub，公开版与开发版一致" },
-    ] },
     { ver: "v0.14.19", date: "2026-09-10 23:40", changes: [
       { t: "style", n: "菜单图标换新", h: "导入/保存菜单七项都加了矢量图标，一眼对上功能" },
       { t: "style", n: "模式图标换新", h: "连线用环形连接、删线用橡皮擦，返回键换家图标" },
@@ -629,11 +640,9 @@
     ] },
     { ver: "v0.14.17", date: "2026-09-10 22:15", changes: [
       { t: "perf", n: "面板拖动跟手了", h: "上下拖面板能实时跟手指变高，松手有动画" },
-      { t: "refactor", n: "强制声明清干净", h: "全站只剩一处必须的最高级声明，其余改回正常" },
     ] },
     { ver: "v0.14.16", date: "2026-09-10 22:00", changes: [
       { t: "style", n: "问号真正统一", h: "三处「?」共用同一条样式规则，与写法说明钮一致" },
-      { t: "chore", n: "旧文档清出根目录", h: "已完结文档和老安装包移进 _rubbish，不再干扰" },
     ] },
     { ver: "v0.14.15", date: "2026-09-10 21:40", changes: [
       { t: "feat", n: "三个问号全统一", h: "顶栏/面板/弹窗的「?」同「写法说明」钮同款同大" },
@@ -663,9 +672,6 @@
       { t: "style", n: "色块描边改实色", h: "色点外描边去掉透明度，昼夜都看得清" },
       { t: "style", n: "面板把手去箭头", h: "把手上/下箭头删掉，只留中间那根短杠" },
     ] },
-    { ver: "v0.14.10", date: "2026-09-10", changes: [
-      { t: "refactor", n: "文案软代码化", h: "文案集中到 i18n.js，改字不动 ui.js" },
-    ] },
     { ver: "v0.14.9", date: "2026-09-10 02:29", changes: [
       { t: "style", n: "面板行内收纳", h: "批量编辑钮进头像行、ⓘ进排布行、笔刷行并排" },
       { t: "style", n: "缩放条只留数字", h: "右上角只剩「41%」，提示文案删掉" },
@@ -688,7 +694,6 @@
     ] },
     { ver: "v0.14.4", date: "2026-09-10", changes: [
       { t: "style", n: "底层笔刷换化妆刷", h: "原铅笔 SVG 改化妆刷，跟「笔刷」语义对得上" },
-      { t: "chore", n: "冗余提示清扫", h: "删掉 7 处多余的提示文案" },
     ] },
     { ver: "v0.14.3", date: "2026-09-10", changes: [
       { t: "fix", n: "图例外描边跟昼夜走", h: "白天浅黑边、夜间浅白边，「不吃」这种黑点夜间也看得见" },
@@ -741,17 +746,32 @@
     ] },
   ];
   // 渲染更新日志：最近 ABOUT_LOG_OPEN 个版本展开（带中文类型标签）+ 完整说明；其余收起 + 只留功能名
+  // v0.14.1–v0.14.20 这些早期小版本统一收进 v0.14.0 折叠块内的二级折叠（只留面向用户的条目）
+  const HIST_RE = /^v0\.14\.(?:[1-9]|1[0-9]|20)$/;
+  function logItemHTML(it) {
+    return "<li>【" + (ABOUT_TYPE[it.t] || "调整") + "】<b>" + it.n + "</b>" + (it.h ? "：" + it.h : "") + "</li>";
+  }
   function renderAboutLog() {
-    return ABOUT_LOG.map(function (v, i) {
+    const hist = ABOUT_LOG.filter(function (v) { return HIST_RE.test(v.ver); });
+    const main = ABOUT_LOG.filter(function (v) { return !HIST_RE.test(v.ver); });
+    const histLabel = hist.length ? hist[hist.length - 1].ver + " – " + hist[0].ver : "";
+    return main.map(function (v, i) {
       const full = i < ABOUT_LOG_OPEN;
       const list = v.changes || [];
       const body = full
-        ? '<ul class="about-list">' + list.map(function (it) {
-            return "<li>【" + (ABOUT_TYPE[it.t] || "调整") + "】<b>" + it.n + "</b>" + (it.h ? "：" + it.h : "") + "</li>";
-          }).join("") + "</ul>"
+        ? '<ul class="about-list">' + list.map(logItemHTML).join("") + "</ul>"
         : '<div class="log-brief">' + list.map(function (it) { return it.n; }).join(" · ") + "</div>";
+      let sub = "";
+      if (v.ver === "v0.14.0" && hist.length) {
+        sub = '<details class="log-block log-sub"><summary class="log-ver">' + histLabel + "</summary>"
+          + hist.map(function (sv) {
+              return '<div class="log-subver">' + sv.ver + " · " + sv.date + "</div>"
+                + '<ul class="about-list">' + (sv.changes || []).map(logItemHTML).join("") + "</ul>";
+            }).join("")
+          + "</details>";
+      }
       return '<details class="log-block"' + (full ? " open" : "") + ">"
-        + '<summary class="log-ver">' + v.ver + " · " + v.date + "</summary>" + body + "</details>";
+        + '<summary class="log-ver">' + v.ver + " · " + v.date + "</summary>" + body + sub + "</details>";
     }).join("");
   }
 
@@ -770,7 +790,7 @@
           <line x1="52" y1="52" x2="40" y2="40" stroke="currentColor" stroke-width="2"></line>
           <text x="32" y="37" font-size="11" text-anchor="middle" fill="currentColor" font-weight="bold">CP</text>
         </svg></div>
-        <div class="about-name">CP Chart <em>v0.15.4</em></div>
+        <div class="about-name">CP Chart <em>v0.15.5</em></div>
         <div class="about-sub">${I18N.t("about_sub")}</div>
         <div class="about-date">${I18N.t("about_date")}</div>
 
@@ -1249,6 +1269,12 @@
       }
       // ---------- 人物 ----------
       case "pm-batch": App.editorModal({ tab: "people" }); break;
+      case "pm-add": {
+        const nm = nextNewCharName();
+        App.act(function () { App.addChar(nm, 1, true); }); // atTop=true → 新角色排在名单顶端
+        App.toast("已添加「" + nm + "」");
+        break;
+      }
       case "pm-import": openImportNames(); break;
       case "pm-export": openExportNames(); break;
       case "pm-mode": {

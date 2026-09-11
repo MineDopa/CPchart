@@ -57,12 +57,13 @@ button:active{ opacity:.7; }
 /* 顶栏左槽按钮（容器返回箭头右侧）：
    常态 = 帮助(#btnHelp)；面板全开 = 返回画板(#homeBtn)，两钮同槽位按 body.panel-full 切换 */
 .top-slot-btn{ position:absolute; left:54px; top:50%; transform:translateY(-50%);
-  width:2rem; height:2rem; border-radius:50%; background:transparent;
-  border:1.5px solid var(--sub); box-shadow:none;
+  width:2rem; height:2rem; min-width:2rem; max-width:2rem; min-height:2rem; max-height:2rem;
+  border-radius:50%; background:transparent;
+  border:1.5px solid var(--sub); box-shadow:none; overflow:hidden;
   display:flex; align-items:center; justify-content:center;
   font-size:15px; line-height:1; color:var(--ink); padding:0; cursor:pointer; }
 .top-slot-btn:active{ opacity:.7; }
-.top-slot-btn .ic-svg{ width:20px; height:20px; }
+.top-slot-btn .ic-svg{ width:20px; height:20px; flex:0 0 auto; }
 body.panel-full #btnHelp{ display:none; }
 
 /* ---------- 画布右侧悬浮工具组（定位坐标 + 菜单触发；可拖动吸附） ---------- */
@@ -87,15 +88,15 @@ body.panel-full #btnHelp{ display:none; }
 .radial-btn{ position:absolute; left:0; top:0; width:46px; height:46px; margin:-23px;
   border-radius:50%; background:var(--surf-glass); border:1px solid var(--line);
   box-shadow:var(--shadow); color:var(--ink);
-  display:flex; align-items:center; justify-content:center;
+  display:flex; align-items:center; justify-content:center; --bt-op:1;
   opacity:0; transform:rotate(var(--a)) translateY(0) rotate(calc(-1 * var(--a))) scale(.4); }
 .radial-btn svg{ width:22px; height:22px; }
 .radial-btn:active{ background:var(--accent-soft); }
-.radial-btn:disabled{ opacity:.32; }
+.radial-btn:disabled{ --bt-op:.32; opacity:.32; }
 #radialMenu:not(.hidden) .radial-btn{ animation:radialPop .28s cubic-bezier(.34,1.56,.64,1) var(--d,0s) both; }
 @keyframes radialPop{
   0%{ opacity:0; transform:rotate(var(--a)) translateY(0) rotate(calc(-1 * var(--a))) scale(.4); }
-  100%{ opacity:1; transform:rotate(var(--a)) translateY(calc(-1 * var(--r))) rotate(calc(-1 * var(--a))) scale(1); }
+  100%{ opacity:var(--bt-op,1); transform:rotate(var(--a)) translateY(calc(-1 * var(--r))) rotate(calc(-1 * var(--a))) scale(1); }
 }
 /* 朝左半圆扇形：+ 在屏幕右侧，钮全铺在左侧贴内缘，避免甩出屏幕右侧不可点 */
 .radial-ring > :nth-child(1){ --a:0deg;   --d:0s; }
@@ -207,7 +208,12 @@ body.night #brushPreview:not(.eraser){ color:#fff; }
 #opsRingSel{ font-size:13px; border:1px solid var(--line); border-radius:8px; padding:4px; background:var(--surf); }
 
 /* ---------- 面板三态把手（折叠/半开/全开）：药丸+箭头，单击循环、拖动跟手 ---------- */
+/* margin-top:auto = 把弹性余量全吃到把手上方 → 面板组始终贴住底边。
+   全开态拖动回落时 #stage 是 display:none，面板被行内 max-height 压住后余出的空间
+   本来是堆在面板下方的（顶边锁定、底边翘起，v0.15.1 修复）。半开态 #stage 弹性吃满，
+   没有余量，这条不产生任何视觉影响。 */
 #panelHead{ flex:0 0 auto; display:flex; align-items:center; justify-content:center; gap:10px;
+  margin-top:auto;
   height:26px; background:var(--panel); position:relative; z-index:3; cursor:grab;
   border-top:1px solid var(--line);
   user-select:none; -webkit-user-select:none; touch-action:none; }

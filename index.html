@@ -11,8 +11,8 @@
   <!-- 顶部全局操作栏（容器占用上方 10rem 点击区：此处只保留只读标题，按钮全部移入画布内悬浮组） -->
   <header id="topbar">
     <!-- 顶栏左槽（容器返回箭头右侧）：常态=帮助按钮；面板全开=返回画板(homeBtn) -->
-    <button id="btnHelp" class="top-slot-btn" title="帮助" aria-label="帮助">?</button>
-    <button id="homeBtn" class="top-slot-btn hidden" title="返回画板" aria-label="返回画板">&#8592;</button>
+    <button id="btnHelp" class="top-slot-btn" title="帮助" aria-label="帮助"><svg class="ic-svg" viewBox="0 0 24 24" fill="none" aria-hidden="true"><circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="2"/><path d="M9.6 9.2a2.5 2.5 0 1 1 3.4 2.3c-.6.3-1 .9-1 1.6v.4" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><circle cx="12" cy="17.2" r="1.1" fill="currentColor"/></svg></button>
+    <button id="homeBtn" class="top-slot-btn hidden" title="返回画板" aria-label="返回画板"><svg class="ic-svg" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M9 18V42H39V18L24 6L9 18Z" fill="none" stroke="currentColor" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/><path d="M19 29V42H29V29H19Z" fill="none" stroke="currentColor" stroke-width="4" stroke-linejoin="round"/><path d="M9 42H39" stroke="currentColor" stroke-width="4" stroke-linecap="round"/></svg></button>
     <button id="titleBox" class="tb-title" title="点击修改图名/填表人" aria-label="修改图名或填表人">
       <svg class="tb-pen" viewBox="0 0 24 24" aria-hidden="true"><path d="M17 3a2.8 2.8 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/></svg>
       <span class="tb-txt">未命名关系图</span>
@@ -70,11 +70,9 @@
     </div>
   </div>
 
-  <!-- 底部二级面板三态把手（折叠/半开/全开）：药丸+箭头，单击循环、拖动跟手 -->
+  <!-- 底部二级面板三态把手（折叠/半开/全开）：只留中间短杠，单击循环、拖动跟手（上/下箭头已删） -->
   <div id="panelHead" data-state="half" role="button" tabindex="0" aria-label="面板把手（点击切换状态，拖动调整高度）">
-    <svg class="ph-arr ph-up" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 14l6-6 6 6"/></svg>
     <span class="ph-pill" aria-hidden="true"></span>
-    <svg class="ph-arr ph-down" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 10l6 6 6-6"/></svg>
   </div>
 
   <!-- 二级菜单面板 -->
@@ -107,7 +105,7 @@
       <svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M15 7l5 5-5 5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M20 12H9a5 5 0 0 0 0 10h3" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
     </button>
     <button class="radial-btn" data-act="import" title="导入" aria-label="导入">
-      <svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M12 3v12" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><path d="M7 10l5 5 5-5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M4 19h16" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+      <svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M12 21V9" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><path d="M7 14l5-5 5 5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M4 5h16" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
     </button>
     <button class="radial-btn" data-act="save" title="保存 / 导出" aria-label="保存 / 导出">
       <svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M5 4h11l3 3v13H5z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/><path d="M8 4v5h7" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/><path d="M8 14h8v6H8z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/></svg>
@@ -134,10 +132,13 @@
 <button id="fullExit" class="hidden" title="退出全屏"><svg class="ic-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
 
 <script src="js/util.js"></script>
+<script src="js/cpc-core.js"></script>
+<script src="js/cpc-dsl.js"></script>
 <script src="js/state.js"></script>
 <script src="js/render.js"></script>
 <script src="js/lzstring.js"></script>
 <script src="js/io.js"></script>
+<script src="js/i18n.js"></script>
 <script src="js/ui.js"></script>
 <script src="js/input.js"></script>
 <script src="js/main.js"></script>

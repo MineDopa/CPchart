@@ -30,13 +30,12 @@
     return ["none", "one", "both"].map((key) => ({ key: key, name: App.ARROW_STD[key], type: key }));
   };
 
-  // 参考预设名单（用于开局引导/示例）——中性占位名，不含任何具体角色/世界观名单；
+  // 参考预设名单（用于开局引导/示例）——中性占位名；
   // 引导说明文字放在欢迎弹窗文案里，不得混入名单数据（否则整句会被解析成一个角色名）
   const PRESET_TEXT = [
     "圆心: 甲",
-    "1: 乙，丙",
-    "2: 丁，戊，己",
-    "3: 庚，辛",
+    "1:  A, B, C, D, E, F ",
+    "2: 乙，丙，丁，戊，己，庚，辛",
   ].join("\n");
 
   // 半径按圈生成：第1圈起
@@ -415,7 +414,7 @@
     const b = chars.find((c) => c.id === dst);
     if (!a || !b) return false;
     const aIsCenter = a.ring === 0, bIsCenter = b.ring === 0;
-    if (!aIsCenter && !bIsCenter) return false;   // 两个普通角色之间的粗线 = 这对 CP 的喜好度，保留为连线
+    if (!aIsCenter && !bIsCenter) return false;   // 两个普通角色之间的粗线 = 填表人对这对 CP 的喜好度，保留为连线
     if (aIsCenter && bIsCenter) return true;      // 理论不存在（圆心唯一），保险丢弃
     const other = aIsCenter ? b : a;
     other.like = ckey || null;

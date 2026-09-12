@@ -326,7 +326,7 @@
     let iconKey = null;
     let label = "";
     if (t === "hand") {
-      iconKey = "hand"; label = "抓手";
+      iconKey = "hand"; label = "视图";
     } else if (t === "layout") {
       iconKey = "layout"; label = "布局";
     } else if (t === "person") {

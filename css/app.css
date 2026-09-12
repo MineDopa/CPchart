@@ -442,6 +442,10 @@ textarea.export-txt.tall{ min-height:min(42vh,300px); font-size:12px; line-heigh
 .ed-help{ background:var(--code-bg); border-radius:10px; padding:10px; margin:0 0 8px;
   font-size:12px; line-height:1.7; color:var(--ink-soft); }
 .ed-help code{ background:var(--surf); padding:1px 5px; border-radius:5px; font-size:12px; }
+/* 帮助文案里的代码块（独立成块，与说明文字分开，昼夜通用） */
+.ed-code{ background:var(--surf); border:1px solid var(--line); border-radius:0.5rem;
+  padding:0.5rem 0.625rem; margin:0.45rem 0; font-size:0.75rem; line-height:2; }
+.ed-code code{ background:none; padding:0; }
 
 /* ---------- Toast ---------- */
 #toast{ position:fixed; left:50%; bottom:34dvh; transform:translateX(-50%); z-index:60;

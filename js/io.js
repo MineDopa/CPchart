@@ -373,7 +373,7 @@
       return cpcName(s) + p.arr + cpcName(d);
     }
     const out = [];
-    out.push("/* 该数据由 CP Chart 导出 | " + CPC_URL + " */");
+    out.push("/* 该数据由 CPChart 导出 | " + CPC_URL + " */");
     out.push("/* 解读该文本请参考本工具的「CPChart 语言使用说明」 */");
     out.push("#标题# " + String(st.title || "未命名关系图").replace(/[\r\n]+/g, " ").trim());
     // 布局：圈号(槽位?)[半径px?]: 名单；圈上按 angle 从 12 点方向顺时针
@@ -1003,7 +1003,7 @@
   // ---------------- 发布笔记（P11） ----------------
   App.generateContent = function (chartTitle) {
     const t = chartTitle || "";
-    const base = "我用 CP Chart 生成了「" + t + "」的连线关系图！";
+    const base = "我用 CPChart 生成了「" + t + "」的连线关系图！";
     const options = [
       base + " 角色之间的羁绊一目了然，太有意思了～大家也来下方的小工具试试看吧！✨",
       base + " 不画不知道，原来我的 CP 喜好已经打成了结！",

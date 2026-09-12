@@ -123,8 +123,9 @@
       App._linkEnds[k.id] = [k.src, k.dst];
       const col = colors.bottom(k.ckey) || "#222";
       const pend = App.pendingLinkDel === k.id ? " pending-del" : "";
+      const fl = fmapCls(k.id); // 路径筛选：粗线同样按所在层分级（否则会被 body.filter-on 兜底压到 10%）
       const L = lineEnds(a, b, k.arrow, App.nodeR(), 1);
-      html += `<line class="ln ln-bottom${pend}" data-link="${k.id}" x1="${L.x1}" y1="${L.y1}" x2="${L.x2}" y2="${L.y2}"
+      html += `<line class="ln ln-bottom${pend}${fl}" data-link="${k.id}" x1="${L.x1}" y1="${L.y1}" x2="${L.x2}" y2="${L.y2}"
         stroke="${col}" stroke-width="12" stroke-linecap="round" opacity="0.88"></line>`;
       html += buildArrowsLine(a, b, col, k.arrow, App.nodeR(), null, k.id);
     });

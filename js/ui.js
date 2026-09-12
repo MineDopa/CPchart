@@ -616,6 +616,9 @@
   const ABOUT_LOG_OPEN = 2;
   const ABOUT_TYPE = { feat: "新增", perf: "优化", style: "调整", refactor: "调整", fix: "修复", docs: "文档", chore: "整理" };
   const ABOUT_LOG = [
+    { ver: "v0.15.14", date: "2026-09-12 14:40", changes: [
+      { t: "fix", n: "筛选高亮", h: "修复了筛选某人时，与他直接相连的连线没有一起高亮的问题" },
+    ] },
     { ver: "v0.15.13", date: "2026-09-12 14:10", changes: [
       { t: "fix", n: "导入名单后画布显示", h: "修复了导入名单后画布可能不显示内容的问题" },
       { t: "feat", n: "筛选开关", h: "角色列表表头加漏斗按钮：点人物开始筛选，点漏斗退出" },

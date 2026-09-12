@@ -160,12 +160,6 @@
       if (k.arrow && k.arrow !== "none") p.arrow = k.arrow;
     });
     pairs.forEach((p) => {
-      // 圆心到某人的纯粗线已由「喜好度行」表达，连线行不再重复输出
-      if (!p.top && p.arrow === "none") {
-        const ra = (st.chars.find((x) => x.id === p.src) || {}).ring;
-        const rb = (st.chars.find((x) => x.id === p.dst) || {}).ring;
-        if (ra === 0 || rb === 0) return;
-      }
       const seg = [];
       if (p.bottom) { const n = lgNameOf("bottom", p.bottom); if (n) seg.push(n); }
       if (p.top) { const n = lgNameOf("top", p.top); if (n) seg.push(n); }
@@ -269,7 +263,7 @@
   // ---------------- CPC 格式 v2（《数据格式语义定义-v2-cpc.md》§3-§5）----------------
   // 五段分段：注释头 / #标题# / #布局# / #喜好# / #连线# / #样式#
   // 核心语义：连线两正交维度（强度档 bottom=多喜欢 / 定义档 top=是什么），方向对两层都开放。
-  var CPC_URL = "解读格式见「CPC 语言说明」";
+  var CPC_URL = "解读格式见「CPChart 语言使用说明」";
   // 内置样式预注入（§4.6）：默认词未声明时走这套，不是未定义样式。样式段只导出偏离默认的部分。
   var CPC_DEF_BOTTOM = { "本命": "#d32f2f", "很喜欢": "#f57c00", "路好": "#fbc02d", "不吃": "#222222" };
   var CPC_DEF_TOP = { "爱情": "#ec407a", "友情": "#43a047", "亲情": "#1976d2", "QPR": "#8e24aa" };
@@ -379,8 +373,8 @@
       return cpcName(s) + p.arr + cpcName(d);
     }
     const out = [];
-    out.push("/* 该数据由 CP Chart 导出 | " + CPC_URL + " */");
-    out.push("/* 解读该 CPC 请参考本工具的「CPC 语言说明」 */");
+    out.push("/* 该数据由 CPChart 导出 | " + CPC_URL + " */");
+    out.push("/* 解读该文本请参考本工具的「CPChart 语言使用说明」 */");
     out.push("#标题# " + String(st.title || "未命名关系图").replace(/[\r\n]+/g, " ").trim());
     // 布局：圈号(槽位?)[半径px?]: 名单；圈上按 angle 从 12 点方向顺时针
     const groups = new Map();
@@ -594,7 +588,7 @@
           else if ((key = lgKeyOfName("top", lname))) { layer = "top"; }
           else { layer = "top"; key = App.addLegendAuto("top", lname); }
           if (layer === "bottom") {
-            App.addLink(ca.id, cb.id, "bottom", key, arrow); // 圆心粗线由 foldCenterFav 自动折算为涂色
+            App.addLink(ca.id, cb.id, "bottom", key, arrow); // 底层粗线一律画成线（含连圆心），好感度是两人关系，与圆心无关
           } else {
             const exist = App.state.links.find((k) => k.layer === "top" &&
               (k.src === ca.id && k.dst === cb.id || k.src === cb.id && k.dst === ca.id));
@@ -775,15 +769,17 @@
     ctx.closePath();
   }
 
-  // 居中标题/署名 + 半透明底衬（随背景反色）
+  // 居中标题/署名（可选底衬：只有传 backing 才垫半透明圆角块；不传则文字直接压在顶部色带上）
   function drawCaption(ctx, text, cx, cy, fontSize, weight, fg, backing) {
     ctx.font = (weight || "") + " " + fontSize + "px " + BAND_FONT;
-    const tw = ctx.measureText(text).width;
-    const padX = fontSize * 0.6, padY = fontSize * 0.42;
-    const bw = tw + padX * 2, bh = fontSize + padY * 2;
-    roundRectPath(ctx, cx - bw / 2, cy - bh / 2, bw, bh, Math.min(12, bh / 2));
-    ctx.fillStyle = backing;
-    ctx.fill();
+    if (backing) {
+      const tw = ctx.measureText(text).width;
+      const padX = fontSize * 0.6, padY = fontSize * 0.42;
+      const bw = tw + padX * 2, bh = fontSize + padY * 2;
+      roundRectPath(ctx, cx - bw / 2, cy - bh / 2, bw, bh, Math.min(12, bh / 2));
+      ctx.fillStyle = backing;
+      ctx.fill();
+    }
     ctx.textAlign = "center";
     ctx.textBaseline = "middle";
     ctx.fillStyle = fg;
@@ -952,14 +948,14 @@
           ctx.drawImage(chartCanvas, 0, topBand, w, h);
 
           const fg = App.readableTextColor(dispBg);
-          const backing = fg === "#ffffff" ? "rgba(0,0,0,.35)" : "rgba(255,255,255,.6)";
           const title = st.title || "未命名关系图";
           const filler = App.getFiller();
           const subtitle = filler
             ? "填表：" + filler + "　制表：小红书小工具@CP-Chart"
             : "制表：小红书小工具@CP-Chart";
-          drawCaption(ctx, title, W / 2, titleY, titleFont, "600 ", fg, backing);
-          drawCaption(ctx, subtitle, W / 2, subY, subFont, "400 ", fg, backing);
+          // 顶部带本身是纯色底、文字颜色已按对比度反色 → 标题/署名不再垫半透明块（曾看起来像一块多余的色块）
+          drawCaption(ctx, title, W / 2, titleY, titleFont, "600 ", fg);
+          drawCaption(ctx, subtitle, W / 2, subY, subFont, "400 ", fg);
 
           // ③ 图例：副标题下方居中、三行（箭头方向 / 粗线喜好 / 细线关系）
           if (_leg.rows.length) {
@@ -1007,7 +1003,7 @@
   // ---------------- 发布笔记（P11） ----------------
   App.generateContent = function (chartTitle) {
     const t = chartTitle || "";
-    const base = "我用 CP Chart 生成了「" + t + "」的连线关系图！";
+    const base = "我用 CPChart 生成了「" + t + "」的连线关系图！";
     const options = [
       base + " 角色之间的羁绊一目了然，太有意思了～大家也来下方的小工具试试看吧！✨",
       base + " 不画不知道，原来我的 CP 喜好已经打成了结！",

@@ -4,8 +4,9 @@
 
   App.activeTab = "link";
   App.fullUI = false;
-  App.panelMode = "half";   // 底部二级面板三态：collapsed / half / full（单源；panelCollapsed/panelFull 为派生 bool 供旧 API 读取）
+  App.panelMode = "half";   // 底部二级面板四档：collapsed / min / half / full（单源；panelCollapsed/panelMin/panelFull 为派生 bool 供旧 API 读取）
   App.panelCollapsed = false; // 派生：== (App.panelMode === "collapsed")
+  App.panelMin = false;        // 派生：== (App.panelMode === "min")，最简展开：只显各 Tab 第一行必要功能
   App.panelFull = false;      // 派生：== (App.panelMode === "full")
   let modalCloseCb = null;
   let pendingAvatarFor = null;
@@ -31,6 +32,8 @@
     eye:    '<svg class="ic-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12s4-7 10-7 10 7 10 7-4 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/></svg>',
     eyeOff: '<svg class="ic-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12s4-7 10-7c2 0 3.7.7 5 1.8M22 12s-4 7-10 7c-2 0-3.7-.7-5-1.8"/><path d="M3 3l18 18"/></svg>',
     search: '<svg class="ic-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg>',
+    // 「筛选」：素材库的「筛选_filter」svg（currentColor 跟随主题）
+    filter: '<svg class="ic-svg" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M6 9L20.4 25.8178V38.4444L27.6 42V25.8178L42 9H6Z" fill="none" stroke="currentColor" stroke-width="4" stroke-linejoin="round"/></svg>',
     eraser: '<svg class="ic-svg" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M4 42H44" stroke="currentColor" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/><path d="M31 4L7 28L13 34H21L41 14L31 4Z" fill="none" stroke="currentColor" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/></svg>',
     sun:    '<svg class="ic-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4.5"/><path d="M12 2v2.5M12 19.5V22M2 12h2.5M19.5 12H22M4.6 4.6l1.8 1.8M17.6 17.6l1.8 1.8M19.4 4.6l-1.8 1.8M6.4 17.6l-1.8 1.8"/></svg>',
     moon:   '<svg class="ic-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 13A9 9 0 1 1 11 3a7 7 0 0 0 10 10z"/></svg>',
@@ -71,14 +74,16 @@
   const $ = App.byId;
 
   // =============== Tab 切换 ===============
-  // 面板三态（折叠/半开/全开）单源：App.panelMode
+  // 面板四档（折叠/最简/半开/全开）单源：App.panelMode
   // 旧 API（setPanelCollapsed / setPanelFull）作为兼容壳保留，switchTab、homeBtn 等旧调用方不破
   App.setPanelMode = function (m, opts) {
-    if (m !== "collapsed" && m !== "half" && m !== "full") return;
+    if (m !== "collapsed" && m !== "min" && m !== "half" && m !== "full") return;
     App.panelMode = m;
     App.panelCollapsed = (m === "collapsed");
+    App.panelMin = (m === "min");
     App.panelFull = (m === "full");
     document.body.classList.toggle("panel-collapsed", App.panelCollapsed);
+    document.body.classList.toggle("panel-min", App.panelMin);
     document.body.classList.toggle("panel-full", App.panelFull);
     const head = $("panelHead");
     if (head) head.setAttribute("data-state", m);
@@ -183,7 +188,7 @@
           maxlength="20" value="${App.esc(r.name)}" placeholder="名称"></span>
         <span class="pal">${PALETTE.map((c) => `<i data-cmd="pal" data-layer="${layer}" data-key="${r.key}" data-c="${c}" style="background:${c}"></i>`).join("")}</span>
         <span class="mini eye ${r.hidden ? "off" : ""}" data-cmd="tbl-hide" data-layer="${layer}" data-key="${r.key}"
-          title="${r.hidden ? "已隐藏（不进图例），点一下恢复" : "点一下隐藏（不进图例，连线保留）"}">${r.hidden ? ICONS.eyeOff : ICONS.eye}</span>
+          title="${r.hidden ? "已隐藏（不进图例、连线也隐藏），点一下恢复" : "点一下隐藏（不进图例，连线也一起隐藏）"}">${r.hidden ? ICONS.eyeOff : ICONS.eye}</span>
         <span class="mini danger del" data-cmd="tbl-del" data-layer="${layer}" data-key="${r.key}">${ICONS.del}</span>
       </div>`;
     }).join("");
@@ -236,7 +241,20 @@
   }
   function panelPerson() {
     const st = App.state;
-    const rows = st.chars.map((c) => {
+    // 路径筛选进行中：把链上的人按「起点 → 第1层 → 第2层…」提到前面，同层保持原顺序；
+    // 不在链上的人（另一条链/孤立角色）接在后面，一个不少 —— 只改显示顺序，不动数据
+    const fm = App.filterMap(App.filterRoot);
+    let list = st.chars;
+    if (fm) {
+      list = st.chars
+        .map((c, i) => ({ c: c, i: i }))
+        .sort((A, B) => {
+          const da = fm.dist[A.c.id], db = fm.dist[B.c.id];
+          return (da === undefined ? Infinity : da) - (db === undefined ? Infinity : db) || A.i - B.i;
+        })
+        .map((x) => x.c);
+    }
+    const rows = list.map((c) => {
       const likeOpts = ['<option value="">— 无 —</option>']
         .concat(st.tables.bottom.map((r) => `<option value="${r.key}" ${c.like === r.key ? "selected" : ""}>${App.esc(r.name)}</option>`).join(""));
       const m = st.ui.avatarMode;
@@ -251,6 +269,9 @@
       </div>`;
     }).join("");
 
+    const rootChar = App.filterRoot ? st.chars.find((c) => c.id === App.filterRoot) : null;
+    const rootName = rootChar ? rootChar.name : null;
+
     return `<div class="pg pg-person">
       <div class="ctrl-row avatar-row">
         <span class="rlab">头像显示</span>
@@ -263,7 +284,7 @@
         <span class="sw-row"><span class="sw-txt">名字</span><span class="swbox ${st.ui.showNames ? "on" : ""}" data-cmd="pm-names" role="switch" aria-checked="${st.ui.showNames}" aria-label="显示名字"><i></i></span></span>
         <button class="circ-fab" data-cmd="pm-batch" title="按圈批量编辑角色名单" aria-label="批量编辑名单">${IC_PEOPLE_PLUS}</button>
       </div>
-      <div class="pg-t"><span class="pg-t-l">角色列表（${st.chars.length}）</span><span class="pg-t-r">点击行内 📷 上传头像<button class="mini" data-cmd="pm-add" title="添加一个角色" aria-label="添加角色">${ICONS.addBox}</button></span></div>
+      <div class="pg-t"><span class="pg-t-l">角色列表（${st.chars.length}）</span><span class="pg-t-r">${rootName ? "筛选：" + App.esc(rootName) + "（点漏斗退出）" : "点击行内 📷 上传头像"}<button class="mini flt-btn ${App.filterRoot ? "on" : ""}" data-cmd="pm-filter" title="${App.filterRoot ? "退出筛选：恢复全部连线与列表顺序" : "点人物即沿连线高亮；这里可退出筛选"}" aria-label="路径筛选">${ICONS.filter}</button><button class="mini" data-cmd="pm-add" title="添加一个角色" aria-label="添加角色">${ICONS.addBox}</button></span></div>
       ${rows || '<div class="hint">暂无角色，点上方圆形按钮按圈录入</div>'}
     </div>`;
   }
@@ -315,7 +336,7 @@
         <div class="paint-seg" role="tablist" aria-label="画板模式">
           <button class="paint-seg-btn ${App.paintMode === "link" ? "active" : ""}" data-cmd="paint-set" data-mode="link" title="连线模式：点人物起一条线，再点结束">${ICONS.link}<span class="lbl">连线模式</span></button>
           <button class="paint-seg-btn ${App.paintMode === "char" ? "active" : ""}" data-cmd="paint-set" data-mode="char" title="角色模式：点/划人物批量赋当前粗线笔刷">${ICONS.person}<span class="lbl">角色模式</span></button>
-          <button class="paint-seg-btn ${App.paintMode === "erase" ? "active" : ""}" data-cmd="paint-set" data-mode="erase" title="删线模式：点连线两段式删除">${ICONS.eraser}<span class="lbl">删线模式</span></button>
+          <button class="paint-seg-btn ${App.paintMode === "erase" ? "active" : ""}" data-cmd="paint-set" data-mode="erase" title="删线模式：点一条线即删除这对之间的全部关系线">${ICONS.eraser}<span class="lbl">删线模式</span></button>
         </div>
         <span class="seg-spacer"></span>
         <button class="btn icon-only" data-cmd="lnk-batch" title="用文字批量编辑喜好度与连线">${ICONS.pen}</button>
@@ -591,165 +612,37 @@
   // 关于页 · 更新日志数据源（发新版时把新版本插到数组最前，展开范围自动重置）
   // 采用「约定式提交规范」：每条改动 = { t: 类型, n: 功能名, h: 如何使用 }
   // 用户可见中文类型标签：feat 新增 / perf 优化 / style·refactor 调整 / fix 修复 / docs 文档 / chore 整理
-  // 规则：只展开最近 ABOUT_LOG_OPEN 个版本并显示「功能：如何使用」；更早的收起，且只留「功能」名
-  const ABOUT_LOG_OPEN = 2;
+  // 规则：只展开最近 ABOUT_LOG_OPEN 个版本并显示「功能：如何使用」；更早的收起，只留「功能」名
+  // ★功能名与说明一律用用户语言写（禁内部功能点：「填写格式换代」「面板四档」这类陌生人看不懂的说法）
+  const ABOUT_LOG_OPEN = 1;
   const ABOUT_TYPE = { feat: "新增", perf: "优化", style: "调整", refactor: "调整", fix: "修复", docs: "文档", chore: "整理" };
   const ABOUT_LOG = [
-    { ver: "v0.15.6", date: "2026-09-12 08:30", changes: [
-      { t: "fix", n: "编辑面板总是最新", h: "每次打开「批量编辑」，三个页签都重新读一遍画板，不再显示上次的旧内容" },
+    { ver: "v1.0.0", date: "2026-09-12", changes: [
+      { t: "feat", n: "1.0 正式版", h: "主要功能已齐，后面专心打磨细节" },
+      { t: "docs", n: "帮助重写", h: "先看一份完整例子，再逐段认识每个符号" },
     ] },
-    { ver: "v0.15.5", date: "2026-09-12 07:30", changes: [
-      { t: "feat", n: "一键添加角色", h: "人物页新增「＋」按钮，点一下生成「新角色1」，直接排在名单最上方" },
-      { t: "style", n: "更新日志更清爽", h: "早期小版本收进 v0.14.0 折叠块，只留和你有关的改动" },
+    { ver: "v0.15 系列", date: "2026-09-11 ~ 09-12", changes: [
+      { t: "feat", n: "填写更简单", h: "文本改成一块一块写：标题、布局、关系各占一块，好改也好读" },
+      { t: "feat", n: "两种喜好分开标", h: "既能标「喜欢这个角色」，也能单独标「喜欢这对关系」" },
+      { t: "feat", n: "换颜色更省事", h: "内置一份默认样式，只想换颜色就只写颜色，其余自动继承" },
+      { t: "feat", n: "导入能选只加不删", h: "批量录入只增不减；整份替换时会直接看到删了什么" },
+      { t: "feat", n: "顺着关系链看", h: "点人物，关系链亮起、越往外越淡，角色列表也按远近重排" },
+      { t: "feat", n: "面板可收更小", h: "从折叠到全开共四档，电脑上占屏更小" },
+      { t: "feat", n: "悬停看关系", h: "鼠标移到角色上，与他相连的线亮起、其余淡出" },
+      { t: "fix", n: "显示问题修复", h: "箭头描边、连线高亮、导出图片等问题已修复" },
     ] },
-    { ver: "v0.15.4", date: "2026-09-12 06:35", changes: [
-      { t: "style", n: "连线页顺序更顺手", h: "连线/角色/删线 模式按钮移到笔刷选择之上，先定模式再选笔" },
-      { t: "docs", n: "布局说明更清楚", h: "展开说明改成分行完整句，槽位规则讲得更明白" },
-    ] },
-    { ver: "v0.15.3", date: "2026-09-12 06:10", changes: [
-      { t: "feat", n: "导入分两种模式", h: "批量录入只增不减；全量覆盖整份替换，能直接看到删了什么" },
-      { t: "fix", n: "点两下也能连线了", h: "以前必须按住拖，现在点起点再点终点也能连上" },
-      { t: "fix", n: "重做键会变灰", h: "没撤销过时重做是灰的，点不动" },
-      { t: "fix", n: "调色板前三色修正", h: "第一排三个颜色对齐设计色卡" },
-      { t: "refactor", n: "描边粗细更好调", h: "细线外圈白描边宽度可调，范围更大" },
-    ] },
-    { ver: "v0.15.2", date: "2026-09-11 23:36", changes: [
-      { t: "style", n: "调色板换新", h: "12 色全部更换，去掉旧版黄/绿/蓝紫系" },
-      { t: "fix", n: "箭头改 SVG", h: "图例「情感指向」的箭头从 emoji 换成矢量 SVG，手机上不再变色" },
-      { t: "fix", n: "返回钮尺寸锁定", h: "左上角返回画板按钮加固尺寸约束，防止手机上撑大脱轨" },
-      { t: "docs", n: "旧文档归档", h: "过时的格式说明移入 _rubbish，现行以 v5.1 为准" },
-    ] },
-    { ver: "v0.15.1", date: "2026-09-11 23:05", changes: [
-      { t: "fix", n: "面板回拖不翘边", h: "往下拖面板时底边贴住屏幕，不再往上缩" },
-      { t: "fix", n: "导入后立刻重绘", h: "整份数据覆盖后画布马上变新，不再是旧图" },
-      { t: "docs", n: "AI 提示词改版", h: "让 AI 只交一段代码，布局只写圈号和名单" },
-    ] },
-    { ver: "v0.15.0", date: "2026-09-11 18:30", changes: [
-      { t: "feat", n: "填写格式换代", h: "文本改成一块一块写，标题、布局、关系各占一块，更好读" },
-      { t: "feat", n: "样式只写改动", h: "内置一份默认样式表，只想换颜色就只写颜色，其余自动继承" },
-      { t: "feat", n: "喜好分成两类", h: "既能标「喜欢这个角色」，也能单独标「喜欢这对关系」" },
-      { t: "feat", n: "文本更宽容", h: "全角半角、引号自动识别，怎么顺手怎么输" },
-      { t: "refactor", n: "底层分三层", h: "界面没变化，但为以后加时间轴、超点预留了位置" },
-    ] },
-    { ver: "v0.14.19", date: "2026-09-10 23:40", changes: [
-      { t: "style", n: "菜单图标换新", h: "导入/保存菜单七项都加了矢量图标，一眼对上功能" },
-      { t: "style", n: "模式图标换新", h: "连线用环形连接、删线用橡皮擦，返回键换家图标" },
-    ] },
-    { ver: "v0.14.18", date: "2026-09-10 22:45", changes: [
-      { t: "fix", n: "导入图标改成上传", h: "菜单里导入钮的方向正过来了，不再是下载箭头" },
-      { t: "refactor", n: "导入菜单精简三项", h: "只留建立新图、增量导入、全量编辑三件事" },
-      { t: "style", n: "发布钮变红", h: "「发布小红书笔记」做了正负形处理，红底反白更醒目" },
-      { t: "style", n: "导出顺序调整", h: "完整数据提到名单前面" },
-    ] },
-    { ver: "v0.14.17", date: "2026-09-10 22:15", changes: [
-      { t: "perf", n: "面板拖动跟手了", h: "上下拖面板能实时跟手指变高，松手有动画" },
-    ] },
-    { ver: "v0.14.16", date: "2026-09-10 22:00", changes: [
-      { t: "style", n: "问号真正统一", h: "三处「?」共用同一条样式规则，与写法说明钮一致" },
-    ] },
-    { ver: "v0.14.15", date: "2026-09-10 21:40", changes: [
-      { t: "feat", n: "三个问号全统一", h: "顶栏/面板/弹窗的「?」同「写法说明」钮同款同大" },
-      { t: "feat", n: "名字开关改滑块", h: "「显示名字」变成滑块开关，和批量编辑按钮同一行" },
-      { t: "style", n: "图例描边统一", h: "本命圆点和爱情短横条都用 border 描边，视感一致" },
-      { t: "style", n: "心形换成新画法", h: "喜好度的心形图标重画，不再画歪" },
-      { t: "fix", n: "弹窗问号对齐", h: "弹窗右上角问号与关闭 × 上下居中" },
-    ] },
-    { ver: "v0.14.14", date: "2026-09-10 20:45", changes: [
-      { t: "fix", n: "夜间按钮全变白", h: "添加轨道等按钮夜间黑字改纯白，看得清了" },
-      { t: "style", n: "圈行图标放大右置", h: "布局页圈行的删除钮放大到 20 并靠右对齐" },
-      { t: "style", n: "问号钮去掉外框", h: "面板的「?」帮助钮去边框，图标放大到 28" },
-    ] },
-    { ver: "v0.14.13", date: "2026-09-10 19:45", changes: [
-      { t: "style", n: "控件尺寸统一对齐", h: "图例圆点、帮助钮、取色器按 rem 对齐" },
-      { t: "fix", n: "箭头 chip 留间隔", h: "chip 的图标和文字之间加间隔" },
-      { t: "fix", n: "人物列表去白底", h: "下拉框背景改跟面板走、星标与垃圾桶垂直对齐" },
-      { t: "style", n: "日间描边改浅灰蓝", h: "日间模式色块描边从深黑改浅灰蓝" },
-    ] },
-    { ver: "v0.14.12", date: "2026-09-10", changes: [
-      { t: "style", n: "行高统一对齐", h: "面板每行等高、内容垂直居中，行与行不再里出外进" },
-      { t: "refactor", n: "日间夜间并成胶囊", h: "复用连线模式的胶囊控件，去掉两个圆片" },
-      { t: "fix", n: "图标文字对齐", h: "图标与文字走同一条垂直中线" },
-    ] },
-    { ver: "v0.14.11", date: "2026-09-10", changes: [
-      { t: "style", n: "背景色并进外观行", h: "「背景色」挪进「外观：日间/夜间」同一行，配色集中一处" },
-      { t: "style", n: "色块描边改实色", h: "色点外描边去掉透明度，昼夜都看得清" },
-      { t: "style", n: "面板把手去箭头", h: "把手上/下箭头删掉，只留中间那根短杠" },
-    ] },
-    { ver: "v0.14.9", date: "2026-09-10 02:29", changes: [
-      { t: "style", n: "面板行内收纳", h: "批量编辑钮进头像行、ⓘ进排布行、笔刷行并排" },
-      { t: "style", n: "缩放条只留数字", h: "右上角只剩「41%」，提示文案删掉" },
-    ] },
-    { ver: "v0.14.8", date: "2026-09-10", changes: [
-      { t: "fix", n: "开槽位不再转圈圈", h: "开槽只拉近间距，整圈不再转一下" },
-      { t: "style", n: "缩放条挪到右上", h: "变右上角小胶囊，画布更大" },
-    ] },
-    { ver: "v0.14.7", date: "2026-09-10", changes: [
-      { t: "fix", n: "圆心星标夜间看得清", h: "空心星描边改跟昼夜走，夜间变浅白细线" },
-    ] },
-    { ver: "v0.14.6", date: "2026-09-10", changes: [
-      { t: "style", n: "笔刷栏一行动拖", h: "粗线/细线/箭头三栏左右滑动选，不再折行占屏" },
-      { t: "style", n: "编辑清空收进行内", h: "「连线模式」胶囊同一行右侧两个小图标按钮" },
-    ] },
-    { ver: "v0.14.5", date: "2026-09-10", changes: [
-      { t: "style", n: "抓手指示移到右上", h: "不再挤左下画布边缘，emoji 改手形 SVG 跟昼夜" },
-      { t: "fix", n: "箭头含义=朝右单箭头", h: "用「箭头上」SVG 旋转 90°，对得上单箭头方向" },
-      { t: "style", n: "批量编辑变圆形按钮", h: "人物 Tab 右上角小圆按钮，入口不再占一整行" },
-    ] },
-    { ver: "v0.14.4", date: "2026-09-10", changes: [
-      { t: "style", n: "底层笔刷换化妆刷", h: "原铅笔 SVG 改化妆刷，跟「笔刷」语义对得上" },
-    ] },
-    { ver: "v0.14.3", date: "2026-09-10", changes: [
-      { t: "fix", n: "图例外描边跟昼夜走", h: "白天浅黑边、夜间浅白边，「不吃」这种黑点夜间也看得见" },
-    ] },
-    { ver: "v0.14.2", date: "2026-09-09", changes: [
-      { t: "fix", n: "夜间提示更亮了", h: "「暂无连线」这类 12px 小字夜间升到能看清" },
-    ] },
-    { ver: "v0.14.1", date: "2026-09-09", changes: [
-      { t: "style", n: "布局 Tab 改用线性图标", h: "「平均排布」「添加轨道」从 emoji 换线条 SVG" },
-      { t: "fix", n: "夜间输入框字色", h: "批量编辑连线的输入框夜间呈黑字看不清" },
-    ] },
-    { ver: "v0.14.0", date: "2026-09-09", changes: [
-      { t: "feat", n: "喜好度记在角色身上", h: "标了本命 / 路好就记在这个人身上，重复标只覆盖" },
-      { t: "feat", n: "图例自动编号", h: "连着点新增会得到「新关系 1、新关系 2」，方便改名" },
-      { t: "feat", n: "名字长度上限", h: "角色名、图例名最多 20 字" },
-      { t: "fix", n: "容器画板错位", h: "画板在小红书里上下错位" },
-      { t: "fix", n: "导出名字重复", h: "导出文本里同一个人重复出现" },
-    ] },
-    { ver: "v0.13.0", date: "2026-09-09", changes: [
-      { t: "feat", n: "更新日志折叠", h: "只展开最近两个版本，更早的收起只留功能名" },
-      { t: "feat", n: "真箭头", h: "连线在箭头处断开留白，方向一眼看清" },
-      { t: "feat", n: "色板一行滑动", h: "预制颜色横排滑动选，圆点双层描边" },
-      { t: "feat", n: "统一编辑器", h: "三个 Tab 合一，一处编辑人物、连线、完整数据" },
-      { t: "feat", n: "完整数据压缩", h: "一段 XHS2: 文本备份整张图，旧版快照也能导入" },
-      { t: "feat", n: "导入确认提示", h: "导入前提示会覆盖当前画板，失败单独报错" },
-      { t: "feat", n: "连线分层直选", h: "编辑一条连线时直接选粗线、细线图例" },
-      { t: "feat", n: "导出结果屏", h: "四个按钮：关闭 / 新建 / 发布 / 存相册" },
-      { t: "feat", n: "角色批量上色", h: "连线模式里从某角色划过，批量赋喜好色" },
-      { t: "feat", n: "旧草稿兼容", h: "旧版本草稿自动读取，导出时转成新格式" },
-      { t: "fix", n: "面板文字挤压按钮", h: "面板说明文字挤压按钮的问题" },
-    ] },
-    { ver: "v0.12.0", date: "2026-09-08", changes: [
-      { t: "feat", n: "径向菜单", h: "点画布右侧 ➕，一圈按钮绕着绽开，单手也好点" },
-      { t: "feat", n: "导入导出二级窗", h: "导入与保存各收进一个小窗，点开再选具体项" },
-      { t: "feat", n: "帮助按钮", h: "点「?」开指南；面板全开时变「←」回画板" },
-    ] },
-    { ver: "v0.11.0", date: "2026-09-08", changes: [
-      { t: "feat", n: "槽位布局" }, { t: "feat", n: "自由摆放" }, { t: "feat", n: "批量编辑名单" },
-      { t: "feat", n: "连线记录编辑" }, { t: "feat", n: "角色操作条" }, { t: "feat", n: "定位坐标 ¤" },
-      { t: "feat", n: "面板三态" }, { t: "feat", n: "头像大小" }, { t: "feat", n: "三表显隐" },
-      { t: "fix", n: "夜间画板染黑" }, { t: "fix", n: "网页版假下载" },
-    ] },
-    { ver: "v0.10.0", date: "2026-09-07", changes: [
-      { t: "feat", n: "容器适配" }, { t: "feat", n: "底部菜单" }, { t: "feat", n: "面板折叠" }, { t: "feat", n: "图例分行" },
-      { t: "feat", n: "单箭头共存" }, { t: "feat", n: "箭头含义自定义" }, { t: "feat", n: "导入自动居中" }, { t: "feat", n: "圆心星标" },
-    ] },
-    { ver: "v0.9.0", date: "上线新版", changes: [
-      { t: "feat", n: "发布笔记" }, { t: "feat", n: "导出图片" }, { t: "feat", n: "名单与快照" }, { t: "feat", n: "图例直切" },
-      { t: "feat", n: "连线规则" }, { t: "feat", n: "布局拖拽" }, { t: "feat", n: "帮助与关于" },
+    { ver: "早期版本", date: "2026-09-07 ~ 09-10", changes: [
+      { t: "feat", n: "一圈放几个人", h: "每圈可指定放几个人、多出的空位画虚线占位；关掉槽位也能自由摆放" },
+      { t: "feat", n: "一个窗改完名单与连线", h: "人物名单、连线、完整数据都在同一个窗口里改" },
+      { t: "feat", n: "按钮收进浮出菜单", h: "点画布右侧 ➕ 绽开一圈按钮，导入导出各收进一个小窗" },
+      { t: "feat", n: "适配小红书小工具", h: "顶栏按钮移入悬浮条，菜单改底部弹出，面板可折叠" },
+      { t: "feat", n: "喜好标在角色身上", h: "标了本命 / 路好就记在这个人身上，重复标只留最后一次" },
+      { t: "style", n: "夜间模式更清楚", h: "夜间可读性提升，图标与间距统一" },
     ] },
   ];
   // 渲染更新日志：最近 ABOUT_LOG_OPEN 个版本展开（带中文类型标签）+ 完整说明；其余收起 + 只留功能名
-  // v0.14.1–v0.14.20 这些早期小版本统一收进 v0.14.0 折叠块内的二级折叠（只留面向用户的条目）
+  // 注：v0.14.x 于 2026-09-12 按「更新日志给用户看」原则并入「早期版本」折叠块，
+  // 下列二级折叠规则当前无匹配项（保留以备将来需要再拆分显示）。
   const HIST_RE = /^v0\.14\.(?:[1-9]|1[0-9]|20)$/;
   function logItemHTML(it) {
     return "<li>【" + (ABOUT_TYPE[it.t] || "调整") + "】<b>" + it.n + "</b>" + (it.h ? "：" + it.h : "") + "</li>";
@@ -793,7 +686,7 @@
           <line x1="52" y1="52" x2="40" y2="40" stroke="currentColor" stroke-width="2"></line>
           <text x="32" y="37" font-size="11" text-anchor="middle" fill="currentColor" font-weight="bold">CP</text>
         </svg></div>
-        <div class="about-name">CP Chart <em>v0.15.6</em></div>
+        <div class="about-name">CPChart <em>${ABOUT_LOG[0].ver}</em></div>
         <div class="about-sub">${I18N.t("about_sub")}</div>
         <div class="about-date">${I18N.t("about_date")}</div>
 
@@ -855,14 +748,15 @@
     // 定位坐标：圆心归位到画面正中 + 自动缩放全览
     const rcBtn = $("btnRecenter");
     if (rcBtn) rcBtn.addEventListener("click", () => App.recenter());
-    // 面板三态把手（折叠/半开/全开）：单击循环 + 拖动跟手
-    //   - 单击（移动 < 8px）：按 collapsed → half → full → collapsed 循环
+    // 面板四档把手（折叠/最简/半开/全开）：单击循环 + 拖动跟手
+    //   - 单击（移动 < 8px）：按 collapsed → min → half → full → collapsed 循环
     //   - 拖动（移动 ≥ 8px）：面板高度实时跟手；松手吸附到最近档位
     const head = $("panelHead");
     if (head) {
-      // 三态档位（占视口比例，留出 panelHead 26 + tabs 49 高度）
+      // 四档（占视口比例，留出 panelHead 26 + tabs 49 高度）；min 只显各 Tab 第一行，r 取到单行实际占比
       const STOPS = [
         { m: "collapsed", r: 0 },
+        { m: "min",       r: 0.09 },
         { m: "half",      r: 0.4 },
         { m: "full",      r: 0.92 },
       ];
@@ -919,7 +813,7 @@
         if (rafId) { cancelAnimationFrame(rafId); rafId = 0; setLiveHeight(pendingRatio); }
         if (!moved) {
           // 单击：循环切档
-          const seq = ["collapsed", "half", "full"];
+          const seq = ["collapsed", "min", "half", "full"];
           const i = seq.indexOf(App.panelMode);
           App.setPanelMode(seq[(i + 1) % seq.length]);
         } else {
@@ -935,7 +829,7 @@
       head.addEventListener("keydown", (e) => {
         if (e.key === " " || e.key === "Enter") {
           e.preventDefault();
-          const seq = ["collapsed", "half", "full"];
+          const seq = ["collapsed", "min", "half", "full"];
           const i = seq.indexOf(App.panelMode);
           App.setPanelMode(seq[(i + 1) % seq.length]);
         }
@@ -1173,11 +1067,18 @@
       if (c) { onCmd(c.getAttribute("data-cmd"), c); }
       const opsClose = e.target.closest("#opsClose");
       if (opsClose) { App.selCharId = null; App.notifyChanged(); }
-      // 人物/布局点击行选择（非输入区）
+      // 人物/布局点击行选择（非输入区、非行内控件）
+      // .ava 是 div 而非 button，且自带 pm-avatar 命令（上传图片）：点头像只传图，不触发筛选
       const row = e.target.closest(".prow[data-pid]");
-      if (row && !e.target.closest("input") && !e.target.closest("select")) {
-        App.selCharId = row.getAttribute("data-pid");
-        if (App.activeTab === "layout") { App.notifyChanged(); }
+      if (row && !e.target.closest("input") && !e.target.closest("select") && !e.target.closest("button") && !e.target.closest(".ava")) {
+        const rid = row.getAttribute("data-pid");
+        App.selCharId = rid;
+        if (App.activeTab === "person") {
+          // 人物页：点人物 = 以他为起点沿连线筛选（列表同步按远近重排）
+          App.setFilter(rid);
+          renderPanel();
+          App.render();
+        } else if (App.activeTab === "layout") { App.notifyChanged(); }
         else { App.render(); }
       }
     });
@@ -1280,6 +1181,19 @@
       }
       case "pm-import": openImportNames(); break;
       case "pm-export": openExportNames(); break;
+      case "pm-filter": {
+        // 漏斗 = 筛选开关：筛选中 → 退出（恢复全部连线与列表顺序）；没筛选 → 提示怎么开始
+        if (App.filterRoot) {
+          App.setFilter(null);
+          App.selCharId = null;
+          App.toast("已退出筛选");
+        } else {
+          App.toast("点人物列表或画布头像即开始筛选，点这里退出");
+        }
+        App.render();
+        App.renderPanel();
+        break;
+      }
       case "pm-mode": {
         App.act(() => { st.ui.avatarMode = el.getAttribute("data-val"); });
         break;
@@ -1682,7 +1596,7 @@
         text: function () { return App.exportNameListText(); },
         okText: "保存",
         apply: function (v) {
-          // ★Tab 1 自动路由：先试 CPC 全文（含段头），否则当名单增量合并
+          // ★Tab 1 自动路由：先试整份文本（含块语法段头），否则当名单增量合并
           const cpc = App.importCPC(v);
           if (cpc !== null) {
             if (cpc.errs && cpc.errs.length) {
@@ -1694,7 +1608,7 @@
               App.toast(cpc.errs.join("；"), true);
               return false;
             }
-            App.toast("已批量录入 " + cpc.added + " 条（CPC 全文）" + edWarnNote(cpc));
+            App.toast("已批量录入 " + cpc.added + " 条（整份文本）" + edWarnNote(cpc));
             return;
           }
           // 回退：纯名单增量（合并语义，不破坏已有连线/喜好）

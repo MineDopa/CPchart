@@ -112,26 +112,23 @@
       return;
     }
 
-    // ② 连线删线模式（两段式）：第一次点线 = 选中高亮待删，再点同一条 = 确认删除；点人物 = 筛选其相关连线
+    // ② 连线删线模式：单击线 = 删除这对角色之间的全部关系线（粗线 + 细线），并高亮刚删的这对；点人物 = 选中筛选
     if (tab === "link" && App.paintMode === "erase") {
       const linkId = lineAt(p.x, p.y);
       if (linkId) {
-        if (App.pendingLinkDel === linkId) {
-          App.pendingLinkDel = null;
-          App.act(() => App.removeLink(linkId));
-          gesture = null;
-          return;
-        }
-        App.pendingLinkDel = linkId;
         const k = App.state.links.find((x) => x.id === linkId);
         const nm = (id) => { const c = App.state.chars.find((x) => x.id === id); return c ? c.name : "?"; };
+        const label = k ? `${nm(k.src)} ↔ ${nm(k.dst)}` : "";
+        App.pendingLinkDel = null;
+        const removed = k ? App.act(() => App.removePairLinks(k.src, k.dst)) : 0;
+        if (k) App.flashDeletedPair(k.src, k.dst);
         App.render();
-        if (k) App.toast(`已选中 ${nm(k.src)} ↔ ${nm(k.dst)}，再点一次删除`);
+        if (App.renderPanel) App.renderPanel();
+        if (label) App.toast(`已删除 ${label} 的全部关系线${removed > 1 ? `（${removed} 条）` : ""}`);
         return;
       }
       const nid = nodeAt(p.x, p.y);
       if (nid) {
-        App.pendingLinkDel = null;
         App.selCharId = nid;
         App.render();
         if (App.renderPanel) App.renderPanel();
@@ -217,9 +214,10 @@
       }
     }
 
-    // ⑤ 人物模式：点选筛选
+    // ⑤ 人物模式：点画布头像 = 选中 + 以他为起点沿连线筛选（点另一个人 = 换起点）
     if (tab === "person" && nid) {
       App.selCharId = nid;
+      App.setFilter(nid);
       App.render();
       if (App.renderPanel) App.renderPanel();
       return;

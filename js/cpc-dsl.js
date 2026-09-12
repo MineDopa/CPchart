@@ -276,7 +276,7 @@
    * 4. 主解析
    * ============================================================ */
   D.parse = function (text) {
-    var res = { doc: Core.blank(), errs: [], warns: [], stats: { chars: 0, links: 0, styles: 0, skipped: [] } };
+    var res = { doc: Core.blank(), errs: [], warns: [], stats: { chars: 0, links: 0, styles: 0, skipped: [], autoWords: [] } };
     var norm = D.normalize(text);
     var sc = D.scan(norm);
     res.errs = res.errs.concat(sc.errs);
@@ -419,6 +419,7 @@
 
     /* ---------- 喜好：原子 → 角色涂色 ---------- */
     favAtoms.forEach(function (g) {
+      if (!Core.findRow(doc, g.word)) res.stats.autoWords.push(g.word);
       var row = ensureWordRow(doc, g.word, layerWish[g.word] || "bottom");
       if (!row) return;
       g.names.forEach(function (nm) {
@@ -435,6 +436,7 @@
     var allEdgeGroups = relEdges.map(function (g) { return { word: g.word, edges: g.edges, layer: "top" }; })
       .concat(favEdges.map(function (g) { return { word: g.word, edges: g.edges, layer: "bottom" }; }));
     allEdgeGroups.forEach(function (g) {
+      if (!Core.findRow(doc, g.word)) res.stats.autoWords.push(g.word);
       var row = ensureWordRow(doc, g.word, layerWish[g.word] || g.layer);
       if (!row) return;
       // 连线的层跟着「词」走，不跟着「块」走 —— 保证词与它挂的线永远同层，
@@ -477,6 +479,18 @@
         res.warns.push({ code: "W403", line: 0, msg: "图例词未定义样式：" + n });
       }
     });
+
+    /* ---------- 连线 / 喜好里没定义过的样式词：已自动补全，提示 + 指路（W404） ---------- */
+    // 文本里「用户故意删了这行样式」与「用户压根没写」字面完全相同，解析器无从区分，
+    // 故一律补全；想连同连线一起删掉，只能去「样式」面板删（那里是明确的删除意图）。
+    if (res.stats.autoWords.length) {
+      var aw = res.stats.autoWords;
+      res.warns.unshift({
+        code: "W404", line: 0,
+        msg: "有 " + aw.length + " 个样式没定义，已自动补全：" + aw.slice(0, 3).join("、") +
+          (aw.length > 3 ? " 等" : "") + "。要连同连线一起删掉，请到「样式」面板删除"
+      });
+    }
 
     doc.links = Core.dedupeLinks(doc.links);
     res.stats.chars = doc.chars.length;

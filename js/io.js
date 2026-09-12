@@ -769,15 +769,17 @@
     ctx.closePath();
   }
 
-  // 居中标题/署名 + 半透明底衬（随背景反色）
+  // 居中标题/署名（可选底衬：只有传 backing 才垫半透明圆角块；不传则文字直接压在顶部色带上）
   function drawCaption(ctx, text, cx, cy, fontSize, weight, fg, backing) {
     ctx.font = (weight || "") + " " + fontSize + "px " + BAND_FONT;
-    const tw = ctx.measureText(text).width;
-    const padX = fontSize * 0.6, padY = fontSize * 0.42;
-    const bw = tw + padX * 2, bh = fontSize + padY * 2;
-    roundRectPath(ctx, cx - bw / 2, cy - bh / 2, bw, bh, Math.min(12, bh / 2));
-    ctx.fillStyle = backing;
-    ctx.fill();
+    if (backing) {
+      const tw = ctx.measureText(text).width;
+      const padX = fontSize * 0.6, padY = fontSize * 0.42;
+      const bw = tw + padX * 2, bh = fontSize + padY * 2;
+      roundRectPath(ctx, cx - bw / 2, cy - bh / 2, bw, bh, Math.min(12, bh / 2));
+      ctx.fillStyle = backing;
+      ctx.fill();
+    }
     ctx.textAlign = "center";
     ctx.textBaseline = "middle";
     ctx.fillStyle = fg;
@@ -946,14 +948,14 @@
           ctx.drawImage(chartCanvas, 0, topBand, w, h);
 
           const fg = App.readableTextColor(dispBg);
-          const backing = fg === "#ffffff" ? "rgba(0,0,0,.35)" : "rgba(255,255,255,.6)";
           const title = st.title || "未命名关系图";
           const filler = App.getFiller();
           const subtitle = filler
             ? "填表：" + filler + "　制表：小红书小工具@CP-Chart"
             : "制表：小红书小工具@CP-Chart";
-          drawCaption(ctx, title, W / 2, titleY, titleFont, "600 ", fg, backing);
-          drawCaption(ctx, subtitle, W / 2, subY, subFont, "400 ", fg, backing);
+          // 顶部带本身是纯色底、文字颜色已按对比度反色 → 标题/署名不再垫半透明块（曾看起来像一块多余的色块）
+          drawCaption(ctx, title, W / 2, titleY, titleFont, "600 ", fg);
+          drawCaption(ctx, subtitle, W / 2, subY, subFont, "400 ", fg);
 
           // ③ 图例：副标题下方居中、三行（箭头方向 / 粗线喜好 / 细线关系）
           if (_leg.rows.length) {

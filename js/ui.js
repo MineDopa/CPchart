@@ -616,6 +616,10 @@
   const ABOUT_LOG_OPEN = 2;
   const ABOUT_TYPE = { feat: "新增", perf: "优化", style: "调整", refactor: "调整", fix: "修复", docs: "文档", chore: "整理" };
   const ABOUT_LOG = [
+    { ver: "v0.15.15", date: "2026-09-12 16:15", changes: [
+      { t: "fix", n: "导出图片", h: "修复了导出图片时标题背后多出一块色块的问题" },
+      { t: "feat", n: "导入提示", h: "样式没写全时会自动补全，并提示可到「样式」面板删除" },
+    ] },
     { ver: "v0.15.14", date: "2026-09-12 14:40", changes: [
       { t: "fix", n: "筛选高亮", h: "修复了筛选某人时，与他直接相连的连线没有一起高亮的问题" },
     ] },

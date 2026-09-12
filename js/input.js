@@ -48,6 +48,7 @@
     ghostEl.setAttribute("stroke-width", "2.5");
     ghostEl.setAttribute("stroke-dasharray", "7 6");
     ghostEl.setAttribute("opacity", "0.85");
+    ghostEl.setAttribute("pointer-events", "none"); // ghost 仅视觉辅助，不参与命中判定
     const g = App.byId("ghostG");
     if (g) g.appendChild(ghostEl);
     return ghostEl;
@@ -111,26 +112,23 @@
       return;
     }
 
-    // ② 连线删线模式（两段式）：第一次点线 = 选中高亮待删，再点同一条 = 确认删除；点人物 = 筛选其相关连线
+    // ② 连线删线模式：单击线 = 删除这对角色之间的全部关系线（粗线 + 细线），并高亮刚删的这对；点人物 = 选中筛选
     if (tab === "link" && App.paintMode === "erase") {
       const linkId = lineAt(p.x, p.y);
       if (linkId) {
-        if (App.pendingLinkDel === linkId) {
-          App.pendingLinkDel = null;
-          App.act(() => App.removeLink(linkId));
-          gesture = null;
-          return;
-        }
-        App.pendingLinkDel = linkId;
         const k = App.state.links.find((x) => x.id === linkId);
         const nm = (id) => { const c = App.state.chars.find((x) => x.id === id); return c ? c.name : "?"; };
+        const label = k ? `${nm(k.src)} ↔ ${nm(k.dst)}` : "";
+        App.pendingLinkDel = null;
+        const removed = k ? App.act(() => App.removePairLinks(k.src, k.dst)) : 0;
+        if (k) App.flashDeletedPair(k.src, k.dst);
         App.render();
-        if (k) App.toast(`已选中 ${nm(k.src)} ↔ ${nm(k.dst)}，再点一次删除`);
+        if (App.renderPanel) App.renderPanel();
+        if (label) App.toast(`已删除 ${label} 的全部关系线${removed > 1 ? `（${removed} 条）` : ""}`);
         return;
       }
       const nid = nodeAt(p.x, p.y);
       if (nid) {
-        App.pendingLinkDel = null;
         App.selCharId = nid;
         App.render();
         if (App.renderPanel) App.renderPanel();
@@ -167,6 +165,23 @@
           // 再点一次取消
           App.linkSource = null; App.selCharId = null; hideGhost();
           App.render();
+          return;
+        }
+        if (App.linkSource) {
+          // ★两段式收线：已有起点，再点第二个节点即连线（不必按住拖拽）
+          const from = App.linkSource;
+          const brush0 = App.brush;
+          if (!brush0.bottom && !brush0.top) {
+            App.toast("请先选择粗线/细线笔刷", true);
+          } else {
+            App.act(function () {
+              if (brush0.bottom) App.addLink(from, nid, "bottom", brush0.bottom, brush0.arrow);
+              if (brush0.top) App.addLink(from, nid, "top", brush0.top, brush0.arrow);
+            });
+          }
+          App.linkSource = null; App.selCharId = null; hideGhost();
+          App.render();
+          if (App.renderPanel) App.renderPanel();
           return;
         }
         App.linkSource = nid;
@@ -388,6 +403,9 @@
     }
 
     if (g === "linkDrag") {
+      // tap（未拖动）= 两段式起线：保留起点，等用户点第二个节点
+      // drag（拖动过）= 拖拽落线：在终点节点上连线后收尾
+      if (!gData.moved) { gData = null; return; }
       const target = nodeAt(p.x, p.y);
       const srcId = App.linkSource;
       const brush = App.brush;

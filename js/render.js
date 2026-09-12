@@ -50,25 +50,33 @@
     return { x1: a.x + ux * c1, y1: a.y + uy * c1, x2: b.x - ux * c2, y2: b.y - uy * c2 };
   }
 
-  function buildArrowsLine(a, b, color, arrow, nodeR, extra) {
+  function buildArrowsLine(a, b, color, arrow, nodeR, extra, id) {
     const dx = b.x - a.x, dy = b.y - a.y;
     const len = Math.hypot(dx, dy) || 1;
     const ux = dx / len, uy = dy / len;
     let out = "";
     const scale = (extra && extra.scale) || 1;
     const back = ARROW.len * scale, wid = ARROW.halfWid * scale;
-    // 顶点在 (tx,ty) 贴目标圆边，底点后退 back —— 箭头尖朝目标角色
+    // 底部对齐：大小三角共底（底边对齐在同一线上），小三角尖端按 len*(1-scale) 内收；
+    // 两三角同轴居中（水平对称）。故尖端距目标圆边 = tipPad + len*(1-scale)，底边恒在 nodeR+tipPad+len。
+    // id 透传：箭头上挂 data-link，使悬停高亮能一并选中有向箭头
+    const tipR = nodeR + ARROW.tipPad + ARROW.len * (1 - scale);
+    // 描边：顶层细线箭头与细线一样带白描边 —— 先铺一层同形白三角（fill + 外扩 stroke 合成白边），再叠彩色三角。
+    // 白边外扩量 = 细线白底与彩线的半宽差（thinW-2.2)/2，由调用方按 edgeW = thinW-2.2 传入。
+    const edge = extra && extra.edge, edgeW = (extra && extra.edgeW) || 0;
     const mkArrow = (tx, ty, dir) => {
       const ex = tx - back * ux * dir, ey = ty - back * uy * dir;
       const px = -uy * wid * dir, py = ux * wid * dir;
-      return `<polygon points="${S(tx, ty)} ${S(ex + px, ey + py)} ${S(ex - px, ey - py)}" fill="${color}"></polygon>`;
+      const pts = `${S(tx, ty)} ${S(ex + px, ey + py)} ${S(ex - px, ey - py)}`;
+      const edgePoly = edge
+        ? `<polygon class="ln-arrow-edge" data-link="${id}" points="${pts}" fill="${edge}" stroke="${edge}" stroke-width="${edgeW}" stroke-linejoin="round"></polygon>`
+        : "";
+      return edgePoly + `<polygon class="ln-arrow" data-link="${id}" points="${pts}" fill="${color}"></polygon>`;
     };
     if (arrow === "one") {
-      const tipR = nodeR + ARROW.tipPad;
       const tx = b.x - ux * tipR, ty = b.y - uy * tipR;
       out += mkArrow(tx, ty, 1);
     } else if (arrow === "both") {
-      const tipR = nodeR + ARROW.tipPad;
       let t1 = { x: b.x - ux * tipR, y: b.y - uy * tipR };
       let t2 = { x: a.x + ux * tipR, y: a.y + uy * tipR };
       out += mkArrow(t1.x, t1.y, 1) + mkArrow(t2.x, t2.y, -1);
@@ -87,37 +95,53 @@
     const byId = {};
     st.chars.forEach((c) => (byId[c.id] = c));
 
+    // 隐藏的关系类型：其连线既不进图例（tables 层已过滤），也不进画布（此处整条跳过，含命中区）
+    const hiddenKeys = {
+      bottom: new Set((st.tables.bottom || []).filter((r) => r.hidden).map((r) => r.key)),
+      top: new Set((st.tables.top || []).filter((r) => r.hidden).map((r) => r.key)),
+    };
+    // 角色→连线 端点映射（供悬停高亮用），只记录会真正渲染出来的连线
+    App._linkEnds = {};
+
     // 底层粗线（同对单条）
     let html = "";
-    const bottoms = st.links.filter((k) => k.layer === "bottom");
+    const bottoms = st.links.filter((k) => k.layer === "bottom" && !hiddenKeys.bottom.has(k.ckey));
     bottoms.forEach((k) => {
       const a = byId[k.src], b = byId[k.dst];
       if (!a || !b) return;
+      App._linkEnds[k.id] = [k.src, k.dst];
       const col = colors.bottom(k.ckey) || "#222";
       const pend = App.pendingLinkDel === k.id ? " pending-del" : "";
       const L = lineEnds(a, b, k.arrow, App.nodeR(), 1);
       html += `<line class="ln ln-bottom${pend}" data-link="${k.id}" x1="${L.x1}" y1="${L.y1}" x2="${L.x2}" y2="${L.y2}"
         stroke="${col}" stroke-width="12" stroke-linecap="round" opacity="0.88"></line>`;
-      html += buildArrowsLine(a, b, col, k.arrow, App.nodeR(), null);
+      html += buildArrowsLine(a, b, col, k.arrow, App.nodeR(), null, k.id);
     });
 
     // 顶层细线（白描边，同对单条直线，与 bottom 相同命中/箭头规则）
-    const tops = st.links.filter((k) => k.layer === "top");
+    const tops = st.links.filter((k) => k.layer === "top" && !hiddenKeys.top.has(k.ckey));
     tops.forEach((k) => {
       const a = byId[k.src], b = byId[k.dst];
       if (!a || !b) return;
+      App._linkEnds[k.id] = [k.src, k.dst];
       const col = colors.top(k.ckey) || "#555";
       const pend = App.pendingLinkDel === k.id ? " pending-del" : "";
-      const L = lineEnds(a, b, k.arrow, App.nodeR(), ARROW.topScale);
+      // 顶层细线与底层粗线共端：用同一 cut（scale=1），保证白描边与粗线等长、箭头端不露粗线头。
+      // 顶层小三角与底层大三角「底边对齐 + 同轴居中」，由 buildArrowsLine 按同一底边计算（小三角尖端内收）。
+      // 顶层小三角同样带白描边（edge = 线白底色，edgeW = 白底与彩线宽度差），与线的白边视觉一致。
+      const thinW = (st.ui && st.ui.thinW) ? st.ui.thinW : 6.5;
+      const L = lineEnds(a, b, k.arrow, App.nodeR(), 1);
       html += `<line class="ln ln-top${pend}" data-link="${k.id}" x1="${L.x1}" y1="${L.y1}" x2="${L.x2}" y2="${L.y2}"
-        stroke="${th.linkEdge}" stroke-width="6.5" stroke-linecap="round" opacity="0.95"></line>`;
+        stroke="${th.linkEdge}" stroke-width="${thinW}" stroke-linecap="round" opacity="0.95"></line>`;
       html += `<line class="ln ln-top-c${pend}" data-link="${k.id}" x1="${L.x1}" y1="${L.y1}" x2="${L.x2}" y2="${L.y2}"
-        stroke="${col}" stroke-width="${(st.ui && st.ui.thinW) ? st.ui.thinW : 2.2}" stroke-linecap="round" stroke-dasharray="${(st.ui && st.ui.thinDash) ? "6 5" : "none"}"></line>`;
-      html += buildArrowsLine(a, b, col, k.arrow, App.nodeR(), { scale: ARROW.topScale });
+        stroke="${col}" stroke-width="2.2" stroke-linecap="round" stroke-dasharray="${(st.ui && st.ui.thinDash) ? "6 5" : "none"}"></line>`;
+      html += buildArrowsLine(a, b, col, k.arrow, App.nodeR(),
+        { scale: ARROW.topScale, edge: th.linkEdge, edgeW: Math.max(2.5, thinW - 2.2) }, k.id);
     });
 
-    // 命中区（触屏容易点）
+    // 命中区（触屏容易点）—— 隐藏类型的连线不渲染命中区，避免点到隐形线
     st.links.forEach((k) => {
+      if (hiddenKeys[k.layer].has(k.ckey)) return;
       const a = byId[k.src], b = byId[k.dst];
       if (!a || !b) return;
       html += `<line class="hit ln-hit" data-link="${k.id}" x1="${a.x}" y1="${a.y}" x2="${b.x}" y2="${b.y}"
@@ -162,6 +186,7 @@
     st.chars.forEach((c) => {
       const isSel = App.selCharId === c.id;
       const isSrc = App.linkSource === c.id;
+      const isDel = App.justDeleted && App.justDeleted.indexOf(c.id) >= 0;
       let stroke = "#333", sw = 1.6;
       if (isSrc) { stroke = "#ff9500"; sw = 3.4; }
       else if (isSel) { stroke = "#0a84ff"; sw = 3; }
@@ -184,8 +209,9 @@
       } else {
         outer = `<circle class="outer" r="${App.nodeR()}" fill="${th.nodeFill}" stroke="${stroke}" stroke-width="${sw}"></circle>`;
       }
-      html += `<g class="node" data-node="${c.id}" transform="translate(${c.x},${c.y})">
+      html += `<g class="node${isDel ? " just-del" : ""}" data-node="${c.id}" transform="translate(${c.x},${c.y})" onmouseenter="App.setHoverNode('${c.id}')" onmouseleave="App.setHoverNode(null)">
         ${outer}
+        ${isDel ? `<circle class="flash-del" r="${(App.nodeR() + 8).toFixed(2)}" fill="none" stroke="#34c759" stroke-width="3.5"></circle>` : ""}
         ${innerHtml}
         ${showName ? `<text class="nm" x="${nameX}" y="${nameY}" text-anchor="middle" font-size="14" stroke="${th.bg}" stroke-width="5"
           paint-order="stroke" fill="${nameCol}">${App.esc(c.name)}</text>` : ""}
@@ -263,7 +289,7 @@
       `<span class="lg" data-layer="top" data-key="${App.esc(r.key)}"><i style="background:${r.color}"></i><b>${App.esc(r.name)}</b></span>`).join("");
     const arrowName = (st.meta && st.meta.arrowName) ? String(st.meta.arrowName) : "情感指向";
     const arrowHtml = arrowName
-      ? `<span class="lg" data-layer="arrow" data-key="one"><b class="lg-ic">➡</b><b>${App.esc(arrowName)}</b></span>`
+      ? `<span class="lg" data-layer="arrow" data-key="one"><b class="lg-ic"><svg class="ic-svg" viewBox="0 0 48 48" fill="none"><path d="M14 24H40M28 12L40 24L28 36" stroke="currentColor" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/></svg></b><b>${App.esc(arrowName)}</b></span>`
       : "";
     let out = "";
     if (bottomHtml) out += seg([bottomHtml]);
@@ -318,6 +344,38 @@
     o.brush.classList.remove("hidden");
     o.brush.classList.toggle("eraser", eraser);
   }
+
+  // 悬停角色透视：高亮与之相关的全部连线，其余连线淡出（调试用，纯视觉、不改数据）
+  App.setHoverNode = function (id) {
+    const g = App.byId("linksG");
+    if (g) {
+      const cur = g.querySelectorAll(".hl");
+      for (let i = 0; i < cur.length; i++) cur[i].classList.remove("hl");
+    }
+    if (!id || !App._linkEnds) { document.body.classList.remove("hover-dim"); return; }
+    document.body.classList.add("hover-dim");
+    const rel = [];
+    for (const lid in App._linkEnds) {
+      const e = App._linkEnds[lid];
+      if (e[0] === id || e[1] === id) rel.push(lid);
+    }
+    if (g) rel.forEach((lid) => {
+      const els = g.querySelectorAll('[data-link="' + lid + '"]');
+      for (let i = 0; i < els.length; i++) els[i].classList.add("hl");
+    });
+  };
+
+  // 删除连线后高亮刚删的这对节点（纯视觉提示，约 1 秒淡出，不改数据）
+  App._delFlashT = null;
+  App.flashDeletedPair = function (src, dst) {
+    App.justDeleted = [src, dst];
+    if (App._delFlashT) clearTimeout(App._delFlashT);
+    App._delFlashT = setTimeout(() => {
+      App.justDeleted = null;
+      App._delFlashT = null;
+      App.render();
+    }, 950);
+  };
 
   App.render = function () {
     App.computeLayout();

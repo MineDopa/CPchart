@@ -57,12 +57,13 @@ button:active{ opacity:.7; }
 /* 顶栏左槽按钮（容器返回箭头右侧）：
    常态 = 帮助(#btnHelp)；面板全开 = 返回画板(#homeBtn)，两钮同槽位按 body.panel-full 切换 */
 .top-slot-btn{ position:absolute; left:54px; top:50%; transform:translateY(-50%);
-  width:2rem; height:2rem; border-radius:50%; background:transparent;
-  border:1.5px solid var(--sub); box-shadow:none;
+  width:2rem; height:2rem; min-width:2rem; max-width:2rem; min-height:2rem; max-height:2rem;
+  border-radius:50%; background:transparent;
+  border:1.5px solid var(--sub); box-shadow:none; overflow:hidden;
   display:flex; align-items:center; justify-content:center;
   font-size:15px; line-height:1; color:var(--ink); padding:0; cursor:pointer; }
 .top-slot-btn:active{ opacity:.7; }
-.top-slot-btn .ic-svg{ width:20px; height:20px; }
+.top-slot-btn .ic-svg{ width:20px; height:20px; flex:0 0 auto; }
 body.panel-full #btnHelp{ display:none; }
 
 /* ---------- 画布右侧悬浮工具组（定位坐标 + 菜单触发；可拖动吸附） ---------- */
@@ -87,15 +88,15 @@ body.panel-full #btnHelp{ display:none; }
 .radial-btn{ position:absolute; left:0; top:0; width:46px; height:46px; margin:-23px;
   border-radius:50%; background:var(--surf-glass); border:1px solid var(--line);
   box-shadow:var(--shadow); color:var(--ink);
-  display:flex; align-items:center; justify-content:center;
+  display:flex; align-items:center; justify-content:center; --bt-op:1;
   opacity:0; transform:rotate(var(--a)) translateY(0) rotate(calc(-1 * var(--a))) scale(.4); }
 .radial-btn svg{ width:22px; height:22px; }
 .radial-btn:active{ background:var(--accent-soft); }
-.radial-btn:disabled{ opacity:.32; }
+.radial-btn:disabled{ --bt-op:.32; opacity:.32; }
 #radialMenu:not(.hidden) .radial-btn{ animation:radialPop .28s cubic-bezier(.34,1.56,.64,1) var(--d,0s) both; }
 @keyframes radialPop{
   0%{ opacity:0; transform:rotate(var(--a)) translateY(0) rotate(calc(-1 * var(--a))) scale(.4); }
-  100%{ opacity:1; transform:rotate(var(--a)) translateY(calc(-1 * var(--r))) rotate(calc(-1 * var(--a))) scale(1); }
+  100%{ opacity:var(--bt-op,1); transform:rotate(var(--a)) translateY(calc(-1 * var(--r))) rotate(calc(-1 * var(--a))) scale(1); }
 }
 /* 朝左半圆扇形：+ 在屏幕右侧，钮全铺在左侧贴内缘，避免甩出屏幕右侧不可点 */
 .radial-ring > :nth-child(1){ --a:0deg;   --d:0s; }
@@ -139,6 +140,18 @@ body.panel-full #btnHelp{ display:none; }
 /* 删线两段式：已选中待二次确认的连线整段标红 */
 /* 待删除连线标红：stroke/opacity 由 SVG 属性写在标签上，CSS 普通规则本就高于呈现属性，无需提权 */
 .ln.pending-del{ stroke:#ff3b30; opacity:1; }
+
+/* 悬停角色透视：关联连线高亮，其余连线淡出（调试用，纯 CSS、不动数据） */
+body.hover-dim .ln,
+body.hover-dim .ln-arrow,
+body.hover-dim .ln-arrow-edge{ opacity:.1; transition:opacity .12s ease; }
+body.hover-dim .ln.hl,
+body.hover-dim .ln-arrow.hl,
+body.hover-dim .ln-arrow-edge.hl{ opacity:1; }
+
+/* 删线单击即删：刚删的这对节点用绿色脉冲圈高亮 ~1 秒（纯视觉提示，不改数据） */
+.flash-del{ animation:delPulse .95s ease-out 1; }
+@keyframes delPulse{ 0%{ opacity:0; } 20%{ opacity:1; } 100%{ opacity:0; } }
 
 /* 抓手模式指示条：左下角（v0.14.8 回归原位）；内嵌 SVG 用 ic-svg 描边 */
 #brushPreview{ position:absolute; left:12px; bottom:10px; max-width:78%;
@@ -207,7 +220,12 @@ body.night #brushPreview:not(.eraser){ color:#fff; }
 #opsRingSel{ font-size:13px; border:1px solid var(--line); border-radius:8px; padding:4px; background:var(--surf); }
 
 /* ---------- 面板三态把手（折叠/半开/全开）：药丸+箭头，单击循环、拖动跟手 ---------- */
+/* margin-top:auto = 把弹性余量全吃到把手上方 → 面板组始终贴住底边。
+   全开态拖动回落时 #stage 是 display:none，面板被行内 max-height 压住后余出的空间
+   本来是堆在面板下方的（顶边锁定、底边翘起，v0.15.1 修复）。半开态 #stage 弹性吃满，
+   没有余量，这条不产生任何视觉影响。 */
 #panelHead{ flex:0 0 auto; display:flex; align-items:center; justify-content:center; gap:10px;
+  margin-top:auto;
   height:26px; background:var(--panel); position:relative; z-index:3; cursor:grab;
   border-top:1px solid var(--line);
   user-select:none; -webkit-user-select:none; touch-action:none; }
@@ -222,6 +240,10 @@ body.night #brushPreview:not(.eraser){ color:#fff; }
 #panelHead.dragging{ background:var(--accent-soft); }
 
 body.panel-collapsed #panel{ display:none; }
+/* 最简档（min）：面板只保留各 Tab 第一行必要功能。内容只剩首行故自然仅一行高，
+   max-height 仅作安全上限；隐藏规则用 #panel 抬高特异性，稳压 .prow/.dlrow/.pg-t 的 class 级 display，无需 !important */
+body.panel-min #panel{ max-height:14dvh; }
+body.panel-min #panel .pg > *:not(:first-child){ display:none; }
 body.panel-collapsed #panelHead{ /* 仅露把手条即可 */ }
 
 /* ---------- 面板 ---------- */
@@ -244,7 +266,7 @@ body.panel-full #tabs{ display:none; }
 .brushline .brush-ic{ display:inline-flex; flex:0 0 auto; color:var(--sub); }
 .brushline .chips{ flex:1; min-width:0; margin:0; }
 .pg-t-l{ display:inline-flex; align-items:center; gap:4px; }
-.pg-t-r{ color:var(--sub); font-size:11px; }
+.pg-t-r{ display:inline-flex; align-items:center; gap:6px; color:var(--sub); font-size:11px; }
 /* 笔刷栏单行横滑：不折行，超出屏宽手指横拖选（滚动条隐藏，触屏原生滑动） */
 .chips{ display:flex; gap:6px; flex-wrap:nowrap; overflow-x:auto;
   -webkit-overflow-scrolling:touch; scrollbar-width:none; padding-bottom:2px; }
@@ -444,7 +466,7 @@ body.panel-full #panel{ flex:1 1 auto; max-height:none; border-top:none; }
   color:var(--ink); margin:14px 0 4px; padding-bottom:4px; border-bottom:1px solid var(--line); }
 /* 关于页 · 更新日志版本小标题 */
 .log-ver{ align-self:stretch; text-align:left; font-size:12px; font-weight:700;
-  color:var(--accent); margin:10px 0 2px; }
+  color:var(--accent); margin:2px 0 2px; }
 .log-ver + .about-list{ margin-bottom:2px; }
 /* 关于页 · 更新日志折叠块：只展开最近两个版本，更早的收起且只留功能名 */
 .log-block{ align-self:stretch; text-align:left; margin:4px 0 2px;
@@ -458,6 +480,10 @@ body.panel-full #panel{ flex:1 1 auto; max-height:none; border-top:none; }
   font-size:10px; color:var(--sub); }
 .log-block[open] > summary::after{ content:"▾"; }
 .log-block > .about-list{ margin-bottom:6px; }
+/* 关于页 · 嵌套折叠（v0.14.x 历史版本收进 v0.14.0 块内，二级折叠） */
+.log-sub{ margin-left:10px; border-bottom:none; }
+.log-sub > summary{ min-height:30px; color:var(--sub); }
+.log-subver{ font-size:11px; color:var(--sub); margin:6px 0 2px; }
 .log-brief{ font-size:12px; line-height:1.7; color:var(--sub); margin:0 0 6px; }
 .about-list{ margin:0; padding:0 0 0 2px; list-style:none; align-self:stretch; text-align:left; }
 .about-list li{ font-size:13px; line-height:1.75; color:var(--ink-soft); }

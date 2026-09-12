@@ -34,7 +34,7 @@
   // 引导说明文字放在欢迎弹窗文案里，不得混入名单数据（否则整句会被解析成一个角色名）
   const PRESET_TEXT = [
     "圆心: 甲",
-    "1:  A, B, C, D, E, F ",
+    "1: A，B，C，D，E，F",
     "2: 乙，丙，丁，戊，己，庚，辛",
   ].join("\n");
 
@@ -58,7 +58,7 @@
         top: DEFAULT_TOP.map((x) => ({ ...x })),
         arrow: DEFAULT_ARROW.map((x) => ({ ...x })),
       },
-      ui: { avatarMode: "both", showNames: true, slotMode: false, nodeR: NODE_R, night: false, charMode: false, paintMode: "link", thinW: 2.2, thinDash: false, layoutHint: false },
+      ui: { avatarMode: "both", showNames: true, slotMode: false, nodeR: NODE_R, night: false, charMode: false, paintMode: "link", thinW: 6.5, thinDash: false, layoutHint: false },
       meta: { filler: "", arrowName: "情感指向" }, // arrowName=箭头含义（图例/导出显示，可改）
     };
   }
@@ -198,7 +198,8 @@
     computeLayout();
   };
 
-  App.addChar = function (name, ring) {
+  App.addChar = function (name, ring, atTop) {
+    // atTop=true → 插入名单顶端（「添加角色」按钮用，反馈一眼可见）；默认追加到末尾
     // 注意：不能写 `ring || 1` —— 圆心的合法值 0 会被吞成 1（历史 bug，2026-09-09 修）
     const rn = (ring === null || ring === undefined || ring === "") ? 1 : Number(ring);
     ring = Math.max(0, Math.floor(Number.isFinite(rn) ? rn : 1));
@@ -207,7 +208,7 @@
       id: App.uid("c"), name: App.clipName(String(name).trim()) || "未命名", // 角色名上限 20 字
       ring, angle: null, slot: null, like: null, avatar: null,
     };
-    App.state.chars.push(c);
+    if (atTop) App.state.chars.unshift(c); else App.state.chars.push(c);
     if (ring > 0) App.distributeRing(ring);
     computeLayout();
     return c;
@@ -376,14 +377,8 @@
   };
   App.addLink = function (src, dst, layer, ckey, arrow) {
     if (!ckey) return null;
-    // 喜好度唯一真源守卫（v0.14 数据层重构）：
-    // 喜好度 = 角色自身圆圈被涂的颜色（char.like 单值），与圆心无关。
-    // 故「圆心 ↔ 某人」的粗线不再作为一条连线存在，一律就地折算成该角色的涂色。
-    // 放在这里 = 所有入口（手绘 / 文本导入 / 批量编辑）自动归一，不必每处各写一遍。
-    if (layer === "bottom") {
-      const folded = App.foldCenterFav(src, dst, ckey);
-      if (folded) return null;
-    }
+    // 好感度（本命/很喜欢/路好/不吃）= 填表人对这对 CP 的喜好（两人之间的属性），恒为一条底层粗线，
+    // 与圆心无关——连到圆心角色的粗线也正常画出来，不做任何折算。
     const key = layer === "top" ? dirKey(src, dst) : pairKey(src, dst);
     const exist = App.state.links.find(
       (k) => k.layer === layer && (layer === "top" ? dirKey(k.src, k.dst) === key : pairKey(k.src, k.dst) === key)
@@ -405,38 +400,27 @@
     const k = App.getLink(id); if (!k) return;
     App.act(() => { k.arrow = val; });
   };
-  // 圆心粗线 → 角色涂色 折算（喜好度单一真源的实现核心）
-  // 命中条件：bottom 层 + 一端是圆心（ring===0）。命中则把 ckey 写进另一端角色的 like，返回 true 表示"已消化，不要建线"。
-  // 同轴覆盖语义：喜好度一格单值，重复涂 = 幂等改值，不产生第二条记录。
-  App.foldCenterFav = function (src, dst, ckey) {
-    const chars = App.state.chars || [];
-    const a = chars.find((c) => c.id === src);
-    const b = chars.find((c) => c.id === dst);
-    if (!a || !b) return false;
-    const aIsCenter = a.ring === 0, bIsCenter = b.ring === 0;
-    if (!aIsCenter && !bIsCenter) return false;   // 两个普通角色之间的粗线 = 填表人对这对 CP 的喜好度，保留为连线
-    if (aIsCenter && bIsCenter) return true;      // 理论不存在（圆心唯一），保险丢弃
-    const other = aIsCenter ? b : a;
-    other.like = ckey || null;
-    return true;
-  };
+  // 注：早期版本曾把「连到圆心角色的粗线」折算成对方圈上涂色（foldCenterFav），
+  // 该逻辑错误——好感度是两人之间的关系（数据），与圆心无关，线只是其可视化。现已移除，粗线一律画成线（见 addLink）。
 
-  // 旧数据静默折算：打开旧草稿/旧快照时，把历史遗留的「圆心 ↔ 某人」粗线转成该角色涂色并删除该线。
-  // 冲突处理：角色已有涂色时以角色涂色为准（用户显式设定优先），仅删除冗余线。返回折算条数。
+  // 旧数据迁移：早期版本把「圆心 ↔ 某人」的粗线折算成对端角色的圈色(char.like)，不画成线。
+  // 新模型：好感度=两人之间的线，一律画成粗线。故把遗留的 char.like 还原成「圆心↔该角色」的粗线，再清空 char.like。
+  // 返回折算条数；无圆心 / 无 char.like 时直接跳过。
   App.migrateCenterFav = function (st) {
     const s = st || App.state;
     if (!s || !Array.isArray(s.links) || !Array.isArray(s.chars)) return 0;
     const center = s.chars.find((c) => c.ring === 0);
     if (!center) return 0;
     let moved = 0;
-    s.links = s.links.filter((k) => {
-      if (!k || k.layer !== "bottom") return true;
-      if (k.src !== center.id && k.dst !== center.id) return true;
-      const otherId = k.src === center.id ? k.dst : k.src;
-      const other = s.chars.find((c) => c.id === otherId);
-      if (other && other.id !== center.id && !other.like) other.like = k.ckey || null;
-      moved++;
-      return false;
+    s.chars.forEach((c) => {
+      if (!c.like || c.id === center.id) return;
+      const exist = s.links.find((k) => k.layer === "bottom" &&
+        ((k.src === center.id && k.dst === c.id) || (k.src === c.id && k.dst === center.id)));
+      if (!exist) {
+        s.links.push({ id: App.uid("l"), src: center.id, dst: c.id, layer: "bottom", ckey: c.like, arrow: "none" });
+        moved++;
+      }
+      c.like = null;
     });
     return moved;
   };
@@ -456,6 +440,17 @@
   };
   App.removeLink = function (id) {
     App.state.links = App.state.links.filter((k) => k.id !== id);
+  };
+  // 删除一对角色之间的全部关系线（粗线 + 细线，方向不敏感）—— 删线模式的语义：
+  // 「一条线 = 这对角色之间的关系」，点一下即把这对之间的线整组清掉，不留半条。
+  // 返回实际删除条数（供调用方提示）。
+  App.removePairLinks = function (src, dst) {
+    if (!src || !dst) return 0;
+    const before = App.state.links.length;
+    App.state.links = App.state.links.filter(
+      (k) => !((k.src === src && k.dst === dst) || (k.src === dst && k.dst === src))
+    );
+    return before - App.state.links.length;
   };
 
   // 引用某颜色表项的对象清理
@@ -583,6 +578,10 @@
     App.migrateCenterFav(App.state); // 旧「圆心→某人」粗线折算为角色涂色（静默、无感）
     ensureCenterUnique(null);
     computeLayout();
+    // 导入后必须通知 UI 重绘（与 newDoc 对齐）。
+    // 完整数据导入走「确认」弹窗 → 回调发生在弹窗关闭、本函数返回之后，
+    // 不在这里主动刷新，画布会继续显示导入前的内容，看起来像"没覆盖"（v0.15.1 修复）
+    App.notifyChanged();
   };
 
   // 填表人（导出图/发布署名用）；上限 12 字，与改名弹窗 maxlength 一致

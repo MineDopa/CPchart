@@ -87,5 +87,29 @@
       + '<li>数据格式的完整说明见「CPChart 语言使用说明」</li>'
       + '</ul>';
   };
+  // ── 访问统计（网页版专属）────────────────────────────────
+  // 网页版每次加载向访问日志表匿名记一笔（浏览器类型 + 页面地址），
+  // 异步发送、双层静默捕获 —— 统计失败不影响任何功能。
+  // 仅网页版执行（本文件不进小红书容器包，容器版零网络请求的设计不变）。
+  function trackVisit() {
+    try {
+      var apiUrl = "https://qxceawseszmthvpyvfsw.supabase.co/rest/v1/visit_logs";
+      var pubKey = "sb_publishable_6oDhorhahbg2c6fvgHtXQg_NWRYIEm9";
+      fetch(apiUrl, {
+        method: "POST",
+        headers: {
+          "apikey": pubKey,
+          "Authorization": "Bearer " + pubKey,
+          "Content-Type": "application/json",
+          "Prefer": "return=minimal"
+        },
+        body: JSON.stringify([{
+          user_agent: navigator.userAgent,
+          page_url: String(window.location.href)
+        }])
+      }).catch(function () { /* 静默：统计失败不影响使用 */ });
+    } catch (e) { /* 静默 */ }
+  }
+  trackVisit();
   window.__IOPC_ENV = true;
 })();

@@ -616,6 +616,9 @@
   const ABOUT_LOG_OPEN = 2;
   const ABOUT_TYPE = { feat: "新增", perf: "优化", style: "调整", refactor: "调整", fix: "修复", docs: "文档", chore: "整理" };
   const ABOUT_LOG = [
+    { ver: "v0.15.16", date: "2026-09-12 17:20", changes: [
+      { t: "fix", n: "头像", h: "点击人物头像时只上传图片，不再同时开始筛选" },
+    ] },
     { ver: "v0.15.15", date: "2026-09-12 16:15", changes: [
       { t: "fix", n: "导出图片", h: "修复了导出图片时标题背后多出一块色块的问题" },
       { t: "feat", n: "导入提示", h: "样式没写全时会自动补全，并提示可到「样式」面板删除" },
@@ -1138,9 +1141,10 @@
       if (c) { onCmd(c.getAttribute("data-cmd"), c); }
       const opsClose = e.target.closest("#opsClose");
       if (opsClose) { App.selCharId = null; App.notifyChanged(); }
-      // 人物/布局点击行选择（非输入区、非行内按钮）
+      // 人物/布局点击行选择（非输入区、非行内控件）
+      // .ava 是 div 而非 button，且自带 pm-avatar 命令（上传图片）：点头像只传图，不触发筛选
       const row = e.target.closest(".prow[data-pid]");
-      if (row && !e.target.closest("input") && !e.target.closest("select") && !e.target.closest("button")) {
+      if (row && !e.target.closest("input") && !e.target.closest("select") && !e.target.closest("button") && !e.target.closest(".ava")) {
         const rid = row.getAttribute("data-pid");
         App.selCharId = rid;
         if (App.activeTab === "person") {
@@ -1666,7 +1670,7 @@
         text: function () { return App.exportNameListText(); },
         okText: "保存",
         apply: function (v) {
-          // ★Tab 1 自动路由：先试 CPC 全文（含段头），否则当名单增量合并
+          // ★Tab 1 自动路由：先试整份文本（含块语法段头），否则当名单增量合并
           const cpc = App.importCPC(v);
           if (cpc !== null) {
             if (cpc.errs && cpc.errs.length) {
@@ -1678,7 +1682,7 @@
               App.toast(cpc.errs.join("；"), true);
               return false;
             }
-            App.toast("已批量录入 " + cpc.added + " 条（CPC 全文）" + edWarnNote(cpc));
+            App.toast("已批量录入 " + cpc.added + " 条（整份文本）" + edWarnNote(cpc));
             return;
           }
           // 回退：纯名单增量（合并语义，不破坏已有连线/喜好）

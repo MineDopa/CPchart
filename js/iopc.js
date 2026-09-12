@@ -84,7 +84,7 @@
     return '<div class="about-sec">关于本项目</div>'
       + '<ul class="about-list">'
       + '<li>CP Chart 是一个纯本地、离线可用的人物关系连线图工具</li>'
-      + '<li>数据格式 CPC 的完整说明见「CPC 语言说明」</li>'
+      + '<li>数据格式的完整说明见「CPChart 语言使用说明」</li>'
       + '</ul>';
   };
   window.__IOPC_ENV = true;

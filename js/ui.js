@@ -277,8 +277,8 @@
         <span class="rlab">头像显示</span>
         <div class="paint-seg" role="tablist" aria-label="头像显示">
           <button class="paint-seg-btn ${st.ui.avatarMode === "avatar" ? "active" : ""}" data-cmd="pm-mode" data-val="avatar" title="圆点上显示头像">${ICONS.person}<span class="lbl">头像</span></button>
-          <button class="paint-seg-btn ${st.ui.avatarMode === "like" ? "active" : ""}" data-cmd="pm-mode" data-val="like" title="圆点上显示喜好度涂色">${ICONS.like}<span class="lbl">喜好度</span></button>
-          <button class="paint-seg-btn ${st.ui.avatarMode === "both" ? "active" : ""}" data-cmd="pm-mode" data-val="both" title="头像+喜好度一起显示">${ICONS.compat}<span class="lbl">兼容</span></button>
+          <button class="paint-seg-btn ${st.ui.avatarMode === "like" ? "active" : ""}" data-cmd="pm-mode" data-val="like" title="圆点上显示偏好涂色">${ICONS.like}<span class="lbl">偏好</span></button>
+          <button class="paint-seg-btn ${st.ui.avatarMode === "both" ? "active" : ""}" data-cmd="pm-mode" data-val="both" title="头像+偏好一起显示">${ICONS.compat}<span class="lbl">兼容</span></button>
         </div>
         <span class="seg-spacer"></span>
         <span class="sw-row"><span class="sw-txt">名字</span><span class="swbox ${st.ui.showNames ? "on" : ""}" data-cmd="pm-names" role="switch" aria-checked="${st.ui.showNames}" aria-label="显示名字"><i></i></span></span>
@@ -617,6 +617,9 @@
   const ABOUT_LOG_OPEN = 1;
   const ABOUT_TYPE = { feat: "新增", perf: "优化", style: "调整", refactor: "调整", fix: "修复", docs: "文档", chore: "整理" };
   const ABOUT_LOG = [
+    { ver: "v1.0.1", date: "2026-09-12", changes: [
+      { t: "chore", n: "细节改进", h: "一些小地方的打磨，用起来更顺" },
+    ] },
     { ver: "v1.0.0", date: "2026-09-12", changes: [
       { t: "feat", n: "1.0 正式版", h: "主要功能已齐，后面专心打磨细节" },
       { t: "docs", n: "重写帮助文档", h: "先看一份完整例子，再逐段认识每个符号" },

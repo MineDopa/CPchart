@@ -595,6 +595,9 @@
   const ABOUT_LOG_OPEN = 2;
   const ABOUT_TYPE = { feat: "新增", perf: "优化", style: "调整", refactor: "调整", fix: "修复", docs: "文档", chore: "整理" };
   const ABOUT_LOG = [
+    { ver: "v0.15.6", date: "2026-09-12 08:30", changes: [
+      { t: "fix", n: "编辑面板总是最新", h: "每次打开「批量编辑」，三个页签都重新读一遍画板，不再显示上次的旧内容" },
+    ] },
     { ver: "v0.15.5", date: "2026-09-12 07:30", changes: [
       { t: "feat", n: "一键添加角色", h: "人物页新增「＋」按钮，点一下生成「新角色1」，直接排在名单最上方" },
       { t: "style", n: "更新日志更清爽", h: "早期小版本收进 v0.14.0 折叠块，只留和你有关的改动" },
@@ -790,7 +793,7 @@
           <line x1="52" y1="52" x2="40" y2="40" stroke="currentColor" stroke-width="2"></line>
           <text x="32" y="37" font-size="11" text-anchor="middle" fill="currentColor" font-weight="bold">CP</text>
         </svg></div>
-        <div class="about-name">CP Chart <em>v0.15.5</em></div>
+        <div class="about-name">CP Chart <em>v0.15.6</em></div>
         <div class="about-sub">${I18N.t("about_sub")}</div>
         <div class="about-date">${I18N.t("about_date")}</div>
 
@@ -1808,7 +1811,9 @@
     if (o.tab) App._ed.tab = o.tab;
     if (o.dataMode) App._ed.dataMode = o.dataMode;
     App._ed.helpOpen = false; // 每次打开默认收起说明
-    delete App._ed.buf[App._ed.tab]; // 从入口重开 → 重新拉最新内容
+    // 从入口重开 → 清空所有页签缓存：每个页签都重新从画板导出最新数据（真正的同步编辑）
+    // 注：页签间切换仍沿用 buf 保留未提交的编辑，只有「重开面板」才整体刷新
+    App._ed.buf = {};
     renderEditor();
   };
 

@@ -199,6 +199,8 @@
       const isSel = App.selCharId === c.id;
       const isSrc = App.linkSource === c.id;
       const isDel = App.justDeleted && App.justDeleted.indexOf(c.id) >= 0;
+      // 路径筛选：链上角色（dist 里有层数）保持原样，链外角色交给 body.filter-on 兜底淡出
+      const isOn = !!(App._fmap && App._fmap.dist[c.id] !== undefined);
       let stroke = "#333", sw = 1.6;
       if (isSrc) { stroke = "#ff9500"; sw = 3.4; }
       else if (isSel) { stroke = "#0a84ff"; sw = 3; }
@@ -393,6 +395,10 @@
 
   App.render = function () {
     App.computeLayout();
+    // 路径筛选（纯视图计算，不改数据）：起点有效才算一张筛选图；开关同步写到 body 上，
+    // 由 CSS 统一控制「链上分级 / 链外淡出」——渲染层只负责算层数与挂 class。
+    App._fmap = App.filterMap ? App.filterMap(App.filterRoot) : null;
+    if (document.body && document.body.classList) document.body.classList.toggle("filter-on", !!App._fmap);
     const o = ensureEls();
     o.bg.setAttribute("fill", App.state.bg || "#ffffff");
     o.orbits.innerHTML = buildOrbits();

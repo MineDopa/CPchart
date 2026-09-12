@@ -284,7 +284,7 @@
         <span class="sw-row"><span class="sw-txt">名字</span><span class="swbox ${st.ui.showNames ? "on" : ""}" data-cmd="pm-names" role="switch" aria-checked="${st.ui.showNames}" aria-label="显示名字"><i></i></span></span>
         <button class="circ-fab" data-cmd="pm-batch" title="按圈批量编辑角色名单" aria-label="批量编辑名单">${IC_PEOPLE_PLUS}</button>
       </div>
-      <div class="pg-t"><span class="pg-t-l">角色列表（${st.chars.length}）</span><span class="pg-t-r">点击行内 📷 上传头像<button class="mini" data-cmd="pm-add" title="添加一个角色" aria-label="添加角色">${ICONS.addBox}</button></span></div>
+      <div class="pg-t"><span class="pg-t-l">角色列表（${st.chars.length}）</span><span class="pg-t-r">${rootName ? "筛选：" + App.esc(rootName) + "（点漏斗退出）" : "点击行内 📷 上传头像"}<button class="mini flt-btn ${App.filterRoot ? "on" : ""}" data-cmd="pm-filter" title="${App.filterRoot ? "退出筛选：恢复全部连线与列表顺序" : "点人物即沿连线高亮；这里可退出筛选"}" aria-label="路径筛选">${ICONS.filter}</button><button class="mini" data-cmd="pm-add" title="添加一个角色" aria-label="添加角色">${ICONS.addBox}</button></span></div>
       ${rows || '<div class="hint">暂无角色，点上方圆形按钮按圈录入</div>'}
     </div>`;
   }
@@ -616,6 +616,10 @@
   const ABOUT_LOG_OPEN = 2;
   const ABOUT_TYPE = { feat: "新增", perf: "优化", style: "调整", refactor: "调整", fix: "修复", docs: "文档", chore: "整理" };
   const ABOUT_LOG = [
+    { ver: "v0.15.13", date: "2026-09-12 14:10", changes: [
+      { t: "fix", n: "导入名单后画布显示", h: "修复了导入名单后画布可能不显示内容的问题" },
+      { t: "feat", n: "筛选开关", h: "角色列表表头加漏斗按钮：点人物开始筛选，点漏斗退出" },
+    ] },
     { ver: "v0.15.12", date: "2026-09-12 13:25", changes: [
       { t: "feat", n: "路径筛选", h: "点人物（列表或头像），关系链亮起、越往外越淡，列表也重排" },
     ] },
@@ -746,7 +750,7 @@
           <line x1="52" y1="52" x2="40" y2="40" stroke="currentColor" stroke-width="2"></line>
           <text x="32" y="37" font-size="11" text-anchor="middle" fill="currentColor" font-weight="bold">CP</text>
         </svg></div>
-        <div class="about-name">CP Chart <em>v0.15.12</em></div>
+        <div class="about-name">CP Chart <em>${ABOUT_LOG[0].ver}</em></div>
         <div class="about-sub">${I18N.t("about_sub")}</div>
         <div class="about-date">${I18N.t("about_date")}</div>
 
@@ -1240,6 +1244,19 @@
       }
       case "pm-import": openImportNames(); break;
       case "pm-export": openExportNames(); break;
+      case "pm-filter": {
+        // 漏斗 = 筛选开关：筛选中 → 退出（恢复全部连线与列表顺序）；没筛选 → 提示怎么开始
+        if (App.filterRoot) {
+          App.setFilter(null);
+          App.selCharId = null;
+          App.toast("已退出筛选");
+        } else {
+          App.toast("点人物列表或画布头像即开始筛选，点这里退出");
+        }
+        App.render();
+        App.renderPanel();
+        break;
+      }
       case "pm-mode": {
         App.act(() => { st.ui.avatarMode = el.getAttribute("data-val"); });
         break;

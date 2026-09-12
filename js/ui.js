@@ -617,9 +617,6 @@
   const ABOUT_LOG_OPEN = 1;
   const ABOUT_TYPE = { feat: "新增", perf: "优化", style: "调整", refactor: "调整", fix: "修复", docs: "文档", chore: "整理" };
   const ABOUT_LOG = [
-    { ver: "v1.0.1", date: "2026-09-12", changes: [
-      { t: "feat", n: "网页版访问统计", h: "网页版打开时会匿名记一次访问，只记次数与浏览器类型，不涉及你画的内容" },
-    ] },
     { ver: "v1.0.0", date: "2026-09-12", changes: [
       { t: "feat", n: "1.0 正式版", h: "主要功能已齐，后面专心打磨细节" },
       { t: "docs", n: "重写帮助文档", h: "先看一份完整例子，再逐段认识每个符号" },

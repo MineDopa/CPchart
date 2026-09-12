@@ -530,6 +530,48 @@
     else App.selCharId = id;
   };
 
+  // ---------- 路径筛选（纯视图计算，不改数据） ----------
+  // 从起点角色出发，沿「当前画布上真实渲染的连线」做无向 BFS（忽略箭头方向）。
+  // 返回 { root, dist:{角色id→层}, lv:{连线id→层} }；起点无效/无连线时 dist 只有起点。
+  // 连线层 = min(两端层) + 1 → A-B 第1层、B-C 第2层、C-D 第3层（正是「沿连线往外数」）。
+  App.filterMap = function (root) {
+    const s = App.state;
+    if (!root || !s || !Array.isArray(s.chars) || !s.chars.some((c) => c.id === root)) return null;
+    // 被隐藏的关系类型不画在画布上，也不参与「沿连线走」
+    const hid = {
+      bottom: new Set(((s.tables && s.tables.bottom) || []).filter((r) => r.hidden).map((r) => r.key)),
+      top: new Set(((s.tables && s.tables.top) || []).filter((r) => r.hidden).map((r) => r.key)),
+    };
+    const vis = (k) => !(hid[k.layer] && hid[k.layer].has(k.ckey));
+    const adj = {};
+    (s.links || []).forEach((k) => {
+      if (!vis(k)) return;
+      (adj[k.src] || (adj[k.src] = [])).push(k.dst);
+      (adj[k.dst] || (adj[k.dst] = [])).push(k.src);
+    });
+    const dist = {};
+    dist[root] = 0;
+    const q = [root];
+    for (let i = 0; i < q.length; i++) {
+      const nb = adj[q[i]] || [];
+      for (let j = 0; j < nb.length; j++) {
+        if (dist[nb[j]] === undefined) { dist[nb[j]] = dist[q[i]] + 1; q.push(nb[j]); }
+      }
+    }
+    const lv = {};
+    (s.links || []).forEach((k) => {
+      if (!vis(k)) return;
+      const a = dist[k.src], b = dist[k.dst];
+      if (a === undefined || b === undefined) return; // 两端没都走到 → 与这条链无关
+      lv[k.id] = Math.min(a, b) + 1;
+    });
+    return { root: root, dist: dist, lv: lv };
+  };
+  // 开关筛选：传 id=开（换起点），传 null=退出
+  App.setFilter = function (id) {
+    App.filterRoot = id || null;
+  };
+
   // 序列化/反序列化（JSON 文本往返）。快照不含头像 base64。
   App.serialize = function () {
     const doc = Object.assign({}, App.state);
@@ -654,7 +696,7 @@
 
   App.newDoc = function () {
     App.state = freshDoc();
-    App.selCharId = null; App.linkSource = null; App.dragGhost = null; App.eraser = false; App.pendingLinkDel = null;
+    App.selCharId = null; App.filterRoot = null; App.linkSource = null; App.dragGhost = null; App.eraser = false; App.pendingLinkDel = null;
     App.hist = { u: [], r: [] };
     App.notifyChanged();
   };

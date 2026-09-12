@@ -149,6 +149,23 @@ body.hover-dim .ln.hl,
 body.hover-dim .ln-arrow.hl,
 body.hover-dim .ln-arrow-edge.hl{ opacity:1; }
 
+/* 路径筛选（人物页点人物行 / 点画布头像开启）：沿连线从起点往外分级 ——
+   第1层 100%、第2层 80%、第3层 60%…最低 20%（第5层起封顶）；不在链上的连线与角色一起淡出。
+   透明度一律走类（fl-1…fl-5 / fl-on），不写内联 opacity，避免压掉上面那套悬停透视 */
+body.filter-on .ln,
+body.filter-on .ln-arrow,
+body.filter-on .ln-arrow-edge{ opacity:.1; transition:opacity .18s ease; }
+body.filter-on .ln.fl-1, body.filter-on .ln-arrow.fl-1, body.filter-on .ln-arrow-edge.fl-1{ opacity:1; }
+body.filter-on .ln.fl-2, body.filter-on .ln-arrow.fl-2, body.filter-on .ln-arrow-edge.fl-2{ opacity:.8; }
+body.filter-on .ln.fl-3, body.filter-on .ln-arrow.fl-3, body.filter-on .ln-arrow-edge.fl-3{ opacity:.6; }
+body.filter-on .ln.fl-4, body.filter-on .ln-arrow.fl-4, body.filter-on .ln-arrow-edge.fl-4{ opacity:.4; }
+body.filter-on .ln.fl-5, body.filter-on .ln-arrow.fl-5, body.filter-on .ln-arrow-edge.fl-5{ opacity:.2; }
+body.filter-on .node{ opacity:.15; transition:opacity .18s ease; }
+body.filter-on .node.fl-on{ opacity:1; }
+
+/* 人物页表头的筛选（漏斗）按钮：筛选进行中点亮，点它退出筛选 */
+.pg-t-r .flt-btn.on{ color:var(--accent); background:var(--accent-soft); }
+
 /* 删线单击即删：刚删的这对节点用绿色脉冲圈高亮 ~1 秒（纯视觉提示，不改数据） */
 .flash-del{ animation:delPulse .95s ease-out 1; }
 @keyframes delPulse{ 0%{ opacity:0; } 20%{ opacity:1; } 100%{ opacity:0; } }

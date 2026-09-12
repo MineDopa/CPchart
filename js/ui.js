@@ -32,6 +32,8 @@
     eye:    '<svg class="ic-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12s4-7 10-7 10 7 10 7-4 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/></svg>',
     eyeOff: '<svg class="ic-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12s4-7 10-7c2 0 3.7.7 5 1.8M22 12s-4 7-10 7c-2 0-3.7-.7-5-1.8"/><path d="M3 3l18 18"/></svg>',
     search: '<svg class="ic-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg>',
+    // 「筛选」：素材库的「筛选_filter」svg（currentColor 跟随主题）
+    filter: '<svg class="ic-svg" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M6 9L20.4 25.8178V38.4444L27.6 42V25.8178L42 9H6Z" fill="none" stroke="currentColor" stroke-width="4" stroke-linejoin="round"/></svg>',
     eraser: '<svg class="ic-svg" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M4 42H44" stroke="currentColor" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/><path d="M31 4L7 28L13 34H21L41 14L31 4Z" fill="none" stroke="currentColor" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/></svg>',
     sun:    '<svg class="ic-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4.5"/><path d="M12 2v2.5M12 19.5V22M2 12h2.5M19.5 12H22M4.6 4.6l1.8 1.8M17.6 17.6l1.8 1.8M19.4 4.6l-1.8 1.8M6.4 17.6l-1.8 1.8"/></svg>',
     moon:   '<svg class="ic-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 13A9 9 0 1 1 11 3a7 7 0 0 0 10 10z"/></svg>',
@@ -239,7 +241,20 @@
   }
   function panelPerson() {
     const st = App.state;
-    const rows = st.chars.map((c) => {
+    // 路径筛选进行中：把链上的人按「起点 → 第1层 → 第2层…」提到前面，同层保持原顺序；
+    // 不在链上的人（另一条链/孤立角色）接在后面，一个不少 —— 只改显示顺序，不动数据
+    const fm = App.filterMap(App.filterRoot);
+    let list = st.chars;
+    if (fm) {
+      list = st.chars
+        .map((c, i) => ({ c: c, i: i }))
+        .sort((A, B) => {
+          const da = fm.dist[A.c.id], db = fm.dist[B.c.id];
+          return (da === undefined ? Infinity : da) - (db === undefined ? Infinity : db) || A.i - B.i;
+        })
+        .map((x) => x.c);
+    }
+    const rows = list.map((c) => {
       const likeOpts = ['<option value="">— 无 —</option>']
         .concat(st.tables.bottom.map((r) => `<option value="${r.key}" ${c.like === r.key ? "selected" : ""}>${App.esc(r.name)}</option>`).join(""));
       const m = st.ui.avatarMode;
@@ -253,6 +268,9 @@
         <button class="mini danger" data-cmd="pm-del" data-id="${c.id}" title="删除">${ICONS.del}</button>
       </div>`;
     }).join("");
+
+    const rootChar = App.filterRoot ? st.chars.find((c) => c.id === App.filterRoot) : null;
+    const rootName = rootChar ? rootChar.name : null;
 
     return `<div class="pg pg-person">
       <div class="ctrl-row avatar-row">
@@ -598,157 +616,70 @@
   const ABOUT_LOG_OPEN = 2;
   const ABOUT_TYPE = { feat: "新增", perf: "优化", style: "调整", refactor: "调整", fix: "修复", docs: "文档", chore: "整理" };
   const ABOUT_LOG = [
+    { ver: "v0.15.12", date: "2026-09-12 13:25", changes: [
+      { t: "feat", n: "路径筛选", h: "点人物（列表或头像），关系链亮起、越往外越淡，列表也重排" },
+    ] },
     { ver: "v0.15.11", date: "2026-09-12 11:20", changes: [
-      { t: "fix", n: "小三角也有描边", h: "细线箭头的小三角现在和线一样带一圈白描边，不再只有线有描边" },
-      { t: "style", n: "删线改为一对全删", h: "点一下线，这对角色之间的全部关系线一起删掉，不留半条" },
-      { t: "style", n: "开局示例名单换新", h: "新建时的示例名单换成更直观的一份，占位角色更好辨认" },
+      { t: "fix", n: "显示", h: "修复了小三角没有描边的问题" },
+      { t: "style", n: "删除逻辑", h: "删线模式时点击会删除两个人的全部关系线，操作更顺手" },
     ] },
     { ver: "v0.15.10", date: "2026-09-12 10:51", changes: [
-      { t: "fix", n: "本命粗线画得出了", h: "连到圆心角色（如光之战士/你）的本命、很喜欢、路好、不吃 粗线，现在正常画成一条粗线，不再偷偷变成对方圈上的颜色" },
-      { t: "fix", n: "箭头三角底边对齐", h: "细线小三角和粗线大三角现在底边对齐、同轴居中，小三角尖端内收，不再错位" },
+      { t: "fix", n: "圆心情感连线", h: "修复了圆心角色喜好度连线错误显示到被连线角色身上的问题" },
+      { t: "fix", n: "箭头位置", h: "修复了箭头位置错位的问题" },
     ] },
     { ver: "v0.15.9", date: "2026-09-12 10:10", changes: [
-      { t: "feat", n: "删线单击即删", h: "连线页「删线」模式点一下线就删掉，不再需要二次确认；删完会高亮刚删掉的这对角色约 1 秒，一眼看清删了谁" },
+      { t: "feat", n: "删线单击即删", h: "点一下线就删掉，不再需要二次确认；删完高亮刚删掉的那两位" },
     ] },
     { ver: "v0.15.8", date: "2026-09-12 09:55", changes: [
-      { t: "feat", n: "悬停透视连线", h: "鼠标移到角色上，跟他相连的线会亮起、其余线淡出，调试时一眼看清关系" },
-      { t: "feat", n: "隐藏类型连带隐藏线", h: "在样式/连线页用「小眼睛」隐藏某类关系（如友情），画布上属于该类的线也整条消失，不再淹满画面" },
+      { t: "feat", n: "悬停看关系", h: "鼠标移到角色上，跟他相连的线亮起、其余线淡出" },
+      { t: "feat", n: "隐藏类型连带隐藏线", h: "隐藏某类关系时，画布上属于该类的线也一起消失" },
     ] },
     { ver: "v0.15.7", date: "2026-09-12 09:45", changes: [
-      { t: "feat", n: "面板新增「最简」档", h: "点面板把手循环多出一档：只显示每个标签页的第一行必要功能，电脑端占用更小" },
+      { t: "feat", n: "面板多一档「最简」", h: "只显示每个标签页的第一行功能，电脑端占用更小" },
     ] },
     { ver: "v0.15.6", date: "2026-09-12 08:30", changes: [
-      { t: "fix", n: "编辑面板总是最新", h: "每次打开「批量编辑」，三个页签都重新读一遍画板，不再显示上次的旧内容" },
+      { t: "fix", n: "编辑面板总是最新", h: "打开「批量编辑」时重新读画板，不再显示上次的旧内容" },
     ] },
     { ver: "v0.15.5", date: "2026-09-12 07:30", changes: [
-      { t: "feat", n: "一键添加角色", h: "人物页新增「＋」按钮，点一下生成「新角色1」，直接排在名单最上方" },
-      { t: "style", n: "更新日志更清爽", h: "早期小版本收进 v0.14.0 折叠块，只留和你有关的改动" },
+      { t: "feat", n: "一键添加角色", h: "人物页点「＋」直接加一个新角色，排在名单最上方" },
     ] },
     { ver: "v0.15.4", date: "2026-09-12 06:35", changes: [
-      { t: "style", n: "连线页顺序更顺手", h: "连线/角色/删线 模式按钮移到笔刷选择之上，先定模式再选笔" },
-      { t: "docs", n: "布局说明更清楚", h: "展开说明改成分行完整句，槽位规则讲得更明白" },
+      { t: "style", n: "连线页顺序更顺手", h: "先定模式再选笔，连线 / 角色 / 删线 按钮移到笔刷之上" },
     ] },
     { ver: "v0.15.3", date: "2026-09-12 06:10", changes: [
-      { t: "feat", n: "导入分两种模式", h: "批量录入只增不减；全量覆盖整份替换，能直接看到删了什么" },
-      { t: "fix", n: "点两下也能连线了", h: "以前必须按住拖，现在点起点再点终点也能连上" },
+      { t: "feat", n: "导入分两种", h: "批量录入只增不减；全量覆盖整份替换，能直接看到删了什么" },
+      { t: "fix", n: "点两下也能连线", h: "点起点再点终点也能连上" },
       { t: "fix", n: "重做键会变灰", h: "没撤销过时重做是灰的，点不动" },
-      { t: "fix", n: "调色板前三色修正", h: "第一排三个颜色对齐设计色卡" },
-      { t: "refactor", n: "描边粗细更好调", h: "细线外圈白描边宽度可调，范围更大" },
     ] },
     { ver: "v0.15.2", date: "2026-09-11 23:36", changes: [
-      { t: "style", n: "调色板换新", h: "12 色全部更换，去掉旧版黄/绿/蓝紫系" },
-      { t: "fix", n: "箭头改 SVG", h: "图例「情感指向」的箭头从 emoji 换成矢量 SVG，手机上不再变色" },
-      { t: "fix", n: "返回钮尺寸锁定", h: "左上角返回画板按钮加固尺寸约束，防止手机上撑大脱轨" },
-      { t: "docs", n: "旧文档归档", h: "过时的格式说明移入 _rubbish，现行以 v5.1 为准" },
+      { t: "style", n: "调色板换新", h: "12 色全部更换" },
+      { t: "fix", n: "箭头改矢量", h: "图例箭头在手机上不再变成彩色表情" },
+      { t: "fix", n: "返回钮尺寸锁定", h: "手机上不再被撑大跑偏" },
     ] },
     { ver: "v0.15.1", date: "2026-09-11 23:05", changes: [
-      { t: "fix", n: "面板回拖不翘边", h: "往下拖面板时底边贴住屏幕，不再往上缩" },
-      { t: "fix", n: "导入后立刻重绘", h: "整份数据覆盖后画布马上变新，不再是旧图" },
-      { t: "docs", n: "AI 提示词改版", h: "让 AI 只交一段代码，布局只写圈号和名单" },
+      { t: "fix", n: "面板回拖不翘边", h: "往下拖面板时底边贴住屏幕" },
+      { t: "fix", n: "导入后立刻重绘", h: "整份数据覆盖后画布马上变新" },
     ] },
     { ver: "v0.15.0", date: "2026-09-11 18:30", changes: [
       { t: "feat", n: "填写格式换代", h: "文本改成一块一块写，标题、布局、关系各占一块，更便于人机协作" },
       { t: "feat", n: "样式只写改动", h: "内置一份默认样式表，只想换颜色就只写颜色，其余自动继承" },
       { t: "feat", n: "喜好分成两类", h: "既能标「喜欢这个角色」，也能单独标「喜欢这对关系」" },
       { t: "feat", n: "文本更宽容", h: "全角半角、引号自动识别，怎么顺手怎么输" },
-      { t: "refactor", n: "底层分三层", h: "界面没变化，但为以后加时间轴、超点预留了位置" },
     ] },
-    { ver: "v0.14.19", date: "2026-09-10 23:40", changes: [
-      { t: "style", n: "菜单图标换新", h: "导入/保存菜单七项都加了矢量图标，一眼对上功能" },
-      { t: "style", n: "模式图标换新", h: "连线用环形连接、删线用橡皮擦，返回键换家图标" },
-    ] },
-    { ver: "v0.14.18", date: "2026-09-10 22:45", changes: [
-      { t: "fix", n: "导入图标改成上传", h: "菜单里导入钮的方向正过来了，不再是下载箭头" },
-      { t: "refactor", n: "导入菜单精简三项", h: "只留建立新图、增量导入、全量编辑三件事" },
-      { t: "style", n: "发布钮变红", h: "「发布小红书笔记」做了正负形处理，红底反白更醒目" },
-      { t: "style", n: "导出顺序调整", h: "完整数据提到名单前面" },
-    ] },
-    { ver: "v0.14.17", date: "2026-09-10 22:15", changes: [
-      { t: "perf", n: "面板拖动跟手了", h: "上下拖面板能实时跟手指变高，松手有动画" },
-    ] },
-    { ver: "v0.14.16", date: "2026-09-10 22:00", changes: [
-      { t: "style", n: "问号真正统一", h: "三处「?」共用同一条样式规则，与写法说明钮一致" },
-    ] },
-    { ver: "v0.14.15", date: "2026-09-10 21:40", changes: [
-      { t: "feat", n: "三个问号全统一", h: "顶栏/面板/弹窗的「?」同「写法说明」钮同款同大" },
-      { t: "feat", n: "名字开关改滑块", h: "「显示名字」变成滑块开关，和批量编辑按钮同一行" },
-      { t: "style", n: "图例描边统一", h: "本命圆点和爱情短横条都用 border 描边，视感一致" },
-      { t: "style", n: "心形换成新画法", h: "喜好度的心形图标重画，不再画歪" },
-      { t: "fix", n: "弹窗问号对齐", h: "弹窗右上角问号与关闭 × 上下居中" },
-    ] },
-    { ver: "v0.14.14", date: "2026-09-10 20:45", changes: [
-      { t: "fix", n: "夜间按钮全变白", h: "添加轨道等按钮夜间黑字改纯白，看得清了" },
-      { t: "style", n: "圈行图标放大右置", h: "布局页圈行的删除钮放大到 20 并靠右对齐" },
-      { t: "style", n: "问号钮去掉外框", h: "面板的「?」帮助钮去边框，图标放大到 28" },
-    ] },
-    { ver: "v0.14.13", date: "2026-09-10 19:45", changes: [
-      { t: "style", n: "控件尺寸统一对齐", h: "图例圆点、帮助钮、取色器按 rem 对齐" },
-      { t: "fix", n: "箭头 chip 留间隔", h: "chip 的图标和文字之间加间隔" },
-      { t: "fix", n: "人物列表去白底", h: "下拉框背景改跟面板走、星标与垃圾桶垂直对齐" },
-      { t: "style", n: "日间描边改浅灰蓝", h: "日间模式色块描边从深黑改浅灰蓝" },
-    ] },
-    { ver: "v0.14.12", date: "2026-09-10", changes: [
-      { t: "style", n: "行高统一对齐", h: "面板每行等高、内容垂直居中，行与行不再里出外进" },
-      { t: "refactor", n: "日间夜间并成胶囊", h: "复用连线模式的胶囊控件，去掉两个圆片" },
-      { t: "fix", n: "图标文字对齐", h: "图标与文字走同一条垂直中线" },
-    ] },
-    { ver: "v0.14.11", date: "2026-09-10", changes: [
-      { t: "style", n: "背景色并进外观行", h: "「背景色」挪进「外观：日间/夜间」同一行，配色集中一处" },
-      { t: "style", n: "色块描边改实色", h: "色点外描边去掉透明度，昼夜都看得清" },
-      { t: "style", n: "面板把手去箭头", h: "把手上/下箭头删掉，只留中间那根短杠" },
-    ] },
-    { ver: "v0.14.9", date: "2026-09-10 02:29", changes: [
-      { t: "style", n: "面板行内收纳", h: "批量编辑钮进头像行、ⓘ进排布行、笔刷行并排" },
-      { t: "style", n: "缩放条只留数字", h: "右上角只剩「41%」，提示文案删掉" },
-    ] },
-    { ver: "v0.14.8", date: "2026-09-10", changes: [
-      { t: "fix", n: "开槽位不再转圈圈", h: "开槽只拉近间距，整圈不再转一下" },
-      { t: "style", n: "缩放条挪到右上", h: "变右上角小胶囊，画布更大" },
-    ] },
-    { ver: "v0.14.7", date: "2026-09-10", changes: [
-      { t: "fix", n: "圆心星标夜间看得清", h: "空心星描边改跟昼夜走，夜间变浅白细线" },
-    ] },
-    { ver: "v0.14.6", date: "2026-09-10", changes: [
-      { t: "style", n: "笔刷栏一行动拖", h: "粗线/细线/箭头三栏左右滑动选，不再折行占屏" },
-      { t: "style", n: "编辑清空收进行内", h: "「连线模式」胶囊同一行右侧两个小图标按钮" },
-    ] },
-    { ver: "v0.14.5", date: "2026-09-10", changes: [
-      { t: "style", n: "抓手指示移到右上", h: "不再挤左下画布边缘，emoji 改手形 SVG 跟昼夜" },
-      { t: "fix", n: "箭头含义=朝右单箭头", h: "用「箭头上」SVG 旋转 90°，对得上单箭头方向" },
-      { t: "style", n: "批量编辑变圆形按钮", h: "人物 Tab 右上角小圆按钮，入口不再占一整行" },
-    ] },
-    { ver: "v0.14.4", date: "2026-09-10", changes: [
-      { t: "style", n: "底层笔刷换化妆刷", h: "原铅笔 SVG 改化妆刷，跟「笔刷」语义对得上" },
-    ] },
-    { ver: "v0.14.3", date: "2026-09-10", changes: [
-      { t: "fix", n: "图例外描边跟昼夜走", h: "白天浅黑边、夜间浅白边，「不吃」这种黑点夜间也看得见" },
-    ] },
-    { ver: "v0.14.2", date: "2026-09-09", changes: [
-      { t: "fix", n: "夜间提示更亮了", h: "「暂无连线」这类 12px 小字夜间升到能看清" },
-    ] },
-    { ver: "v0.14.1", date: "2026-09-09", changes: [
-      { t: "style", n: "布局 Tab 改用线性图标", h: "「平均排布」「添加轨道」从 emoji 换线条 SVG" },
-      { t: "fix", n: "夜间输入框字色", h: "批量编辑连线的输入框夜间呈黑字看不清" },
-    ] },
-    { ver: "v0.14.0", date: "2026-09-09", changes: [
+    { ver: "v0.14 系列", date: "2026-09-09 ~ 09-10", changes: [
       { t: "feat", n: "喜好度记在角色身上", h: "标了本命 / 路好就记在这个人身上，重复标只覆盖" },
       { t: "feat", n: "图例自动编号", h: "连着点新增会得到「新关系 1、新关系 2」，方便改名" },
       { t: "feat", n: "名字长度上限", h: "角色名、图例名最多 20 字" },
-      { t: "fix", n: "容器画板错位", h: "画板在小红书里上下错位" },
-      { t: "fix", n: "导出名字重复", h: "导出文本里同一个人重复出现" },
+      { t: "fix", n: "容器画板错位", h: "画板在小红书里不再上下错位" },
+      { t: "fix", n: "导出名字重复", h: "导出文本里同一个人不再重复出现" },
+      { t: "style", n: "界面打磨一轮", h: "夜间可读性提升、图标换代、行高与控件尺寸统一、面板更紧凑" },
     ] },
     { ver: "v0.13.0", date: "2026-09-09", changes: [
-      { t: "feat", n: "更新日志折叠", h: "只展开最近两个版本，更早的收起只留功能名" },
+      { t: "feat", n: "三合一编辑器", h: "人物名单、连线、完整数据在一个编辑器里改" },
+      { t: "feat", n: "完整数据压缩", h: "一段文本备份整张图，旧版快照也能导入" },
       { t: "feat", n: "真箭头", h: "连线在箭头处断开留白，方向一眼看清" },
-      { t: "feat", n: "色板一行滑动", h: "预制颜色横排滑动选，圆点双层描边" },
-      { t: "feat", n: "统一编辑器", h: "三个 Tab 合一，一处编辑人物、连线、完整数据" },
-      { t: "feat", n: "完整数据压缩", h: "一段 XHS2: 文本备份整张图，旧版快照也能导入" },
-      { t: "feat", n: "导入确认提示", h: "导入前提示会覆盖当前画板，失败单独报错" },
-      { t: "feat", n: "连线分层直选", h: "编辑一条连线时直接选粗线、细线图例" },
-      { t: "feat", n: "导出结果屏", h: "四个按钮：关闭 / 新建 / 发布 / 存相册" },
-      { t: "feat", n: "角色批量上色", h: "连线模式里从某角色划过，批量赋喜好色" },
-      { t: "feat", n: "旧草稿兼容", h: "旧版本草稿自动读取，导出时转成新格式" },
-      { t: "fix", n: "面板文字挤压按钮", h: "面板说明文字挤压按钮的问题" },
+      { t: "feat", n: "导出结果屏", h: "关闭 / 新建 / 发布 / 存相册 四个按钮" },
+      { t: "feat", n: "角色批量上色", h: "从某角色划过，批量赋予喜好色" },
     ] },
     { ver: "v0.12.0", date: "2026-09-08", changes: [
       { t: "feat", n: "径向菜单", h: "点画布右侧 ➕，一圈按钮绕着绽开，单手也好点" },
@@ -756,22 +687,22 @@
       { t: "feat", n: "帮助按钮", h: "点「?」开指南；面板全开时变「←」回画板" },
     ] },
     { ver: "v0.11.0", date: "2026-09-08", changes: [
-      { t: "feat", n: "槽位布局" }, { t: "feat", n: "自由摆放" }, { t: "feat", n: "批量编辑名单" },
-      { t: "feat", n: "连线记录编辑" }, { t: "feat", n: "角色操作条" }, { t: "feat", n: "定位坐标 ¤" },
-      { t: "feat", n: "面板三态" }, { t: "feat", n: "头像大小" }, { t: "feat", n: "三表显隐" },
-      { t: "fix", n: "夜间画板染黑" }, { t: "fix", n: "网页版假下载" },
+      { t: "feat", n: "槽位布局", h: "每圈按槽数等分，空槽画虚线占位；关掉槽位可自由摆放" },
+      { t: "feat", n: "面板与人物管理", h: "面板三档收起、批量编辑名单、一键定位归位、头像大小可调" },
+      { t: "fix", n: "夜间与导出", h: "夜间不再染黑画板；手机导出改为预览后长按保存" },
     ] },
     { ver: "v0.10.0", date: "2026-09-07", changes: [
-      { t: "feat", n: "容器适配" }, { t: "feat", n: "底部菜单" }, { t: "feat", n: "面板折叠" }, { t: "feat", n: "图例分行" },
-      { t: "feat", n: "单箭头共存" }, { t: "feat", n: "箭头含义自定义" }, { t: "feat", n: "导入自动居中" }, { t: "feat", n: "圆心星标" },
+      { t: "feat", n: "适配小红书小工具", h: "顶栏按钮移入悬浮条，菜单改底部弹出，面板可折叠" },
+      { t: "feat", n: "图例与箭头", h: "图例分行展示；A→B 与 B→A 可各配一条，箭头含义可自定义" },
     ] },
-    { ver: "v0.9.0", date: "上线新版", changes: [
-      { t: "feat", n: "发布笔记" }, { t: "feat", n: "导出图片" }, { t: "feat", n: "名单与快照" }, { t: "feat", n: "图例直切" },
-      { t: "feat", n: "连线规则" }, { t: "feat", n: "布局拖拽" }, { t: "feat", n: "帮助与关于" },
+    { ver: "v0.9.0", date: "首次发布", changes: [
+      { t: "feat", n: "首个公开版", h: "圆环布局、多层连线、导出成品图、发布笔记、帮助与关于" },
     ] },
   ];
   // 渲染更新日志：最近 ABOUT_LOG_OPEN 个版本展开（带中文类型标签）+ 完整说明；其余收起 + 只留功能名
   // v0.14.1–v0.14.20 这些早期小版本统一收进 v0.14.0 折叠块内的二级折叠（只留面向用户的条目）
+  // 注：v0.14.x 于 2026-09-12 按「更新日志给用户看」原则合并为单个「v0.14 系列」块，
+  // 下列二级折叠规则当前无匹配项（保留以备将来需要再拆分显示）。
   const HIST_RE = /^v0\.14\.(?:[1-9]|1[0-9]|20)$/;
   function logItemHTML(it) {
     return "<li>【" + (ABOUT_TYPE[it.t] || "调整") + "】<b>" + it.n + "</b>" + (it.h ? "：" + it.h : "") + "</li>";
@@ -815,7 +746,7 @@
           <line x1="52" y1="52" x2="40" y2="40" stroke="currentColor" stroke-width="2"></line>
           <text x="32" y="37" font-size="11" text-anchor="middle" fill="currentColor" font-weight="bold">CP</text>
         </svg></div>
-        <div class="about-name">CP Chart <em>v0.15.11</em></div>
+        <div class="about-name">CP Chart <em>v0.15.12</em></div>
         <div class="about-sub">${I18N.t("about_sub")}</div>
         <div class="about-date">${I18N.t("about_date")}</div>
 
@@ -1196,11 +1127,17 @@
       if (c) { onCmd(c.getAttribute("data-cmd"), c); }
       const opsClose = e.target.closest("#opsClose");
       if (opsClose) { App.selCharId = null; App.notifyChanged(); }
-      // 人物/布局点击行选择（非输入区）
+      // 人物/布局点击行选择（非输入区、非行内按钮）
       const row = e.target.closest(".prow[data-pid]");
-      if (row && !e.target.closest("input") && !e.target.closest("select")) {
-        App.selCharId = row.getAttribute("data-pid");
-        if (App.activeTab === "layout") { App.notifyChanged(); }
+      if (row && !e.target.closest("input") && !e.target.closest("select") && !e.target.closest("button")) {
+        const rid = row.getAttribute("data-pid");
+        App.selCharId = rid;
+        if (App.activeTab === "person") {
+          // 人物页：点人物 = 以他为起点沿连线筛选（列表同步按远近重排）
+          App.setFilter(rid);
+          renderPanel();
+          App.render();
+        } else if (App.activeTab === "layout") { App.notifyChanged(); }
         else { App.render(); }
       }
     });

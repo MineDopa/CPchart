@@ -50,6 +50,16 @@
     return { x1: a.x + ux * c1, y1: a.y + uy * c1, x2: b.x - ux * c2, y2: b.y - uy * c2 };
   }
 
+  // 路径筛选：把「连线所在层」写成 class（fl-1…fl-5，第 5 层起封顶 20%），
+  // 透明度由 CSS 统一控制（不写内联 opacity，避免压掉悬停透视等其它 opacity 规则）。
+  // 未筛选 → 返回空串；筛选但这条线不在链上 → 也返回空串（由 body.filter-on 兜底淡出）。
+  function fmapCls(id) {
+    const f = App._fmap;
+    if (!f) return "";
+    const lv = f.lv[id];
+    return lv ? " fl-" + Math.min(5, lv) : "";
+  }
+
   function buildArrowsLine(a, b, color, arrow, nodeR, extra, id) {
     const dx = b.x - a.x, dy = b.y - a.y;
     const len = Math.hypot(dx, dy) || 1;
@@ -68,10 +78,11 @@
       const ex = tx - back * ux * dir, ey = ty - back * uy * dir;
       const px = -uy * wid * dir, py = ux * wid * dir;
       const pts = `${S(tx, ty)} ${S(ex + px, ey + py)} ${S(ex - px, ey - py)}`;
+      const fl = fmapCls(id); // 大/小三角都跟随所在连线的筛选层一起淡出
       const edgePoly = edge
-        ? `<polygon class="ln-arrow-edge" data-link="${id}" points="${pts}" fill="${edge}" stroke="${edge}" stroke-width="${edgeW}" stroke-linejoin="round"></polygon>`
+        ? `<polygon class="ln-arrow-edge${fl}" data-link="${id}" points="${pts}" fill="${edge}" stroke="${edge}" stroke-width="${edgeW}" stroke-linejoin="round"></polygon>`
         : "";
-      return edgePoly + `<polygon class="ln-arrow" data-link="${id}" points="${pts}" fill="${color}"></polygon>`;
+      return edgePoly + `<polygon class="ln-arrow${fl}" data-link="${id}" points="${pts}" fill="${color}"></polygon>`;
     };
     if (arrow === "one") {
       const tx = b.x - ux * tipR, ty = b.y - uy * tipR;
@@ -130,10 +141,11 @@
       // 顶层小三角与底层大三角「底边对齐 + 同轴居中」，由 buildArrowsLine 按同一底边计算（小三角尖端内收）。
       // 顶层小三角同样带白描边（edge = 线白底色，edgeW = 白底与彩线宽度差），与线的白边视觉一致。
       const thinW = (st.ui && st.ui.thinW) ? st.ui.thinW : 6.5;
+      const fl = fmapCls(k.id);
       const L = lineEnds(a, b, k.arrow, App.nodeR(), 1);
-      html += `<line class="ln ln-top${pend}" data-link="${k.id}" x1="${L.x1}" y1="${L.y1}" x2="${L.x2}" y2="${L.y2}"
+      html += `<line class="ln ln-top${pend}${fl}" data-link="${k.id}" x1="${L.x1}" y1="${L.y1}" x2="${L.x2}" y2="${L.y2}"
         stroke="${th.linkEdge}" stroke-width="${thinW}" stroke-linecap="round" opacity="0.95"></line>`;
-      html += `<line class="ln ln-top-c${pend}" data-link="${k.id}" x1="${L.x1}" y1="${L.y1}" x2="${L.x2}" y2="${L.y2}"
+      html += `<line class="ln ln-top-c${pend}${fl}" data-link="${k.id}" x1="${L.x1}" y1="${L.y1}" x2="${L.x2}" y2="${L.y2}"
         stroke="${col}" stroke-width="2.2" stroke-linecap="round" stroke-dasharray="${(st.ui && st.ui.thinDash) ? "6 5" : "none"}"></line>`;
       html += buildArrowsLine(a, b, col, k.arrow, App.nodeR(),
         { scale: ARROW.topScale, edge: th.linkEdge, edgeW: Math.max(2.5, thinW - 2.2) }, k.id);
@@ -209,7 +221,7 @@
       } else {
         outer = `<circle class="outer" r="${App.nodeR()}" fill="${th.nodeFill}" stroke="${stroke}" stroke-width="${sw}"></circle>`;
       }
-      html += `<g class="node${isDel ? " just-del" : ""}" data-node="${c.id}" transform="translate(${c.x},${c.y})" onmouseenter="App.setHoverNode('${c.id}')" onmouseleave="App.setHoverNode(null)">
+      html += `<g class="node${isDel ? " just-del" : ""}${isOn ? " fl-on" : ""}" data-node="${c.id}" transform="translate(${c.x},${c.y})" onmouseenter="App.setHoverNode('${c.id}')" onmouseleave="App.setHoverNode(null)">
         ${outer}
         ${isDel ? `<circle class="flash-del" r="${(App.nodeR() + 8).toFixed(2)}" fill="none" stroke="#34c759" stroke-width="3.5"></circle>` : ""}
         ${innerHtml}
@@ -352,6 +364,8 @@
       const cur = g.querySelectorAll(".hl");
       for (let i = 0; i < cur.length; i++) cur[i].classList.remove("hl");
     }
+    // 路径筛选进行中：让位给筛选的分级高亮，悬停不再另起一套淡出
+    if (App._fmap) { document.body.classList.remove("hover-dim"); return; }
     if (!id || !App._linkEnds) { document.body.classList.remove("hover-dim"); return; }
     document.body.classList.add("hover-dim");
     const rel = [];

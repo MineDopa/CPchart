@@ -214,9 +214,10 @@
       }
     }
 
-    // ⑤ 人物模式：点选筛选
+    // ⑤ 人物模式：点画布头像 = 选中 + 以他为起点沿连线筛选（点另一个人 = 换起点）
     if (tab === "person" && nid) {
       App.selCharId = nid;
+      App.setFilter(nid);
       App.render();
       if (App.renderPanel) App.renderPanel();
       return;

@@ -617,6 +617,9 @@
   const ABOUT_LOG_OPEN = 1;
   const ABOUT_TYPE = { feat: "新增", perf: "优化", style: "调整", refactor: "调整", fix: "修复", docs: "文档", chore: "整理" };
   const ABOUT_LOG = [
+    { ver: "v1.0.2", date: "2026-09-12", changes: [
+      { t: "style", n: "头像更大更清楚", h: "头像、兼容两种模式下，头像放大、只留一圈细边" },
+    ] },
     { ver: "v1.0.1", date: "2026-09-12", changes: [
       { t: "chore", n: "细节改进", h: "一些小地方的打磨，用起来更顺" },
     ] },

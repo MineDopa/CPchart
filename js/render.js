@@ -171,20 +171,20 @@
     let html = "";
     const clipId = "cp" + c.id.replace(/[^a-zA-Z0-9]/g, "");
     const hasImg = !!c.avatar;
-    // 内圈随节点半径等比缩放（基准 r=18 → 内圈 11 / 图像 10.4 / 喜好环 12.2 / 环宽 3.2）
-    const k = App.nodeR() / App.NODE_R;
-    const inR = (11 * k).toFixed(2);
-    const imgR = (10.4 * k).toFixed(2);
-    const imgW = (20.8 * k).toFixed(2);
-    const ringR = (12.2 * k).toFixed(2);
-    const ringW = (3.2 * k).toFixed(2);
-    if (hasImg) {
-      html += `<clipPath id="${clipId}"><circle cx="0" cy="0" r="${imgR}"></circle></clipPath>`;
-    }
+    const R = App.nodeR();
     if (mode === "like") {
+      // 偏好模式：内圈涂色随节点半径等比缩放（基准 r=18 → 内圈 11），不放大小圆
+      const k = R / App.NODE_R;
+      const inR = (11 * k).toFixed(2);
       html += `<circle r="${inR}" fill="${likeCol || th.likeEmpty}"></circle>`;
     } else {
-      // avatar / both：底白 + 头像；both 的喜好色描边改在 buildNodes 外圈绘制
+      // avatar / both：头像放大到离外圈边框 2px（半径 = nodeR - 2）
+      const inR = (R - 2).toFixed(2);
+      const imgR = (R - 2).toFixed(2);
+      const imgW = (2 * (R - 2)).toFixed(2);
+      if (hasImg) {
+        html += `<clipPath id="${clipId}"><circle cx="0" cy="0" r="${imgR}"></circle></clipPath>`;
+      }
       html += `<circle r="${inR}" fill="${th.innerFill}"></circle>`;
       if (hasImg) html += `<image href="${c.avatar}" x="-${imgR}" y="-${imgR}" width="${imgW}" height="${imgW}" preserveAspectRatio="xMidYMid slice" clip-path="url(#${clipId})"></image>`;
     }

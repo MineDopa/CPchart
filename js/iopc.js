@@ -6,6 +6,10 @@
    加载后会置 window.__IOPC_ENV = true 供环境识别。 */
 (function () {
   const App = window.App || {};
+  // 容器护栏：小红书 miniTool 容器内（App.isXhs=true）绝不允许本网页覆盖层接管保存/发布，
+  // 也不发访问统计网络请求——一律交由 js/io.js 的官方 JSBridge（saveImageToPhotosAlbum 等）。
+  // 即便本文件被误打包进容器包，也能保证容器保存通道不被劫持为「a[download]/长按预览」。
+  if (App.isXhs) { window.__IOPC_ENV = true; return; }
   function tip(msg) {
     try { if (App.toast) { App.toast(msg); return; } } catch (e) { /* ignore */ }
     try { window.alert(msg); } catch (e2) { /* ignore */ }

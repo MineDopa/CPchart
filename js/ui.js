@@ -617,6 +617,10 @@
   const ABOUT_LOG_OPEN = 1;
   const ABOUT_TYPE = { feat: "新增", perf: "优化", style: "调整", refactor: "调整", fix: "修复", docs: "文档", chore: "整理" };
   const ABOUT_LOG = [
+    { ver: "v1.0.3", date: "2026-09-13", changes: [
+      { t: "fix", n: "修复数据导入错位", h: "导出再导入，圆心、位置、头像、喜好都原样还原" },
+      { t: "fix", n: "头像上传失败有提示", h: "选图出错或选错文件时明确提示，不再没反应" },
+    ] },
     { ver: "v1.0.2", date: "2026-09-12", changes: [
       { t: "style", n: "头像更大更清楚", h: "头像、兼容两种模式下，头像放大、只留一圈细边" },
     ] },
@@ -1103,10 +1107,22 @@
     // 小红书 miniTool 当前仅暴露 postNote/saveImageToPhotosAlbum/writeTempFile，无选图 API，故暂用原生 input。
     // 接入时实现 App.avatarPicker(id) → Promise<dataURL> 钩子即可，无需改动调用点。
     App.avatarPicker = null;
+    // 容器选图钩子约定：成功 resolve(dataURL)；用户取消请 reject(new Error("取消"))，
+    // 真正失败 reject(new Error("原因"))。区分取消与失败，避免取消时也弹红字。
     App.pickAvatar = function (id) {
       pendingAvatarFor = id;
       if (typeof App.avatarPicker === "function") {
-        App.avatarPicker(id).then((du) => applyAvatar(id, du)).catch(() => App._avatarInput.click());
+        App.avatarPicker(id)
+          .then((du) => applyAvatar(id, du))
+          .catch((e) => {
+            const m = (e && e.message) || "";
+            const cancelled = /cancel|取消|canceled/i.test(m);
+            if (!cancelled) {
+              // 容器选图失败：提示后兜底尝试系统相册，避免用户完全卡死
+              App.toast("容器选图失败，已改用系统相册", true);
+            }
+            App._avatarInput.click();
+          });
       } else {
         App._avatarInput.click();
       }
@@ -1115,15 +1131,23 @@
       const f = inputEl.files && inputEl.files[0];
       inputEl.value = "";
       const id = pendingAvatarFor; pendingAvatarFor = null;
-      if (!f || !id) return;
-      App.resizeAvatar(f).then((du) => applyAvatar(id, du)).catch((e) => App.toast(e.message || "头像处理失败", true));
+      if (!f || !id) return; // 用户取消或未选文件：静默，不算异常
+      if (!/^image\//.test(f.type || "")) {
+        App.toast("请选择图片文件（该格式不支持）", true);
+        return;
+      }
+      App.resizeAvatar(f)
+        .then((du) => applyAvatar(id, du))
+        .catch((e) => App.toast(e.message || "头像处理失败", true));
     }
     function applyAvatar(id, dataUrl) {
-      if (!id || !dataUrl) return;
+      if (!id || !dataUrl) { App.toast("头像获取失败，请重试", true); return; }
+      let ok = false;
       App.act(() => {
         const c = App.state.chars.find((x) => x.id === id);
-        if (c) { c.avatar = dataUrl; App.AVATAR_CACHE[c.name] = dataUrl; }
+        if (c) { c.avatar = dataUrl; App.AVATAR_CACHE[c.name] = dataUrl; ok = true; }
       });
+      if (!ok) { App.toast("未找到对应人物，头像设置失败", true); return; }
       App.toast("头像已设置");
     }
 
@@ -1656,18 +1680,20 @@
         help: I18N.t("ed_data_import_help"),
         text: function () { return ""; },
         okText: "上传",
+        // ★修复（v1.0.2 热修）：原二次确认 App.confirm 会被 _txtImport 的 closeModal 立即关闭，
+        // 导致 App._okCb（deserialize）永不触发、导入静默失败（容器/桌面均存在）。
+        // 改为 apply 内同步解析+导入：成功则画布更新后由 _txtImport 关闭编辑器弹窗；
+        // 解析失败 return false 保留输入。导入数据包为覆盖操作，点「上传」即确认意图。
         apply: function (v) {
           let obj = null;
           try { obj = App.parseDataImport(v); }
           catch (err) { App.toast(err.message || "数据读不出来", true); return false; }
-          App.confirm("导入会覆盖当前画板全部数据（人物、连线、布局、图例）。确认？", "确认", function () {
-            try {
-              if (obj && obj.type === "NRD") { App._importLegacy(obj); App.toast("完整数据已导入"); return; }
-              App.deserialize(JSON.stringify(obj)); // 内部已 notifyChanged → 画布刷新
-              if (App.fitContent) App.fitContent();
-              App.toast("完整数据已导入");
-            } catch (err2) { App.toast("导入失败：" + (err2.message || ""), true); }
-          });
+          try {
+            if (obj && obj.type === "NRD") { App._importLegacy(obj); App.toast("完整数据已导入"); return; }
+            App.deserialize(JSON.stringify(obj)); // 内部已 notifyChanged → 画布刷新
+            if (App.fitContent) App.fitContent();
+            App.toast("完整数据已导入");
+          } catch (err2) { App.toast("导入失败：" + (err2.message || ""), true); return false; }
         },
       };
     }
@@ -1758,7 +1784,7 @@
           if (obj && obj.type === "NRD") { App._importLegacy(obj); return; }
           App.deserialize(txt); // 内部已 notifyChanged（重绘 + 标题 + 自动存档）
           if (App.fitContent) App.fitContent();
-          App.toast("快照已导入（头像未包含，需重新设置头像）");
+          App.toast("快照已导入（含头像与布局，已原样还原）");
         } catch (err) { App.toast("导入失败：" + err.message, true); }
       });
   }
@@ -1815,8 +1841,9 @@
     try { dataUrl = await App.exportPNG(2); }
     catch (err) { App.toast("导出失败：" + err.message, true); return; }
     App._retrySaveUrl = dataUrl;
-    // 环境判断收敛到 App.isXhs（main.js detectEnv 单一真源）；此处只额外确认相册 API 是否可用
-    const hasSaveApi = !!(App.isXhs && window.xhs && window.xhs.miniTool
+    // 保存 API 可用性：直接探 window.xhs.miniTool.saveImageToPhotosAlbum，不依赖 App.isXhs
+    // （App.isXhs 为开局同步检测，若容器异步注入 window.xhs 晚于开局会误判为 false，故此处独立探测）
+    const hasSaveApi = !!(window.xhs && window.xhs.miniTool
       && typeof window.xhs.miniTool.saveImageToPhotosAlbum === "function");
     let saved = false;
     try { const r = await App.saveImage(dataUrl); saved = !!(r && r.ok); }

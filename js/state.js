@@ -572,11 +572,13 @@
     App.filterRoot = id || null;
   };
 
-  // 序列化/反序列化（JSON 文本往返）。快照不含头像 base64。
+  // 序列化/反序列化（JSON 文本往返）。
+  // 完整数据串保留全部字段（含头像 base64）：它是信息最全、与画板差异最小的备份格式，
+  // 必须能原样还原布局/圆心/头像/喜好，故不再剥离头像。
   App.serialize = function () {
     const doc = Object.assign({}, App.state);
-    // 只做 chars 副本去头像，避免整个 state 深克隆携带 base64
-    doc.chars = App.state.chars.map((c) => Object.assign({}, c, { avatar: null }));
+    // chars 副本：保留 avatar 等全部字段，仅做浅拷贝隔离，避免序列化触碰实时 App.state
+    doc.chars = App.state.chars.map((c) => Object.assign({}, c));
     return JSON.stringify({ type: "xhs-cp-v1", doc }, null, 2);
   };
   App.deserialize = function (txt) {
@@ -593,7 +595,7 @@
       chars: (doc.chars || []).map((c) => ({
         id: c.id || App.uid("c"), name: c.name || "?", ring: Number(c.ring) || 0,
         angle: c.angle == null ? null : Number(c.angle), slot: c.slot == null ? null : c.slot,
-        like: c.like || null, avatar: null, x: 0, y: 0,
+        like: c.like || null, avatar: c.avatar || null, x: 0, y: 0,
       })),
       links: (doc.links || []).map((k) => ({
         id: k.id || App.uid("l"), src: k.src, dst: k.dst,
@@ -617,8 +619,11 @@
     };
     // 收敛旧快照里同对多条 top/bottom（top 保留 A→B 与 B→A 两个方向各一条）
     App.state.links = App.normalizeLinks(App.state.links);
-    App.migrateCenterFav(App.state); // 旧「圆心→某人」粗线折算为角色涂色（静默、无感）
-    ensureCenterUnique(null);
+    // 不再调用 migrateCenterFav：当前模型 char.like 是「角色偏好涂色」（渲染为内圆色），属用户数据须原样保留；
+    // 旧版「圆心↔某人 粗线折成 char.like」迁移仅针对极早期数据，且旧版 NRD 走 _importLegacy 单独处理（见 ui.js）。
+    // 每轮导入都跑迁移会把当前喜好涂色误转成连向圆心的粗线并清空，属数据损坏。
+    const _firstCenter = App.state.chars.find((c) => c.ring === 0);
+    ensureCenterUnique(_firstCenter ? _firstCenter.id : null); // 仅清理「多个圆心」冗余，保留既有圆心
     computeLayout();
     // 导入后必须通知 UI 重绘（与 newDoc 对齐）。
     // 完整数据导入走「确认」弹窗 → 回调发生在弹窗关闭、本函数返回之后，

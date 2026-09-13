@@ -24,8 +24,11 @@
   // 画布显示主题：夜间模式只改 UI 外壳（CSS body.night），画板本身始终按用户设定的背景色 state.bg 渲染，
   // 配色固定用「日间」调色板（深字浅节点），让画板在任意模式下都清晰可读，且绝不被染黑。
   function canvasTheme() {
-    return { bg: App.state.bg || "#ffffff", orbit: "#d5d5da", nodeFill: "#ffffff", innerFill: "#ffffff",
-      likeEmpty: "#ececec", nameCol: "#26262a", linkEdge: "#ffffff" };
+    // 人名文字颜色随画板背景明暗自适应：深底返白、浅底返黑（复用 util.js 的 readableTextColor，
+    // 旧版写死 #26262a 在黑底画板上对比度仅 ~1.2，几乎不可读）。描边仍取背景色，深/浅底都安全。
+    const bg = App.state.bg || "#ffffff";
+    return { bg, orbit: "#d5d5da", nodeFill: "#ffffff", innerFill: "#ffffff",
+      likeEmpty: "#ececec", nameCol: App.readableTextColor(bg), linkEdge: "#ffffff" };
   }
 
   // 箭头几何常量（软编码：改这一处，画布三角 / 线端缩回 / 顶层缩放同步生效）

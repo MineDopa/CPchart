@@ -977,7 +977,9 @@
     });
   };
 
-  // 容器保存通道（jsbridge 契约：writeTempFile({data: 完整data:uri}) → saveImageToPhotosAlbum({filePath}))
+  // 容器保存通道（jsbridge 契约：writeTempFile({data}) → saveImageToPhotosAlbum）
+  // HyperOS 等 webview 对 JSBridge 注入时序/参数形态敏感，故做多重兜底而非单一假设：
+  // 依次尝试 {filePath} 与 {data: 完整data:uri} 两种入参形态，命中任一即成功（不会重复保存）。
   App.saveImage = function (dataUrl) {
     return new Promise((resolve) => {
       const xhs = window.xhs && window.xhs.miniTool;
@@ -985,17 +987,33 @@
         resolve({ ok: false, reason: "no-api" });
         return;
       }
-      const doSave = (filePath) => {
-        Promise.resolve(xhs.saveImageToPhotosAlbum({ filePath: filePath }))
-          .then(() => resolve({ ok: true }))
-          .catch(() => resolve({ ok: false }));
-      };
+      const trySave = (arg) => new Promise((res) => {
+        Promise.resolve(xhs.saveImageToPhotosAlbum(arg))
+          .then(() => res(true))
+          .catch((e) => { console.warn("[saveImage] 尝试失败:", JSON.stringify(arg).slice(0, 60), e); res(false); });
+      });
+      const finish = (ok, reason) => resolve({ ok: ok, reason: ok ? "" : (reason || "all-failed") });
+      // 主路径：writeTempFile 拿 filePath 再存
       if (xhs.writeTempFile && typeof xhs.writeTempFile === "function") {
         Promise.resolve(xhs.writeTempFile({ data: dataUrl }))
-          .then((r) => doSave((r && r.filePath) || dataUrl))
-          .catch(() => doSave(dataUrl));
+          .then((r) => {
+            const fp = (r && (r.filePath || r.path)) || dataUrl;
+            trySave({ filePath: fp }).then((ok) => {
+              if (ok) return finish(true);
+              trySave({ data: dataUrl }).then((ok2) => finish(ok2, ok2 ? "" : "writeTempFile-ok-save-failed"));
+            });
+          })
+          .catch(() => {
+            trySave({ filePath: dataUrl }).then((ok) => {
+              if (ok) return finish(true);
+              trySave({ data: dataUrl }).then((ok2) => finish(ok2, ok2 ? "" : "writeTempFile-failed-all"));
+            });
+          });
       } else {
-        doSave(dataUrl);
+        trySave({ filePath: dataUrl }).then((ok) => {
+          if (ok) return finish(true);
+          trySave({ data: dataUrl }).then((ok2) => finish(ok2, ok2 ? "" : "no-writeTempFile-all"));
+        });
       }
     });
   };

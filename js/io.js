@@ -807,7 +807,7 @@
   }
   function measureLegend(st, ctx, font) {
     const rows = legendRows(st);
-    const gap = Math.max(6, Math.round(font * 0.5));
+    const gap = Math.max(12, Math.round(font * 1.0));
     const rowH = Math.round(font * 1.5);
     const widths = rows.map((row) => {
       let w = 0;
@@ -818,6 +818,9 @@
   }
   function drawLegendItemScaled(ctx, it, x, cy, font, textColor) {
     ctx.textBaseline = "middle"; ctx.textAlign = "left";
+    // 统一字号：圆点/箭头分支自身不设 font，若不在这里显式设定，名称会沿用上一处的字号
+    // （首行「情感指向」曾因此沿用副标题字号，比下方图例大一档）
+    ctx.font = font + "px " + BAND_FONT;
     if (it.kind === "dot") {
       const r = font * 0.42;
       ctx.fillStyle = it.color;

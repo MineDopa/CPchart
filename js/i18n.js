@@ -28,7 +28,7 @@
   <div class="help-h">快速开始！</div>
   <div class="help-step"><b>第一步 · 录入人物</b>：<br>「人物」→「<svg class="ic-svg" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M19 20C22.866 20 26 16.866 26 13C26 9.13401 22.866 6 19 6C15.134 6 12 9.13401 12 13C12 16.866 15.134 20 19 20Z" stroke="currentColor" stroke-width="4" stroke-linejoin="round"></path><path d="M36 29V41M30 35H42" stroke="currentColor" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"></path><path d="M27 28H18.8C14.3196 28 12.0794 28 10.3681 28.8719C8.86278 29.6389 7.63893 30.8628 6.87195 32.3681C6 34.0794 6 36.3196 6 40.8V42H27" stroke="currentColor" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"></path></svg>批量编辑名单」; 或者悬浮窗+号→导入数据<br>
     <code>1: 甲，乙，丙</code><br><code>2: 丁，戊，己，庚</code><br>
-    中英文逗号、空格都能分隔。<code>圆心: 某人</code> 或 <code>0: 某人</code> 把某人放最中间；直接写 <code>1:</code> 也可以，圆心就先空着。</div>
+    中英文逗号都能分隔。<code>圆心: 某人</code> 或 <code>0: 某人</code> 把某人放最中间；直接写 <code>1:</code> 也可以，圆心就先空着。</div>
   <div class="help-step"><b>第二步 · 画连线</b>：点底部「连线」，先选好三样：<br>
     ◯ 粗线 = 喜好度（本命 / 很喜欢 / 路好 / 不吃）<br>
     ● 细线 = 关系类型（爱情 / 友情 / 亲情 / QPR）<br>

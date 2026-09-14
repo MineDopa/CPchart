@@ -303,6 +303,9 @@ body.panel-full #tabs{ display:none; }
   gap:4px; line-height:1.25; color:var(--ink); }
 .btn.primary{ background:var(--accent); color:#fff; border-color:var(--accent); }
 .btn.danger{ color:var(--danger); border-color:#ffd1cf; }
+/* 实心红色主钮（结果屏「发布小红书」）：正负形，实心红底 + 反白文字，与次级菜单发布项同色系 */
+.btn.hl-danger{ background:var(--danger); border-color:var(--danger); color:#fff; }
+.btn.hl-danger:active{ background:#e02d2a; }
 /* 画板模式三选一胶囊（连线/角色/删线）：激活段深色+图标+文字，非激活段只显图标 */
 .paint-seg{ display:inline-flex; align-items:center; gap:0; padding:3px; border:1px solid var(--line);
   border-radius:999px; background:var(--bg-soft); }
@@ -398,7 +401,7 @@ input[type=range]{ accent-color:var(--accent); }
 /* ---------- 通用弹窗（菜单/文本/输入/确认共用 #modalRoot） ---------- */
 #modalRoot{ position:fixed; inset:0; z-index:40; }
 #modalMask{ position:absolute; inset:0; background:rgba(0,0,0,.35); }
-#modalBox{ position:absolute; left:50%; top:45%; transform:translate(-50%,-50%);
+#modalBox{ position:absolute; left:50%; top:50%; transform:translate(-50%,-50%);
   width:min(92vw,420px); max-height:78dvh; overflow-y:auto; background:var(--surf);
   border-radius:16px; padding:16px; box-shadow:var(--shadow); }
 .mh{ font-size:16px; font-weight:700; margin-bottom:10px; display:flex; justify-content:space-between; align-items:center; gap:8px; }
@@ -406,6 +409,8 @@ input[type=range]{ accent-color:var(--accent); }
 .mh .mh-right{ flex:0 0 auto; display:flex; align-items:center; gap:4px; }
 .mh .x{ font-size:18px; color:var(--sub); display:inline-flex; align-items:center; }
 .hint{ font-size:12px; color:var(--sub); margin-bottom:8px; line-height:1.5; }
+/* 弹窗说明里的代码块：复用 .ed-code 块样式，但在 .hint（12px）内放大到可读字号 */
+.hint .ed-code{ font-size:11px; line-height:1.9; color:var(--ink-soft); }
 .hint-collapsed{ display:none; }
 .layout-hint-wrap{ display:flex; align-items:flex-start; gap:6px; margin-bottom:8px; }
 .layout-hint-wrap .hint{ flex:1; margin-bottom:0; }
@@ -452,6 +457,21 @@ textarea.export-txt.tall{ min-height:min(42vh,300px); font-size:12px; line-heigh
   background:rgba(30,30,30,.88); color:#fff; font-size:13px; padding:9px 14px; border-radius:10px;
   max-width:80vw; text-align:center; }
 #toast.err{ background:rgba(200,30,30,.9); }
+
+/* ---------- 本地存档弹窗（后门功能） ---------- */
+.mh-sub{ font-size:11px; color:var(--sub); margin-left:8px; font-weight:400; }
+.ls-usage{ font-size:12px; color:var(--sub); padding:8px 14px 0; }
+.ls-save{ display:flex; gap:8px; padding:10px 14px; border-bottom:1px solid var(--sep); }
+.ls-save .inp{ flex:1; }
+.ls-list{ max-height:48dvh; overflow:auto; padding:6px 14px 14px; }
+.ls-row{ display:flex; align-items:center; gap:8px; padding:9px 0; border-bottom:1px solid var(--sep); }
+.ls-row:last-child{ border-bottom:none; }
+.ls-info{ flex:1; min-width:0; }
+.ls-name{ font-size:14px; color:var(--ink); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.ls-meta{ font-size:11px; color:var(--sub); margin-top:2px; }
+.ls-acts{ display:flex; gap:6px; flex-shrink:0; }
+.ls-empty{ text-align:center; color:var(--sub); font-size:13px; padding:24px 0; }
+.ls-rename-inp{ flex:1; }
 
 /* 帮助卡片 */
 .help-card{ font-size:13px; line-height:1.7; color:var(--ink-soft); }

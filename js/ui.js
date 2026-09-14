@@ -476,6 +476,76 @@
     $("modalBox").classList.remove("full");
     if (modalCloseCb) { const f = modalCloseCb; modalCloseCb = null; f(); }
   };
+  // 本地存档弹窗（后门功能）：保存/打开/删除/改名多张关系图，受 5MB + 张数上限约束
+  App.localSavesModal = function () {
+    const MB = 1048576;
+    const fmtMB = (n) => (Math.round(n / MB * 10) / 10);
+    const render = function () {
+      const list = App.listLocalSaves();
+      const u = App.localSavesUsage();
+      const curBytes = App.serialize().length * 2;
+      const remain = Math.max(0, u.maxBytes - u.used);
+      const remainCnt = Math.max(0, Math.floor(remain / Math.max(curBytes, 1)));
+      const rows = list.length ? list.map((e) => (
+        '<div class="ls-row" data-id="' + e.id + '">' +
+          '<div class="ls-info">' +
+            '<div class="ls-name">' + App.esc(e.name) + '</div>' +
+            '<div class="ls-meta">' + new Date(e.ts).toLocaleString() + ' · ' + e.chars + '人/' + e.links + '线 · ' + fmtMB(e.size) + 'MB</div>' +
+          '</div>' +
+          '<div class="ls-acts">' +
+            '<button class="mini" data-cmd="ls-open" data-id="' + e.id + '">打开</button>' +
+            '<button class="mini" data-cmd="ls-rename" data-id="' + e.id + '">改名</button>' +
+            '<button class="mini danger" data-cmd="ls-del" data-id="' + e.id + '">删除</button>' +
+          '</div>' +
+        '</div>'
+      )).join("") : '<div class="ls-empty">还没有本地存档，先保存一张当前图吧</div>';
+      const html =
+        '<div class="mh">本地存档<span class="mh-sub">最多 ' + u.maxCount + ' 张 / 5MB</span><span class="x" data-cmd="m-close">' + ICONS.close + '</span></div>' +
+        '<div class="ls-usage">已用 ' + fmtMB(u.used) + 'MB / 5MB，约剩 ' + fmtMB(remain) + 'MB（按当前图体积约 ' + remainCnt + ' 张）</div>' +
+        '<div class="ls-save">' +
+          '<input class="inp" id="lsName" maxlength="20" placeholder="给这张图起个名（可不填）" />' +
+          '<button class="btn primary" data-cmd="ls-save">保存当前图为存档</button>' +
+        '</div>' +
+        '<div class="ls-list">' + rows + '</div>';
+      App.openModal(html);
+      const box = $("modalBox");
+      box.querySelectorAll("[data-cmd]").forEach((btn) => {
+        btn.addEventListener("click", () => {
+          const cmd = btn.getAttribute("data-cmd");
+          const id = btn.getAttribute("data-id");
+          if (cmd === "ls-save") {
+            const inp = box.querySelector("#lsName");
+            const name = (inp && inp.value || "").trim();
+            try { App.saveLocal(name); App.toast("已保存到本地存档"); render(); }
+            catch (err) { App.toast(err.message, true); }
+          } else if (cmd === "ls-open") {
+            try { App.loadLocal(id); App.closeModal(); App.render(); App.toast("已打开本地存档"); }
+            catch (err) { App.toast(err.message, true); }
+          } else if (cmd === "ls-del") {
+            App.deleteLocal(id); App.toast("已删除存档"); render();
+          } else if (cmd === "ls-rename") {
+            const e = App.listLocalSaves().find((x) => x.id === id);
+            if (!e) return;
+            const row = btn.closest(".ls-row");
+            if (row) {
+              row.innerHTML =
+                '<input class="inp ls-rename-inp" maxlength="20" value="' + App.esc(e.name) + '" />' +
+                '<div class="ls-acts"><button class="mini primary" data-cmd="ls-rename-ok" data-id="' + id + '">确定</button>' +
+                '<button class="mini" data-cmd="ls-rename-cancel">取消</button></div>';
+              const ri = row.querySelector(".ls-rename-inp");
+              if (ri) ri.focus();
+              row.querySelector('[data-cmd="ls-rename-ok"]').addEventListener("click", () => {
+                try { App.renameLocal(id, (ri.value || "").trim() || e.name); App.toast("已改名"); render(); }
+                catch (err) { App.toast(err.message, true); }
+              });
+              row.querySelector('[data-cmd="ls-rename-cancel"]').addEventListener("click", () => render());
+            }
+          }
+        });
+      });
+    };
+    render();
+  };
   // 连线记录编辑弹窗：改箭头类型（无/单/双）、翻转方向（顶层有向）、删除
   // 同一对角色的所有连线（粗线 + 细线可能各一条）
   function pairOf(k) {
@@ -763,12 +833,16 @@
     //   - 拖动（移动 ≥ 8px）：面板高度实时跟手；松手吸附到最近档位
     const head = $("panelHead");
     if (head) {
-      // 四档（占视口比例，留出 panelHead 26 + tabs 49 高度）；min 只显各 Tab 第一行，r 取到单行实际占比
+      // 四档（占视口比例，留出 panelHead 26 + tabs 49 高度）；min 只显各 Tab 第一行
+      // collapsed 0 / min 14dvh / half 38dvh / full calc(100dvh - 26px)
+      // 关键：吸附必须以「拖拽实时比例」为准，且锚定 #app 真实高度；不能用
+      // getBoundingClientRect 实测（内容较矮时会被 max-height 钳制失真，松手吸附到错误档位、位置弹回）；
+      // 小红书容器内 window.innerHeight(vh) 与 dvh 不一致，用 vh 算也会吸附错位、留白。
       const STOPS = [
         { m: "collapsed", r: 0 },
-        { m: "min",       r: 0.09 },
-        { m: "half",      r: 0.4 },
-        { m: "full",      r: 0.92 },
+        { m: "min",       r: 0.14 },
+        { m: "half",      r: 0.38 },
+        { m: "full",      r: 0.96 },
       ];
       const ratioToMode = (r) => {
         let best = STOPS[0], bd = Math.abs(r - STOPS[0].r);
@@ -778,14 +852,16 @@
         }
         return best.m;
       };
-      const currentRatio = () => {
-        const p = $("panel");
-        if (!p) return 0;
-        return p.getBoundingClientRect().height / (window.innerHeight || 800);
+      const modeRatio = (m) => { const s = STOPS.find((x) => x.m === m); return s ? s.r : 0; };
+      // 以 #app 真实高度为基准（=100dvh，与 CSS 各档 max-height 同一坐标系）；
+      // 小红书 webview 里 vh 与 dvh 不一致，用它算会吸附错位、留白。
+      const appH = () => {
+        const a = $("app");
+        return (a ? a.getBoundingClientRect().height : 0) || window.innerHeight || 800;
       };
       const setLiveHeight = (ratio) => {
         const p = $("panel"); if (!p) return;
-        p.style.maxHeight = (ratio * 100).toFixed(1) + "vh";
+        p.style.maxHeight = Math.round(ratio * appH()) + "px"; // px 锚定 #app，避免 vh/dvh 偏差
       };
       let active = false, moved = false, startY = 0, startRatio = 0, pid = -1;
       let rafId = 0, pendingRatio = 0;
@@ -794,7 +870,7 @@
       head.addEventListener("pointerdown", (e) => {
         if (e.button != null && e.button !== 0) return;
         active = true; moved = false;
-        startY = e.clientY; startRatio = currentRatio(); pid = e.pointerId;
+        startY = e.clientY; startRatio = modeRatio(App.panelMode); pid = e.pointerId;
         try { head.setPointerCapture(pid); } catch (err) {}
       });
       head.addEventListener("pointermove", (e) => {
@@ -812,9 +888,9 @@
           if (p0) p0.classList.add("dragging"); // 关过渡 + 视觉反馈，只加一次
           head.classList.add("dragging");
         }
-        const vh = window.innerHeight || 800;
+        const h = appH();
         // 向上拖 dy<0 高度增大，向下拖 dy>0 高度减小
-        pendingRatio = Math.max(0, Math.min(0.98, startRatio + (-dy) / vh));
+        pendingRatio = Math.max(0, Math.min(0.98, startRatio + (-dy) / h));
         if (!rafId) rafId = requestAnimationFrame(flushHeight);
       });
       const endDrag = () => {
@@ -827,9 +903,8 @@
           const i = seq.indexOf(App.panelMode);
           App.setPanelMode(seq[(i + 1) % seq.length]);
         } else {
-          // 拖动结束：吸附到最近档位
-          const ratio = currentRatio();
-          App.setPanelMode(ratioToMode(ratio));
+          // 拖动结束：用实时拖拽比例吸附到最近档位（不在实测渲染高度，避免被内容钳制失真）
+          App.setPanelMode(ratioToMode(pendingRatio));
         }
         try { head.releasePointerCapture(pid); } catch (err) {}
       };
@@ -1530,6 +1605,7 @@
       case "img": exportImageFlow(); break;
       case "expnames": openExportNames(); break;
       case "impnames": openImportNames(false); break;
+      case "local": App.localSavesModal(); break;
       case "expsnap": App.editorModal({ tab: "data", dataMode: "export" }); break;
       case "impsnap": App.editorModal({ tab: "data", dataMode: "import" }); break;
       case "edpeople": App.editorModal({ tab: "people" }); break;
@@ -1550,6 +1626,7 @@
     save: { title: "保存 / 导出", items: [
       { menu: "publish",  label: "发布小红书笔记", cls: "hl-danger", icon: "send" },
       { menu: "img",      label: "导出图片",     icon: "imgOut" },
+      { menu: "local",    label: "本地存档",     icon: "save" },
       { menu: "expsnap",  label: "导出完整数据",  icon: "copyOne" },
       { menu: "expnames", label: "导出人物名单",  icon: "peopleGr" },
     ]},
@@ -1767,7 +1844,9 @@
   function openImportNames(isNew) {
     const pre = isNew ? App.PRESET_TEXT : "";
     App.textModal(ICONS.dlIn + " 导入人物名单",
-      "每圈一行：圈号加名字（用 ，或空格分隔）。示例：<br><code>圆心: 我<br>1: 甲，乙，丙<br>2: 丁，戊</code><br>直接粘贴你的名单并点“导入”。",
+      "每圈一行：圈号后写名字，用逗号 <code>，</code> 分隔（中英文逗号都行；分号「;」等于换行）。" +
+      '<div class="ed-code"><code>圆心: 甲<br>1: 乙，丙，丁<br>2: 戊，己</code></div>' +
+      "「圆心」这一行可以不写，不写就从第 1 圈开始排。粘贴名单后点“导入”。",
       pre, true, (txt) => { App.importNameList(txt); });
   }
   function openExportNames() {
@@ -1863,7 +1942,7 @@
       '<div class="modal-btns rs-btns">' +
         '<button class="btn" data-cmd="m-close">关闭</button>' +
         '<button class="btn" data-cmd="new-canvas">建立新画布</button>' +
-        '<button class="btn primary" data-cmd="publish">发布小红书</button>' +
+        '<button class="btn hl-danger" data-cmd="publish">发布小红书</button>' +
         saveBtn +
       '</div>', true);
     modalCloseCb = null;

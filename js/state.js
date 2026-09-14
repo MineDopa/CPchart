@@ -699,6 +699,74 @@
   App.DRAFT_KEY = "xhs_cp_draft_v1";
   App.scheduleSave = null; // 由 main 设置
 
+  // ---------- 本地多存档（localStorage）----------
+  // 设计：单键存一份「存档清单」数组（含每张图的完整 serialize JSON）。
+  // 上限双重保险：① 总字节 ≤ 5MB×90%（留余量给草稿键等）② 硬张数上限（防键膨胀）。
+  // 头像 base64 体积大（20人图单张 0.4~2MB），故卡字节是主约束；张数只是兜底。
+  App.LOCAL_SAVES_KEY = "cpc_local_saves_v1";
+  App.LOCAL_SAVES_MAX_BYTES = Math.floor(5 * 1024 * 1024 * 0.9); // ≈4.5MB 安全预算
+  App.LOCAL_SAVES_MAX_COUNT = 40; // 硬张数上限
+
+  App._readLocalManifest = function () {
+    try {
+      const raw = localStorage.getItem(App.LOCAL_SAVES_KEY);
+      if (!raw) return [];
+      const arr = JSON.parse(raw);
+      return Array.isArray(arr) ? arr : [];
+    } catch (e) { return []; }
+  };
+  App._writeLocalManifest = function (list) {
+    localStorage.setItem(App.LOCAL_SAVES_KEY, JSON.stringify(list));
+  };
+  App.listLocalSaves = function () {
+    return App._readLocalManifest().map((e) => ({
+      id: e.id, name: e.name, ts: e.ts, size: e.size, chars: e.chars, links: e.links,
+    }));
+  };
+  App.localSavesUsage = function () {
+    const list = App._readLocalManifest();
+    const used = list.reduce((a, e) => a + (e.size || 0), 0);
+    return { used, count: list.length, maxBytes: App.LOCAL_SAVES_MAX_BYTES, maxCount: App.LOCAL_SAVES_MAX_COUNT };
+  };
+  // 保存当前图为存档；name 空则自动命名。同名覆盖。
+  App.saveLocal = function (name) {
+    const json = App.serialize();
+    const bytes = json.length * 2; // localStorage 配额按 UTF-16 计
+    const list = App._readLocalManifest();
+    const idx = list.findIndex((e) => e.name === name);
+    const others = idx >= 0 ? list.filter((_, i) => i !== idx) : list;
+    const othersBytes = others.reduce((a, e) => a + (e.size || 0), 0);
+    if (list.length >= App.LOCAL_SAVES_MAX_COUNT && idx < 0)
+      throw new Error("本地存档已达上限（" + App.LOCAL_SAVES_MAX_COUNT + " 张），请先删除部分");
+    if (othersBytes + bytes > App.LOCAL_SAVES_MAX_BYTES)
+      throw new Error("本地空间不足（上限 5MB，已用 " + (Math.round(othersBytes / 1048576 * 10) / 10) + "MB），请删除部分存档或减小头像体积");
+    const entry = {
+      id: App.uid("s"), name: name || ("未命名_" + new Date().toLocaleString()),
+      ts: Date.now(), size: bytes, json: json,
+      chars: App.state.chars.length, links: App.state.links.length,
+    };
+    if (idx >= 0) list[idx] = entry; else list.unshift(entry);
+    App._writeLocalManifest(list);
+    return entry;
+  };
+  App.loadLocal = function (id) {
+    const e = App._readLocalManifest().find((x) => x.id === id);
+    if (!e) throw new Error("找不到该存档");
+    App.deserialize(e.json);
+    App.setTitleText();
+  };
+  App.deleteLocal = function (id) {
+    const list = App._readLocalManifest().filter((x) => x.id !== id);
+    App._writeLocalManifest(list);
+  };
+  App.renameLocal = function (id, name) {
+    const list = App._readLocalManifest();
+    const e = list.find((x) => x.id === id);
+    if (!e) throw new Error("找不到该存档");
+    e.name = name || e.name;
+    App._writeLocalManifest(list);
+  };
+
   App.newDoc = function () {
     App.state = freshDoc();
     App.selCharId = null; App.filterRoot = null; App.linkSource = null; App.dragGhost = null; App.eraser = false; App.pendingLinkDel = null;

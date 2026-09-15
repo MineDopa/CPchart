@@ -14,6 +14,7 @@
       overlay: App.byId("overlayG"),
       nodes: App.byId("nodesG"),
       legend: App.byId("legendChip"),
+      legendRows: App.byId("legendRows"),
       brush: App.byId("brushPreview"),
     };
     return els;
@@ -242,7 +243,10 @@
     const th = canvasTheme();
     let html = "";
     App.state.rings.forEach((r, i) => {
-      html += `<circle class="orbit" data-orb="${i + 1}" cx="0" cy="0" r="${r.rad}" fill="none" stroke="${th.orbit}" stroke-width="1.2" stroke-dasharray="5 6"></circle>`;
+      // 选中的轨道描深（只在布局页显示——旋转控件也在那儿）。
+      // 颜色不能在 SVG 表现属性里写 var()，故只挂 class，交给 CSS
+      const on = App.activeTab === "layout" && App.selRing === i + 1;
+      html += `<circle class="orbit${on ? " orbit-on" : ""}" data-orb="${i + 1}" cx="0" cy="0" r="${r.rad}" fill="none" stroke="${th.orbit}" stroke-width="${on ? 2.8 : 1.2}" stroke-dasharray="5 6"></circle>`;
     });
     return html;
   }
@@ -250,15 +254,32 @@
   // 布局模式：圈半径拖拽小圆点（位于轨道外侧 3rem=30pt，避免与角色圆重合）
   const RING_HANDLE_OFFSET = 30;
   App.RING_HANDLE_OFFSET = RING_HANDLE_OFFSET;
+  // 旋转手柄与那个蓝点手柄的横向间距：11（手柄半径）+ 13（↻ 半径）+ 12（留白）= 36
+  const RING_ROT_OFFSET = 36;
   function buildRingHandles() {
     if (App.activeTab !== "layout") return "";
     let html = "";
     App.state.rings.forEach((r, i) => {
       const ringNo = i + 1;
       const px = 0, py = -(r.rad + RING_HANDLE_OFFSET);
-      html += `<circle class="rh" data-ring="${ringNo}" cx="${px}" cy="${py}" r="11" fill="rgba(10,132,255,0.22)"
+      html += `<circle class="rh${App.selRing === ringNo ? " on" : ""}" data-ring="${ringNo}" cx="${px}" cy="${py}" r="11" fill="rgba(10,132,255,0.22)"
         stroke="#0a84ff" stroke-width="1.6" stroke-dasharray="none"></circle>`;
     });
+    // 选中轨道的旋转手柄：跟这个圈「调大小」的蓝点手柄并排（同一个 12 点钟方向那一排，
+    // 紧挨在它右边），按住拖动 = 整圈旋转，手感同 PS / PPT。
+    // 命中判定单用 data-ringrot，避免与上面「竖向拖 = 改半径」的 data-ring 撞。
+    // 最外层那个 r=22 的透明圈只用来放大手指/鼠标的命中范围（触屏好按）。
+    const sel = App.selRing;
+    const selR = sel ? App.state.rings[sel - 1] : null;
+    if (selR) {
+      const hy = -(Number(selR.rad) || 0) - RING_HANDLE_OFFSET;
+      const hx = RING_ROT_OFFSET;
+      html += `<g class="rh-rot" data-ringrot="${sel}">`
+        + `<circle cx="${hx}" cy="${hy}" r="22" fill="none" pointer-events="all"></circle>`
+        + `<circle class="rh-rot-bg" cx="${hx}" cy="${hy}" r="13" stroke="#0a84ff" stroke-width="1.8"></circle>`
+        + `<text class="rh-rot-ic" x="${hx}" y="${hy}" text-anchor="middle" dominant-baseline="central">↻</text>`
+        + `</g>`;
+    }
     return html;
   }
 
@@ -297,7 +318,7 @@
     return html;
   }
 
-  // ② 图例排版（定稿）：第一行 底层粗线(喜好) / 第二行 顶层细线(关系) / 第三行 箭头含义 ➡+可改名标签
+  // ② 图例排版（定稿）：第一行 底层粗线(喜好) / 第二行 顶层细线(关系) / 第三行 箭头指向 ➡+可改名标签
   function buildLegend() {
     const st = App.state;
     const seg = (items) => `<div class="lg-seg">${items.join("")}</div>`;
@@ -305,9 +326,17 @@
       `<span class="lg" data-layer="bottom" data-key="${App.esc(r.key)}"><i style="background:${r.color}"></i><b>${App.esc(r.name)}</b></span>`).join("");
     const topHtml = st.tables.top.filter((r) => !r.hidden).map((r) =>
       `<span class="lg" data-layer="top" data-key="${App.esc(r.key)}"><i style="background:${r.color}"></i><b>${App.esc(r.name)}</b></span>`).join("");
-    const arrowName = (st.meta && st.meta.arrowName) ? String(st.meta.arrowName) : "情感指向";
+    const arrowName = App.effectiveArrowName(st.meta);
+    // 软代码：与导出图例共用 App.softTokens（只此一份切分逻辑）。
+    // 存形如「甲->乙」→ 渲染成「甲 → 乙」，箭头图标落在写了 -> 的位置；
+    // 没写 -> 时自动在最前补一个箭头，保持「箭头 + 单标签」的老观感。
+    const ARROW_SVG = '<svg class="ic-svg" viewBox="0 0 48 48" fill="none"><path d="M14 24H40M28 12L40 24L28 36" stroke="currentColor" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/></svg>';
     const arrowHtml = arrowName
-      ? `<span class="lg" data-layer="arrow" data-key="one"><b class="lg-ic"><svg class="ic-svg" viewBox="0 0 48 48" fill="none"><path d="M14 24H40M28 12L40 24L28 36" stroke="currentColor" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/></svg></b><b>${App.esc(arrowName)}</b></span>`
+      ? `<span class="lg" data-layer="arrow" data-key="one">` +
+        App.softTokens(arrowName).map((tk) =>
+          tk.t === "arrow" ? `<b class="lg-ic">${ARROW_SVG}</b>` : `<b>${App.esc(tk.v)}</b>`
+        ).join("") +
+        `</span>`
       : "";
     let out = "";
     if (bottomHtml) out += seg([bottomHtml]);
@@ -315,6 +344,13 @@
     if (arrowHtml) out += seg([arrowHtml]);
     return out;
   }
+
+  // 图例折叠（纯视图状态）：不写进文档、不进撤销栈、不参与存档 —— 分享出去的图始终是展开的。
+  App.legendCollapsed = false;
+  App.toggleLegend = function () {
+    App.legendCollapsed = !App.legendCollapsed;
+    App.render();
+  };
 
   App.refreshView = function () {
     const o = ensureEls();
@@ -409,7 +445,10 @@
     o.links.innerHTML = buildLinks();
     o.nodes.innerHTML = buildNodes();
     o.overlay.innerHTML = buildRingHandles() + buildGhost() + buildSlots();
-    o.legend.innerHTML = buildLegend();
+    o.legendRows.innerHTML = buildLegend();
+    // 图例折叠：纯视图状态（不进文档、不进存档 —— 分享出去的图默认是展开的），
+    // 一收就把三行藏起来只留右边缘那个小箭头，腾出地方看画。
+    o.legend.classList.toggle("lg-collapsed", !!App.legendCollapsed);
     App.refreshView();
     renderModeBadge(o);
   };

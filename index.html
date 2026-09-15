@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
 <title>CPchart - 人物关系连线图</title>
-<link rel="stylesheet" href="css/app.css?v=v1.0.3">
+<link rel="stylesheet" href="css/app.css?v=v1.0.4">
 </head>
 <body>
 <div id="app">
@@ -38,8 +38,13 @@
     </svg>
     <!-- 画布左下角连线笔刷状态预览 -->
     <div id="brushPreview" class="hidden"></div>
-    <!-- 画布内图例角标 -->
-    <div id="legendChip"></div>
+    <!-- 画布内图例角标（右边缘一个小箭头可把图例收起来，省地方看画） -->
+    <div id="legendChip">
+      <div id="legendRows"></div>
+      <button id="legendToggle" class="lg-toggle" aria-label="收起图例" title="收起 / 展开图例">
+        <svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M15 5L8 12l7 7" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"></path></svg>
+      </button>
+    </div>
     <!-- 布局模式：角色选中后的快捷操作条 -->
     <div id="nodeOps" class="hidden">
       <select id="opsRingSel"></select>
@@ -131,17 +136,17 @@
 <!-- 全屏(隐藏UI)退出按钮 -->
 <button id="fullExit" class="hidden" title="退出全屏"><svg class="ic-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
 
-<script src="js/util.js?v=v1.0.3"></script>
-<script src="js/cpc-core.js?v=v1.0.3"></script>
-<script src="js/cpc-dsl.js?v=v1.0.3"></script>
-<script src="js/state.js?v=v1.0.3"></script>
-<script src="js/render.js?v=v1.0.3"></script>
-<script src="js/lzstring.js?v=v1.0.3"></script>
-<script src="js/io.js?v=v1.0.3"></script>
-<script src="js/i18n.js?v=v1.0.3"></script>
-<script src="js/ui.js?v=v1.0.3"></script>
-<script src="js/input.js?v=v1.0.3"></script>
-<script src="js/main.js?v=v1.0.3"></script>
-  <script src="js/iopc.js?v=v1.0.3"></script>
+<script src="js/util.js?v=v1.0.4"></script>
+<script src="js/cpc-core.js?v=v1.0.4"></script>
+<script src="js/cpc-dsl.js?v=v1.0.4"></script>
+<script src="js/state.js?v=v1.0.4"></script>
+<script src="js/render.js?v=v1.0.4"></script>
+<script src="js/lzstring.js?v=v1.0.4"></script>
+<script src="js/io.js?v=v1.0.4"></script>
+<script src="js/i18n.js?v=v1.0.4"></script>
+<script src="js/ui.js?v=v1.0.4"></script>
+<script src="js/input.js?v=v1.0.4"></script>
+<script src="js/main.js?v=v1.0.4"></script>
+  <script src="js/iopc.js?v=v1.0.4"></script>
 </body>
 </html>

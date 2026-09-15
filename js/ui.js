@@ -197,7 +197,7 @@
   const PALETTE = ["#d32f2f", "#f57c00", "#ffb300", "#6d4c41", "#88d90b", "#008080", "#2196f3", "#7054bc", "#f06292", "#222222", "#888888", "#f0f0f0"];
 
   function panelStyle() {
-    const arrowName = (App.state.meta && App.state.meta.arrowName) ? String(App.state.meta.arrowName) : "情感指向";
+    const ap = App.arrowPair(App.state.meta && App.state.meta.arrowName);
     const night = !!(App.state.ui && App.state.ui.night);
     return `<div class="pg">
       <div class="ctrl-row">外观：
@@ -212,9 +212,11 @@
       <div>${tableRows("bottom", false)}</div>
       <div class="pg-t"><span class="pg-t-l">${ICONS.ringT} 顶层色（关系类型 · 细线+白描边）</span><button class="mini" data-cmd="tbl-add" data-layer="top" aria-label="添加顶层色">${ICONS.plus}</button></div>
       <div>${tableRows("top", false)}</div>
-      <div class="pg-t">${ICONS.arrowR} 箭头含义</div>
-      <div class="trow"><span class="lg-ic">${ICONS.arrowR}</span>
-        <span class="tname"><input type="text" data-set="arrowName" value="${App.esc(arrowName)}" placeholder="情感指向"></span>
+      <div class="pg-t"><span class="pg-t-l">${ICONS.arrowR} 箭头指向</span></div>
+      <div class="trow arrow-row">
+        <span class="tname"><input type="text" data-set="arrowFrom" value="${App.esc(ap.from)}" placeholder="${App.ARROW_DEF_FROM}"></span>
+        <span class="lg-ic">${ICONS.arrowR}</span>
+        <span class="tname"><input type="text" data-set="arrowTo" value="${App.esc(ap.to)}" placeholder="${App.ARROW_DEF_TO}"></span>
       </div>
       <div class="pg-t">细线描边样式</div>
       <div class="ctrl-row">描边粗细
@@ -412,8 +414,9 @@
     const c = App.state.chars.find((x) => x.id === App.selCharId);
     if (App.activeTab !== "layout" || !c) { box.classList.add("hidden"); return; }
     const maxRing = Math.max(1, c.ring, App.state.rings.length);
+    const ringMax = Math.min(App.MAX_RINGS, maxRing + 1); // 下拉里也不提供超过上限的圈
     let opts = '<option value="0">圆心</option>';
-    for (let i = 1; i <= maxRing + 1; i++) {
+    for (let i = 1; i <= ringMax; i++) {
       opts += `<option value="${i}" ${c.ring === i ? "selected" : ""}>圈${i}</option>`;
     }
     $("opsRingSel").innerHTML = opts;
@@ -687,6 +690,13 @@
   const ABOUT_LOG_OPEN = 1;
   const ABOUT_TYPE = { feat: "新增", perf: "优化", style: "调整", refactor: "调整", fix: "修复", docs: "文档", chore: "整理" };
   const ABOUT_LOG = [
+    { ver: "v1.0.4", date: "2026-09-16", changes: [
+      { t: "fix", n: "修好部分手机面板错位", h: "重开或换手机，面板和底栏都贴好位置" },
+      { t: "style", n: "箭头文字可自己填", h: "在面板填箭头两端的字，画布和导出图同步变" },
+      { t: "feat", n: "轨道能整圈旋转", h: "选中轨道，拖蓝点旁的手柄就能转圈" },
+      { t: "feat", n: "图例可一键收起", h: "点图例边上的小箭头，收起省出画布空间" },
+      { t: "style", n: "圈数与导出图设上限", h: "最多 12 圈；导出图超 4096px 自动缩小" },
+    ] },
     { ver: "v1.0.3", date: "2026-09-13", changes: [
       { t: "fix", n: "修复数据导入错位", h: "导出再导入，圆心、位置、头像、喜好都原样还原" },
       { t: "fix", n: "头像上传失败有提示", h: "选图出错或选错文件时明确提示，不再没反应" },
@@ -822,6 +832,9 @@
       if (!lg) return;
       App.applyLegendBrush(lg.getAttribute("data-layer"), lg.getAttribute("data-key"));
     });
+    // 图例右边缘的小箭头：把图例收起来 / 放出来（纯视图动作，不动数据）
+    const lgTog = $("legendToggle");
+    if (lgTog) lgTog.addEventListener("click", () => App.toggleLegend());
 
     // 撤销 / 重做 / 标题 / 菜单
     // 撤销/重做已移入径向主菜单（#radialMenu .radial-btn[data-act=undo/redo]）
@@ -968,6 +981,7 @@
           // 标题上限 18 字、填表人 12 字（与弹窗 maxlength 一致，兜底存量超限数据）
           App.state.title = Array.from(String(t1 == null ? "" : t1).trim()).slice(0, 18).join("") || "未命名关系图";
           App.state.meta.filler = Array.from(String(f1 == null ? "" : f1).trim()).slice(0, 12).join("");
+          App.setSavedUser(App.state.meta.filler); // 记住用户名，下次新建画布自动带入
         });
         const cb = App._titleOkCb; App._titleOkCb = null; if (cb) cb();
         return;
@@ -1139,7 +1153,7 @@
       if (ring) App.commitHist();
       const slot = e.target.closest("[data-set=slots]");
       if (slot) App.commitHist();
-      const arrowNm = e.target.closest('[data-set="arrowName"]');
+      const arrowNm = e.target.closest('[data-set="arrowFrom"],[data-set="arrowTo"]');
       if (arrowNm) App.commitHist();
     });
     panel.addEventListener("focusout", (e) => {
@@ -1360,12 +1374,18 @@
       }
       // ---------- 布局 ----------
       case "ly-even": App.act(() => App.evenAll()); App.toast("已平均排布"); break;
+      // ---------- 轨道旋转：控件不在面板里，是画布上蓝圈右侧的 ↻ 手柄（见 render.js + input.js） ----------
       case "ly-hint": {
         st.ui.layoutHint = !st.ui.layoutHint;
         renderPanel();
         break;
       }
       case "ly-addring": {
+        // 轨道数上限：圈间距固定，圈数越多整图越大，自动缩放会把圆圈缩成一个点（看起来像卡住）
+        if (App.state.rings.length >= App.MAX_RINGS) {
+          App.toast(`最多 ${App.MAX_RINGS} 圈，再多圆圈会小到看不清`, true);
+          break;
+        }
         App.act(() => {
           App.state.rings.push({
             rad: (App.state.rings[App.state.rings.length - 1] || { rad: 150 }).rad + 120,
@@ -1481,11 +1501,13 @@
       if (e.type === "change") App.notifyChanged();
       return;
     }
-    const arrowInp = t.closest('[data-set="arrowName"]');
+    const arrowInp = t.closest('[data-set="arrowFrom"],[data-set="arrowTo"]');
     if (arrowInp) {
       if (!App.state.meta) App.state.meta = {};
-      App.state.meta.arrowName = t.value;
-      App.render(); // 图例实时更新箭头标注名
+      const box = arrowInp.closest(".trow");
+      const val = (sel) => { const el = box && box.querySelector(sel); return el ? el.value : ""; };
+      App.state.meta.arrowName = App.arrowName(val('[data-set="arrowFrom"]'), val('[data-set="arrowTo"]'));
+      App.render(); // 图例实时更新箭头指向
       if (e.type === "change") App.notifyChanged();
       return;
     }
@@ -1843,10 +1865,10 @@
   // 打开名单导入弹窗
   function openImportNames(isNew) {
     const pre = isNew ? App.PRESET_TEXT : "";
-    App.textModal(ICONS.dlIn + " 导入人物名单",
-      "每圈一行：圈号后写名字，用逗号 <code>，</code> 分隔（中英文逗号都行；分号「;」等于换行）。" +
-      '<div class="ed-code"><code>圆心: 甲<br>1: 乙，丙，丁<br>2: 戊，己</code></div>' +
-      "「圆心」这一行可以不写，不写就从第 1 圈开始排。粘贴名单后点“导入”。",
+    App.textModal(ICONS.dlIn + (isNew ? " 创建新画布" : " 导入人物名单"),
+      "每圈一行，写法：<code>圈号：角色 1，角色 2；</code><br>" +
+      "「圆心 / 0」可以不写，不写会从第 1 圈开始为圆圈排序。<br>" +
+      "提醒：轨道最多 " + App.MAX_RINGS + " 圈（再多圆圈会小到看不清）。",
       pre, true, (txt) => { App.importNameList(txt); });
   }
   function openExportNames() {
@@ -1917,7 +1939,7 @@
   async function doExportImage() {
     App.toast("正在生成图片…");
     let dataUrl;
-    try { dataUrl = await App.exportPNG(2); }
+    try { dataUrl = await App.exportPNG(1); } // 分辨率减半（scale 2→1）：成品图更小更轻
     catch (err) { App.toast("导出失败：" + err.message, true); return; }
     App._retrySaveUrl = dataUrl;
     // 保存 API 可用性：直接探 window.xhs.miniTool.saveImageToPhotosAlbum，不依赖 App.isXhs
@@ -2031,7 +2053,7 @@
       '<div style="font-size:12px;color:var(--sub);margin:8px 0 4px">' + I18N.t("welcome_lbl_title") + '</div>' +
       '<input type="text" id="welTitle" class="inp" style="width:100%" maxlength="18" placeholder="' + I18N.t("welcome_ph_title") + '">' +
       '<div style="font-size:12px;color:var(--sub);margin:12px 0 4px">' + I18N.t("welcome_lbl_filler") + '</div>' +
-      '<input type="text" id="welFiller" class="inp" style="width:100%" maxlength="12" placeholder="' + I18N.t("welcome_ph_filler") + '">' +
+      '<input type="text" id="welFiller" class="inp" style="width:100%" maxlength="12" value="' + App.esc(App.getSavedUser()) + '" placeholder="' + I18N.t("welcome_ph_filler") + '">' +
       '<div style="font-size:12px;color:var(--sub);margin:12px 0 4px;display:flex;justify-content:space-between;align-items:center">' +
         '<span>' + I18N.t("welcome_lbl_list") + '</span>' +
         '<button class="mini" data-cmd="wel-load" title="' + I18N.t("welcome_btn_load_title") + '">' + I18N.t("welcome_btn_load") + '</button>' +
@@ -2058,6 +2080,7 @@
         // 图名/填表人：18/12 字截断，与改名弹窗共用规则
         App.state.title = (t1 || "").trim().slice(0, 18) || "未命名关系图";
         App.state.meta.filler = (f1 || "").trim().slice(0, 12);
+        App.setSavedUser(App.state.meta.filler); // 记住用户名，下次新建画布自动带入
         App.setTitleText();
       });
       try { if (txt.trim()) App.importNameList(txt); } catch (err) { App.toast(err.message || "导入失败", true); }

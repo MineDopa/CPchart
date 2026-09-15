@@ -80,7 +80,7 @@
     d.ui = Object.assign({}, d.ui, obj.ui || {});
     d.meta = {
       filler: (obj.meta && obj.meta.filler) ? String(obj.meta.filler) : "",
-      arrowName: (obj.meta && obj.meta.arrowName) ? String(obj.meta.arrowName) : "情感指向",
+      arrowName: (obj.meta && obj.meta.arrowName) ? String(obj.meta.arrowName) : "情感主体->情感客体",
     };
     App.computeLayout();
     return d.chars.length > 0;

@@ -239,7 +239,7 @@
       // 图例三组：v1.0 全部存储，但不渲染分组标题（只画出词条本身）
       legend: { relation: [], favor: [], pointing: [] },
       ui: Object.assign({}, Core.DEFAULT_UI),
-      meta: { arrowName: "情感指向" }
+      meta: { arrowName: "情感主体->情感客体" }
     };
     // 预设四词 + 四词入表（等于内置默认，文件里不必写）
     Core.PRESET_ORDER.forEach(function (n) {
@@ -304,7 +304,7 @@
       tables: { bottom: [], top: [], arrow: [] },
       legend: { relation: [], favor: [], pointing: [] },
       ui: Object.assign({}, fresh.ui, doc.ui || {}),
-      meta: { arrowName: (doc.meta && doc.meta.arrowName) || "情感指向" }
+      meta: { arrowName: (doc.meta && doc.meta.arrowName) || "情感主体->情感客体" }
     };
 
     // 填表人：旧位置 meta.filler → 新位置顶层 filler

@@ -2,6 +2,10 @@
 (function () {
   const App = (window.App = window.App || {});
 
+  // 方向箭头分隔符：连线文本解析（importLinkText）与图例软代码（softTokens）共用同一套。
+  // 只此一份——两处各写一份曾导致「图例认 ⇒、导入却不认」这类不一致。
+  const ARROW_SEP_RE = /->|→|⇒|⟶|》|➡️/;
+
   // ---------------- 名单解析 ----------------
   App.parseNameList = function (text) {
     // 分号与换行等效：先按 ；/; 断行，再逐行解析（写法更自由，一行写完也认）
@@ -18,6 +22,8 @@
       const hasRing = !!(m && (m[1] != null || m[2] != null));
       if (hasRing) {
         ring = m[1] != null ? Math.max(0, parseInt(m[1], 10)) : 0;
+        // 圈号超过上限时并到最后一圈：避免一份「圈30」的名单建出几十条轨道
+        if (ring > App.MAX_RINGS) ring = App.MAX_RINGS;
         rest = s.slice(m[0].length);
         curRing = ring;
       }
@@ -181,8 +187,8 @@
       // 先判方向符 → 连线条目；否则含冒号 → 喜好度条目
       let arrow = "none", parts = null;
       if (it.indexOf("<->") >= 0) { arrow = "both"; parts = it.split("<->"); }
-      else if (it.indexOf("->") >= 0 || it.indexOf("→") >= 0 || it.indexOf("》") >= 0 || it.indexOf("➡️") >= 0) {
-        arrow = "one"; parts = it.split(/->|→|》|➡️/);
+      else if (ARROW_SEP_RE.test(it)) {
+        arrow = "one"; parts = it.split(ARROW_SEP_RE);
       } else if (it.indexOf("—") >= 0) { parts = it.split("—"); }
       else if (/[^-]-[^-]/.test(it)) { parts = it.split("-"); }
       if (parts && parts.length >= 2) {
@@ -789,20 +795,75 @@
   // 导出图例（标题下方居中、三行：箭头方向 / 粗线(喜好) / 细线(关系)）
   function legendRows(st) {
     const rows = [];
-    const arrowName = (st.meta && st.meta.arrowName) ? String(st.meta.arrowName) : "情感指向";
-    if (arrowName) rows.push([{ kind: "arrow", name: arrowName }]);
+    // 软代码：名字里写「甲 -> 乙」→ 图例渲染成「甲 → 乙」（箭头 SVG 落在写了 -> 的位置）；
+    // 没写 -> 时按旧观感在最前补一个箭头（见 softTokens）。
+    // 名字统一由 App.effectiveArrowName 出（与画布图例同一份，面板改字这里立刻跟着变）。
+    const arrowName = App.effectiveArrowName(st.meta);
+    if (arrowName) rows.push([{ kind: "soft", name: arrowName }]);
     const b = st.tables.bottom.filter((r) => r && r.name && !r.hidden);
     if (b.length) rows.push(b.map((r) => ({ kind: "dot", color: r.color, name: r.name })));
     const t = st.tables.top.filter((r) => r && r.name && !r.hidden);
     if (t.length) rows.push(t.map((r) => ({ kind: "bar", color: r.color, name: r.name })));
     return rows;
   }
+  // 软代码切分：把名字按 -> / → 等切成「文字 / 箭头」交替序列（供图例绘制与量宽共用）。
+  // 没写箭头时在最前补一个箭头，保持「图例项 = 箭头 + 含义」的旧观感。
+  function softTokens(s) {
+    const str = String(s == null ? "" : s);
+    const out = [];
+    str.split(ARROW_SEP_RE).forEach((p, i) => {
+      if (i) out.push({ t: "arrow" });
+      if (p !== "") out.push({ t: "text", v: p });
+    });
+    if (!out.some((t) => t.t === "arrow")) out.unshift({ t: "arrow" });
+    if (!out.length) out.push({ t: "text", v: str });
+    return out;
+  }
+  App.softTokens = softTokens; // 复用：导出图例与画布内图例共用同一套软代码切分（勿各写一份）
+
+  // 箭头指向：面板上是「左框 → 右框」两个输入框，存档里是一个字符串（如「甲->乙」）。
+  // 下面两个函数是这层映射的唯一转换点，UI 与图例都走它，别各写一份。
+  App.ARROW_DEF_FROM = "情感主体";
+  App.ARROW_DEF_TO = "情感客体";
+  App.ARROW_SEP_RE = ARROW_SEP_RE;
+  // 存储串 → 两个框的值。旧存档只有单串：是旧默认「情感指向」就换成新默认对，
+  // 是用户自定义的单串则原样留在左框（不吞用户的字）。
+  App.arrowPair = function (s) {
+    const parts = String(s == null ? "" : s).split(ARROW_SEP_RE);
+    const from = (parts[0] || "").trim();
+    const to = parts.length > 1 ? parts.slice(1).join("->").trim() : "";
+    if (!to && (from === "" || from === "情感指向")) return { from: App.ARROW_DEF_FROM, to: App.ARROW_DEF_TO };
+    return { from: from, to: to };
+  };
+  // 两个框的值 → 存储串（右框空则只存左框，图例退回「箭头 + 单标签」的老观感）
+  App.arrowName = function (from, to) {
+    const a = String(from == null ? "" : from).trim();
+    const b = String(to == null ? "" : to).trim();
+    return b ? a + "->" + b : a;
+  };
+  // 显示用箭头名：**画布图例与导出图例都只走这里**。
+  // 先把存储串拆成两框、再拼回来，于是「面板两个框里看到的字」与「画布/导出图上画的字」
+  // 永远是同一份；旧存档里遗留的旧默认「情感指向」也会被顺带升级成新的默认对。
+  App.effectiveArrowName = function (meta) {
+    const raw = (meta && meta.arrowName != null) ? String(meta.arrowName) : null;
+    if (raw === null) return App.arrowName(App.ARROW_DEF_FROM, App.ARROW_DEF_TO); // 缺字段 → 默认对
+    if (raw === "") return "";                                                   // 两框都清空 → 这行不画
+    const ap = App.arrowPair(raw);
+    return App.arrowName(ap.from, ap.to);
+  };
   function legItemW(ctx, it, font) {
+    ctx.font = font + "px " + BAND_FONT;
+    if (it.kind === "soft") { // 软代码整段算一个宽度（内部段间不加额外间距）
+      let w = 0;
+      softTokens(it.name).forEach((tk) => {
+        w += (tk.t === "arrow") ? (font * 1.15 + 4) : ctx.measureText(tk.v).width;
+      });
+      return w;
+    }
     let sw;
     if (it.kind === "arrow") { sw = font * 1.15 + 4; }
     else if (it.kind === "dot") sw = font * 0.84 + 4;
     else sw = font * 1.15 + 4;
-    ctx.font = font + "px " + BAND_FONT;
     return sw + ctx.measureText(it.name).width;
   }
   function measureLegend(st, ctx, font) {
@@ -821,6 +882,29 @@
     // 统一字号：圆点/箭头分支自身不设 font，若不在这里显式设定，名称会沿用上一处的字号
     // （首行「情感指向」曾因此沿用副标题字号，比下方图例大一档）
     ctx.font = font + "px " + BAND_FONT;
+    if (it.kind === "soft") { // 软代码：文字与箭头连续绘制，段间不加额外间距
+      let cx = x;
+      softTokens(it.name).forEach((tk) => {
+        if (tk.t === "arrow") {
+          const aw = font * 1.15, ah = font * 0.8;
+          ctx.strokeStyle = textColor; ctx.lineWidth = Math.max(1.2, font * 0.1);
+          ctx.lineCap = "round"; ctx.lineJoin = "round";
+          ctx.beginPath();
+          ctx.moveTo(cx + ah * 0.2, cy);
+          ctx.lineTo(cx + aw - ah * 0.4, cy);
+          ctx.moveTo(cx + aw - ah * 0.7, cy - ah * 0.3);
+          ctx.lineTo(cx + aw - ah * 0.15, cy);
+          ctx.lineTo(cx + aw - ah * 0.7, cy + ah * 0.3);
+          ctx.stroke();
+          cx += aw + 4;
+        } else {
+          ctx.fillStyle = textColor;
+          ctx.fillText(tk.v, cx, cy);
+          cx += ctx.measureText(tk.v).width;
+        }
+      });
+      return;
+    }
     if (it.kind === "dot") {
       const r = font * 0.42;
       ctx.fillStyle = it.color;
@@ -930,7 +1014,11 @@
         const url = "data:image/svg+xml;charset=utf-8," + encodeURIComponent(xml);
         const img = new Image();
         img.onload = () => {
-          const s = scale || 2;
+          // 图片尺寸上限：长边不超过 EXPORT_MAX_PX，超出按比例自动降采样。
+          // 手机 canvas 面积有硬上限（约 1600 万像素），轨道极多时画布会变得很大，
+          // 不设限会导出失败或得到全白图。
+          const longSide = Math.max(w, h + topBand);
+          const s = Math.min(scale || 2, App.EXPORT_MAX_PX / longSide);
           const chartCanvas = document.createElement("canvas");
           chartCanvas.width = Math.round(w * s);
           chartCanvas.height = Math.round(h * s);
@@ -966,8 +1054,11 @@
             _leg.rows.forEach((row, ri) => {
               let lx = (W - _leg.widths[ri]) / 2;
               row.forEach((it, i) => {
+                // 间距必须加在「每项绘制之前」：宽度 arrays 已按 (n-1) 个 gap 计算，
+                // 旧写法把 gap 加在步进里，会让每行第一对（本命↔很喜欢 / 爱情↔友情）贴死。
+                if (i) lx += _leg.gap;
                 drawLegendItemScaled(ctx, it, lx, ly, legFont, fg);
-                lx += (i ? _leg.gap : 0) + legItemW(ctx, it, legFont);
+                lx += legItemW(ctx, it, legFont);
               });
               ly += _leg.rowH;
             });
@@ -1042,7 +1133,7 @@
         App.toast("当前环境不支持发布笔记", true);
         return;
       }
-      return App.exportPNG(2)
+      return App.exportPNG(1) // 导出分辨率减半（scale 2→1）：成品图体积更小、更易分享
         .then((imageUrl) => {
           const title = Array.from(App.state.title || "").slice(0, 20).join("") || "未命名关系图";
           const payload = {

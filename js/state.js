@@ -4,6 +4,12 @@
 
   const NODE_R = 18, INNER_R = 11;
   const NODE_R_MIN = 12, NODE_R_MAX = 40; // 角色圆圈半径可调范围（布局面板滑块）
+  // 轨道数上限：轨道间距固定 120，圈数越多整图越大，自动缩放会把圆圈缩成一个点
+  // （看起来像「卡住」，其实是缩得太小）。12 圈时导出长边约 3200px，仍在手机 canvas 安全区内。
+  const MAX_RINGS = 12;
+  // 导出图长边像素上限：手机 canvas 面积有硬上限（约 1600 万像素），
+  // 超过会出现导出失败 / 全白图。超出按比例自动降采样。
+  const EXPORT_MAX_PX = 4096;
 
   const DEFAULT_BOTTOM = [
     { key: "b1", name: "本命", color: "#d32f2f" },
@@ -18,7 +24,7 @@
     { key: "t4", name: "QPR", color: "#8e24aa" },
   ];
   // 箭头类型为固定枚举（连线面板选择用，不参与样式改名）：
-  // 类型名永远显示 无箭头/单箭头/双箭头；「含义名」为单一可编辑字段 meta.arrowName（默认"情感指向"）。
+  // 类型名永远显示 无箭头/单箭头/双箭头；「指向」为单一可编辑字段 meta.arrowName（默认"情感主体->情感客体"，面板上是左右两个输入框）。
   const DEFAULT_ARROW = [
     { key: "none", name: "无箭头", type: "none" },
     { key: "one", name: "单箭头", type: "one" },
@@ -59,7 +65,7 @@
         arrow: DEFAULT_ARROW.map((x) => ({ ...x })),
       },
       ui: { avatarMode: "both", showNames: true, slotMode: false, nodeR: NODE_R, night: false, charMode: false, paintMode: "link", thinW: 6.5, thinDash: false, layoutHint: false },
-      meta: { filler: "", arrowName: "情感指向" }, // arrowName=箭头含义（图例/导出显示，可改）
+      meta: { filler: "", arrowName: "情感主体->情感客体" }, // arrowName=箭头指向（图例/导出显示，可改；存形如「甲->乙」）
     };
   }
 
@@ -118,7 +124,7 @@
       if (c.ring === 0) {
         c.x = 0; c.y = 0;
       } else {
-        const a = c.angle == null ? -Math.PI / 2 : c.angle;
+        const a = c.angle == null ? -Math.PI / 2 + App.ringRot(c.ring) : c.angle;
         c.x = rad * Math.cos(a);
         c.y = rad * Math.sin(a);
       }
@@ -127,6 +133,57 @@
 
   // 某圈内的角色
   App.charsOnRing = (ring) => App.state.chars.filter((c) => c.ring === ring);
+
+  // 每条轨道的整体旋转基准角（弧度）。存在轨道对象上 → 随存档保存、随撤销回滚。
+  // 为什么必须记在轨道上，而不是只改各角色的 angle：
+  // distributeRing 会把整圈角度按 -PI/2 重新铺开（加人 / 开槽位 / 平均排布都会触发），
+  // 没有这个基准角的话，旋转会在下一次重排时被「吸回」。
+  App.ringRot = function (ring) {
+    const r = App.state.rings[ring - 1];
+    return (r && Number(r.rot)) || 0;
+  };
+
+  // 直接设基准角（拖拽期间逐帧调用）：只改数据不推进撤销栈，
+  // 撤销点由起手时的那一次 commitHist 承担，整段拖拽 = 一步撤销。
+  App.setRingRot = function (ring, targetRot) {
+    const r = App.state.rings[ring - 1];
+    if (!(ring > 0) || !r || !isFinite(targetRot)) return;
+    let d = Number(targetRot) - (Number(r.rot) || 0);
+    while (d > Math.PI) d -= 2 * Math.PI; // 取最小差值，跨 ±180° 不跳变
+    while (d < -Math.PI) d += 2 * Math.PI;
+    if (!d) return;
+    r.rot = App.normAngle((Number(r.rot) || 0) + d);
+    App.charsOnRing(ring).forEach((c) => {
+      const a = c.angle == null ? -Math.PI / 2 : c.angle;
+      c.angle = App.normAngle(a + d);
+    });
+  };
+
+  // 整圈旋转（只转角度、不重排）：手动拖过的相对位置也一起转，不改变圈内顺序
+  App.rotateRing = function (ring, deg) {
+    const d = ((Number(deg) || 0) * Math.PI) / 180;
+    if (!(ring > 0) || !App.state.rings[ring - 1] || !d) return 0;
+    App.act(() => App.setRingRot(ring, App.ringRot(ring) + d));
+    return App.charsOnRing(ring).length;
+  };
+
+  // 回正：反向转掉已累积的角度（相对位置保持不变，不做重排）
+  App.resetRingRot = function (ring) {
+    const rot = App.ringRot(ring);
+    if (!rot) return;
+    App.rotateRing(ring, (-rot * 180) / Math.PI);
+  };
+
+  // 当前选中的轨道（纯 UI 状态：不进文档、不进撤销栈、不参与存档）
+  App.selRing = null;
+  App.setSelRing = function (ring) {
+    const v = ring ? Number(ring) : null;
+    if (v === App.selRing) return; // 值没变就不重绘，避免点空白反复重绘
+    App.selRing = v;
+    // 只重绘画布：旋转手柄是画布上的 ↻，面板不依赖「选中了哪一圈」，
+    // 所以这里不重建面板（重建会把面板滚动位置弹回去）
+    if (App.render) App.render();
+  };
 
   // 均分某圈（按当前角度排序），把空圈角色数>0的铺满
   App.distributeRing = function (ring, opts) {
@@ -145,7 +202,7 @@
       const step = sl / n;
       sorted.forEach((it, i) => {
         const slot = Math.min(sl - 1, Math.round(i * step));
-        it.c.angle = -Math.PI / 2 + (slot * 2 * Math.PI) / sl;
+        it.c.angle = -Math.PI / 2 + App.ringRot(ring) + (slot * 2 * Math.PI) / sl;
         it.c.slot = slot;
       });
       return;
@@ -186,7 +243,7 @@
       .map((c) => ({ c, a: c.angle == null ? -Math.PI / 2 : App.normAngle(c.angle) }))
       .sort((p, q) => p.a - q.a);
     sorted.forEach((it, i) => {
-      it.c.angle = -Math.PI / 2 + (i * 2 * Math.PI) / n;
+      it.c.angle = -Math.PI / 2 + App.ringRot(ring) + (i * 2 * Math.PI) / n;
       it.c.slot = null;
     });
   };
@@ -591,7 +648,15 @@
       ver: 1,
       title: typeof doc.title === "string" ? doc.title : fresh.title,
       bg: doc.bg || fresh.bg,
-      rings: Array.isArray(doc.rings) && doc.rings.length ? doc.rings.map((r) => ({ rad: Number(r.rad) || 150 })) : fresh.rings,
+      // rings 逐字段白名单重建：只还原 rad 会丢 slots（槽位数）与 rot（整圈旋转基准角），
+      // 表现为「导出再导入后槽位没了、转过的圈回正了」——与 1.0.3 修的那批往返失真同源。
+      rings: Array.isArray(doc.rings) && doc.rings.length
+        ? doc.rings.map((r) => ({
+            rad: Number(r.rad) || 150,
+            slots: r.slots == null ? null : (Number(r.slots) || null),
+            rot: Number(r.rot) || 0,
+          }))
+        : fresh.rings,
       chars: (doc.chars || []).map((c) => ({
         id: c.id || App.uid("c"), name: c.name || "?", ring: Number(c.ring) || 0,
         angle: c.angle == null ? null : Number(c.angle), slot: c.slot == null ? null : c.slot,
@@ -614,7 +679,7 @@
       ui: Object.assign({}, fresh.ui, doc.ui || {}),
       meta: {
         filler: doc.meta && doc.meta.filler ? String(doc.meta.filler) : "",
-        arrowName: doc.meta && doc.meta.arrowName ? String(doc.meta.arrowName) : "情感指向",
+        arrowName: doc.meta && doc.meta.arrowName ? String(doc.meta.arrowName) : "情感主体->情感客体",
       },
     };
     // 收敛旧快照里同对多条 top/bottom（top 保留 A→B 与 B→A 两个方向各一条）
@@ -707,6 +772,22 @@
   App.LOCAL_SAVES_MAX_BYTES = Math.floor(5 * 1024 * 1024 * 0.9); // ≈4.5MB 安全预算
   App.LOCAL_SAVES_MAX_COUNT = 40; // 硬张数上限
 
+  // ---------- 用户名（填表人）本地记忆 ----------
+  // 与「图表数据」分开存：填表人是跨图复用的身份信息，新建画布应自动带入，不该每图清零。
+  // 只存一个昵称字符串，不涉及任何账号/密码（云端账号体系见 1.1 计划）。
+  App.USER_NAME_KEY = "cpc_user_name_v1";
+  App.getSavedUser = function () {
+    try { return Array.from(String(localStorage.getItem(App.USER_NAME_KEY) || "")).slice(0, 12).join(""); }
+    catch (e) { return ""; }
+  };
+  App.setSavedUser = function (name) {
+    try {
+      const v = Array.from(String(name == null ? "" : name).trim()).slice(0, 12).join("");
+      if (v) localStorage.setItem(App.USER_NAME_KEY, v);
+      else localStorage.removeItem(App.USER_NAME_KEY);
+    } catch (e) { /* 隐私模式 / 配额满：静默忽略，不影响主流程 */ }
+  };
+
   App._readLocalManifest = function () {
     try {
       const raw = localStorage.getItem(App.LOCAL_SAVES_KEY);
@@ -769,6 +850,7 @@
 
   App.newDoc = function () {
     App.state = freshDoc();
+    App.state.meta.filler = App.getSavedUser(); // 新建画布自动带入本地记忆的用户名（填表人）
     App.selCharId = null; App.filterRoot = null; App.linkSource = null; App.dragGhost = null; App.eraser = false; App.pendingLinkDel = null;
     App.hist = { u: [], r: [] };
     App.notifyChanged();
@@ -785,6 +867,8 @@
   App.NODE_R = NODE_R;
   App.NODE_R_MIN = NODE_R_MIN;
   App.NODE_R_MAX = NODE_R_MAX;
+  App.MAX_RINGS = MAX_RINGS;
+  App.EXPORT_MAX_PX = EXPORT_MAX_PX;
   App.SLOT_MIN = 6; // 开启槽位时每圈默认槽位保底数（不足 6 按 6 算，人数更多则按人数）
   App.INNER_R = INNER_R;
   App.PRESET_TEXT = PRESET_TEXT;

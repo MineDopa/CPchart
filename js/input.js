@@ -25,6 +25,30 @@
     return h ? h.getAttribute("data-link") : null;
   }
 
+  // 点到哪条轨道：把点击位置换算到世界坐标，取最近且落在容差内的那条轨道半径。
+  // 不用「给圆环加一圈隐形粗命中线」的做法——那会和空白拖动平移抢手势。
+  // 屏幕坐标 → 画布世界坐标（视图缩放 / 平移的逆变换）
+  function viewToWorld(clientX, clientY) {
+    const rect = getSvg().getBoundingClientRect();
+    return {
+      x: (clientX - rect.left - App.view.tx) / App.view.s,
+      y: (clientY - rect.top - App.view.ty) / App.view.s,
+    };
+  }
+
+  function ringAt(clientX, clientY) {
+    const w = viewToWorld(clientX, clientY);
+    const d = Math.hypot(w.x, w.y);
+    // 容差：屏幕上约 22px；上限 40 世界单位，避免相邻两圈（间距 120）同时命中
+    const tol = Math.min(40, 22 / Math.max(0.2, App.view.s));
+    let best = null, bestDiff = Infinity;
+    (App.state.rings || []).forEach((r, i) => {
+      const diff = Math.abs(d - (Number(r.rad) || 0));
+      if (diff <= tol && diff < bestDiff) { bestDiff = diff; best = i + 1; }
+    });
+    return best;
+  }
+
   function updateZoomLabel() {
     const zl = App.byId("zoomLabel");
     if (zl) zl.textContent = Math.round(App.view.s * 100) + "%";
@@ -101,11 +125,24 @@
       }
     }
 
-    // ① 布局：圈半径拖拽点
+    // ①-a 选中轨道的旋转手柄（蓝点半径手柄右边的 ↻）：按住拖动 = 绕圆心整圈旋转
+    const rhRot = e.target.closest && e.target.closest("[data-ringrot]");
+    if (tab === "layout" && rhRot) {
+      const ring = parseInt(rhRot.getAttribute("data-ringrot"), 10);
+      App.commitHist(); // 起手记一次撤销点，整段拖拽 = 一步撤销
+      gesture = "ringRotDrag";
+      gData = { ring, sx: p.x, sy: p.y, moved: false, startA: 0, startRot: App.ringRot(ring) };
+      try { svgEl.setPointerCapture(e.pointerId); } catch (err) {}
+      return;
+    }
+
+    // ① 布局：圈半径拖拽点（按住这个蓝点 = 选中该圈 + 调大小；
+    //    选中后蓝点会加深、右侧并排出现白底 ↻，可以接着转圈）
     const rh = e.target.closest && e.target.closest("[data-ring]");
     if (tab === "layout" && rh) {
       const ring = parseInt(rh.getAttribute("data-ring"), 10);
       App.commitHist();
+      if (App.setSelRing) App.setSelRing(ring); // 蓝点被按下即选中 → 旁边的 ↻ 出现
       gesture = "rhDrag";
       gData = { ring, startY: p.y, startRad: App.state.rings[ring - 1].rad, moved: false };
       try { svgEl.setPointerCapture(e.pointerId); } catch (err) {}
@@ -336,6 +373,23 @@
       return;
     }
 
+    if (gesture === "ringRotDrag") {
+      // 越过拖动阈值才开始转（否则轻点手柄会微转），并从越过阈值那一点起算，避免起手跳一下
+      if (!gData.moved) {
+        if (Math.hypot(p.x - gData.sx, p.y - gData.sy) <= DRAG_TH) return;
+        gData.moved = true;
+        const w0 = viewToWorld(p.x, p.y);
+        gData.startA = Math.atan2(w0.y, w0.x);
+        gData.startRot = App.ringRot(gData.ring);
+      }
+      const w = viewToWorld(p.x, p.y);
+      // 转过的角度 = 指针相对圆心的方位角变化量（圆心恒定在 0,0）
+      App.setRingRot(gData.ring, gData.startRot + (Math.atan2(w.y, w.x) - gData.startA));
+      App.render();
+      hint(`圈${gData.ring} 已转 ${Math.round((App.ringRot(gData.ring) * 180) / Math.PI)}°`);
+      return;
+    }
+
     if (gesture === "rhDrag") {
       const dRad = (gData.startY - p.y) / App.view.s;
       const rad = Math.max(40, gData.startRad + dRad);
@@ -366,7 +420,25 @@
     const g = gesture;
     gesture = null;
 
-    if (g === "pan") { gData = null; return; }
+    if (g === "pan") {
+      // 没移动 = 一次点击：布局页里点在轨道圆环上就选中该轨道（旋转控件在布局面板里）
+      const moved = !gData || Math.hypot(p.x - gData.startX, p.y - gData.startY) > DRAG_TH;
+      if (!moved && App.activeTab === "layout" && App.setSelRing) {
+        App.setSelRing(ringAt(p.x, p.y) || null);
+      }
+      gData = null;
+      return;
+    }
+
+    if (g === "ringRotDrag") {
+      if (gData.moved) {
+        App.notifyChanged();
+        App.toast(`圈${gData.ring} 已转 ${Math.round((App.ringRot(gData.ring) * 180) / Math.PI)}°`);
+      }
+      hint();
+      gData = null;
+      return;
+    }
 
     if (g === "rhDrag") {
       const rad = App.state.rings[gData.ring - 1].rad;
